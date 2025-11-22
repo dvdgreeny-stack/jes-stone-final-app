@@ -19,7 +19,7 @@ const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
 };
 
 // --- Layout Components ---
-const Header: React.FC<{ surveyUrl: string; onGoogleScriptClick: () => void }> = ({ surveyUrl, onGoogleScriptClick }) => (
+const Header: React.FC<{ surveyUrl: string }> = ({ surveyUrl }) => (
     <header className="bg-light-navy/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center py-3">
             <a href="#/" onClick={handleNav} className="flex items-center gap-3">
@@ -29,7 +29,6 @@ const Header: React.FC<{ surveyUrl: string; onGoogleScriptClick: () => void }> =
             <div className="flex items-center space-x-2 sm:space-x-4">
                 <a href="#/" onClick={handleNav} className="text-sm sm:text-base font-medium text-lightest-slate bg-lightest-navy/50 px-3 py-2 rounded-md hover:bg-lightest-navy transition-colors">Email Flyer</a>
                 <a href={surveyUrl} onClick={handleNav} className="text-sm sm:text-base font-medium text-lightest-slate bg-lightest-navy/50 px-3 py-2 rounded-md hover:bg-lightest-navy transition-colors">Live Survey</a>
-                <a href={APPS_SCRIPT_URL} target="_blank" rel="noopener noreferrer" className="text-sm sm:text-base font-medium text-lightest-slate bg-lightest-navy/50 px-3 py-2 rounded-md hover:bg-lightest-navy transition-colors">Google Script</a>
             </div>
         </nav>
     </header>
@@ -129,7 +128,7 @@ const App: React.FC = () => {
 
     return (
         <div className="dark min-h-screen bg-navy text-light-slate font-sans">
-            <Header surveyUrl={surveyUrlForHeader} onGoogleScriptClick={() => window.open(APPS_SCRIPT_URL, '_blank')} />
+            <Header surveyUrl={surveyUrlForHeader} />
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {renderContent()}
             </main>
@@ -284,7 +283,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-light-slate mb-1">Property Address</label>
-                        <div className="w-full bg-navy p-2 border border-lightest-navy rounded-md h-10 flex items-center text-slate">
+                        <div className="w-full bg-navy p-2 border border-lightest-navy rounded-md min-h-[40px] flex items-center text-slate">
                             {selectedProperty ? selectedProperty.address : 'Address auto-populates...'}
                         </div>
                     </div>
