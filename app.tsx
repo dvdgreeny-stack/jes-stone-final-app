@@ -192,26 +192,30 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
 
 const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ companyId, companyData }) => {
     const company = useMemo(() => companyData.find(c => c.id === companyId), [companyId, companyData]);
-    const [formData, setFormData] = useState<SurveyData>({
-        propertyId: '', firstName: '', lastName: '', title: '', phone: '', email: '',
-        unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [],
-    });
-    const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-    const [isGenerating, setIsGenerating] = useState(false);
-
-    // Pre-populate form from URL query parameters on initial load
-    useEffect(() => {
+    
+    const getInitialFormData = () => {
         const params = new URLSearchParams(window.location.hash.split('?')[1]);
         const firstName = params.get('firstName');
         const email = params.get('email');
-        if (firstName || email) {
-            setFormData(prev => ({
-                ...prev,
-                firstName: firstName ? decodeURIComponent(firstName) : prev.firstName,
-                email: email ? decodeURIComponent(email) : prev.email,
-            }));
-        }
-    }, []); // Run only once on component mount
+        return {
+            propertyId: '', 
+            firstName: firstName ? decodeURIComponent(firstName) : '', 
+            lastName: '', 
+            title: '', 
+            phone: '', 
+            email: email ? decodeURIComponent(email) : '',
+            unitInfo: '', 
+            services: [], 
+            otherService: '', 
+            timeline: '', 
+            notes: '', 
+            contactMethods: [],
+        };
+    };
+
+    const [formData, setFormData] = useState<SurveyData>(getInitialFormData);
+    const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const [isGenerating, setIsGenerating] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -298,7 +302,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-light-slate mb-1">Property Address</label>
-                        <div className="w-full bg-navy p-2 border border-lightest-navy rounded-md flex items-start text-slate">
+                        <div className="w-full bg-navy p-2 border border-lightest-navy rounded-md flex items-start text-slate min-h-[40px]">
                             {selectedProperty ? selectedProperty.address : 'Address auto-populates...'}
                         </div>
                     </div>
