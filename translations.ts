@@ -41,6 +41,17 @@ export const translations = {
     submitButton: "SUBMIT FOR IMMEDIATE REPLY",
     submittingButton: "Submitting...",
 
+    // FIX: Add missing translation keys for submission status messages.
+    // Submission Status Messages
+    submitSuccessTitle: "Submission Received!",
+    submitSuccessMessage1: "Thank you for your request. Our team will get back to you shortly.",
+    submitSuccessMessage2: "You can now safely close this page.",
+    returnHomeButton: "Return to Home",
+    submitErrorTitle: "Submission Failed",
+    submitErrorMessage1: "There was an error processing your request.",
+    submitErrorMessage2: "Please try again or contact us directly if the problem persists.",
+    tryAgainButton: "Try Again",
+
     // Options (Arrays)
     SERVICES: [
       'Countertops - Quartz',
@@ -113,6 +124,17 @@ export const translations = {
     generatingButton: "Generando...",
     submitButton: "ENVIAR PARA RESPUESTA INMEDIATA",
     submittingButton: "Enviando...",
+
+    // FIX: Add missing translation keys for submission status messages.
+    // Mensajes de Estado de Envío
+    submitSuccessTitle: "¡Solicitud Recibida!",
+    submitSuccessMessage1: "Gracias por su solicitud. Nuestro equipo se pondrá en contacto con usted en breve.",
+    submitSuccessMessage2: "Ahora puede cerrar esta página de forma segura.",
+    returnHomeButton: "Volver al Inicio",
+    submitErrorTitle: "Error en el Envío",
+    submitErrorMessage1: "Hubo un error al procesar su solicitud.",
+    submitErrorMessage2: "Por favor, inténtelo de nuevo o contáctenos directamente si el problema persiste.",
+    tryAgainButton: "Intentar de Nuevo",
 
     // Opciones (Arrays)
     SERVICES: [
