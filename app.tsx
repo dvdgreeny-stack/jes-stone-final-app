@@ -170,7 +170,7 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
             </div>
             
             <div className="bg-navy p-8 rounded-lg flex flex-col items-center">
-                <div className="bg-platinum text-navy w-full max-w-md p-8 rounded-lg shadow-xl text-center">
+                 <div className="bg-platinum text-navy w-full max-w-md p-8 rounded-lg shadow-xl text-center">
                     <div className="flex items-center justify-center gap-4 bg-navy p-4 rounded-md mb-8">
                         <JesStoneLogo className="h-12 w-auto text-bright-cyan" />
                         <span className="text-2xl font-bold text-lightest-slate tracking-wider">JES STONE SERVICES</span>
