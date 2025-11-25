@@ -158,7 +158,7 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
     return (
         <div className="bg-light-navy p-6 rounded-lg shadow-2xl">
             <h2 className="text-3xl font-bold text-lightest-slate mb-2">Service Assistant</h2>
-            <p className="mb-6 text-bright-cyan">For {selectedCompany?.name || 'DFW'} DFW Properties</p>
+            <p className="mb-6 text-bright-cyan">For {selectedCompany?.name || 'DFW'} Properties</p>
 
             <div className="mb-8">
                 <label htmlFor="company-select" className="block text-sm font-medium text-light-slate mb-2">Select Target Company:</label>
@@ -187,7 +187,7 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
 const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ companyId, companyData }) => {
     const company = useMemo(() => companyData.find(c => c.id === companyId), [companyId, companyData]);
     
-    const getInitialFormData = () => {
+    const getInitialFormData = useCallback(() => {
         const params = new URLSearchParams(window.location.hash.split('?')[1]);
         const firstName = params.get('firstName');
         const email = params.get('email');
@@ -205,11 +205,15 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
             notes: '', 
             contactMethods: [],
         };
-    };
+    }, []);
 
     const [formData, setFormData] = useState<SurveyData>(getInitialFormData);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [isGenerating, setIsGenerating] = useState(false);
+
+    useEffect(() => {
+        setFormData(getInitialFormData());
+    }, [companyId, getInitialFormData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
