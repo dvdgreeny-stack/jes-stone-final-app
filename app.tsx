@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { generateNotesDraft } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
-import { SERVICES, TITLES, TIMELINES, CONTACT_METHODS } from './constants';
+import { translations } from './translations';
 import type { Company, SurveyData } from './types';
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon } from './components/icons';
 
@@ -60,7 +60,6 @@ const App: React.FC = () => {
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [route, setRoute] = useState({ page: 'campaign', companyId: null as string | null });
 
-    // Helper function for routing, now depends on fetched companyData
     const getRouteFromHash = useCallback((data: Company[]) => {
         const hash = window.location.hash;
         const surveyMatch = hash.match(/^#\/survey\/([a-zA-Z0-9_-]+)/);
@@ -70,7 +69,6 @@ const App: React.FC = () => {
         return { page: 'campaign' as const, companyId: null };
     }, []);
 
-    // Fetch data on initial load
     useEffect(() => {
         const loadData = async () => {
             try {
@@ -80,7 +78,6 @@ const App: React.FC = () => {
                     setSelectedCompanyId(data[0].id);
                 }
                 setStatus('success');
-                // Set initial route after data is successfully loaded
                 setRoute(getRouteFromHash(data));
             } catch (error) {
                 console.error("Failed to load company data:", error);
@@ -90,7 +87,6 @@ const App: React.FC = () => {
         loadData();
     }, [getRouteFromHash]);
     
-    // Handle hash changes for navigation
     useEffect(() => {
         const handleHashChange = () => {
             if (companyData.length > 0) {
@@ -185,6 +181,9 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
 };
 
 const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ companyId, companyData }) => {
+    const [lang, setLang] = useState<'en' | 'es'>('en');
+    const t = useMemo(() => translations[lang], [lang]);
+
     const company = useMemo(() => companyData.find(c => c.id === companyId), [companyId, companyData]);
     
     const getInitialFormData = useCallback(() => {
@@ -284,70 +283,77 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
   
     return (
       <div className="bg-light-navy p-6 rounded-lg shadow-2xl">
-        <h2 className="text-2xl font-bold text-lightest-slate mb-1">Service Request Survey</h2>
-        <p className="mb-6 text-slate">For <span className="font-bold text-bright-blue">{company.name}</span> Properties</p>
+        <div className="flex justify-between items-center">
+            <div>
+                <h2 className="text-2xl font-bold text-lightest-slate mb-1">{t.surveyTitle}</h2>
+                <p className="mb-6 text-slate">{t.surveySubtitle} <span className="font-bold text-bright-blue">{company.name}</span> {t.surveySubtitleProperties}</p>
+            </div>
+            <button onClick={() => setLang(lang === 'en' ? 'es' : 'en')} className="text-sm font-medium text-bright-cyan hover:text-opacity-80">
+                {t.languageToggle}
+            </button>
+        </div>
   
         <form onSubmit={handleSubmit} className="space-y-6">
             <fieldset className="p-4 border border-lightest-navy rounded-md">
-                <legend className="px-2 text-lg font-semibold text-bright-cyan">Property Identification</legend>
+                <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.propertyIdLegend}</legend>
                 <div className="grid md:grid-cols-2 gap-4 mt-2">
                     <div>
-                        <label htmlFor="propertyId" className="block text-sm font-medium text-light-slate mb-1">Property Name</label>
+                        <label htmlFor="propertyId" className="block text-sm font-medium text-light-slate mb-1">{t.propertyNameLabel}</label>
                         <select id="propertyId" name="propertyId" value={formData.propertyId} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan">
-                            <option value="">Select {company.name} property...</option>
+                            <option value="">{t.propertySelectPlaceholder} {company.name}{t.propertySelectPlaceholderProperty}</option>
                             {company.properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-light-slate mb-1">Property Address</label>
+                        <label className="block text-sm font-medium text-light-slate mb-1">{t.propertyAddressLabel}</label>
                         <div className="w-full bg-navy p-2 border border-lightest-navy rounded-md flex items-start text-slate min-h-[40px]">
-                            {selectedProperty ? selectedProperty.address : 'Address auto-populates...'}
+                            {selectedProperty ? selectedProperty.address : t.addressPlaceholder}
                         </div>
                     </div>
                 </div>
             </fieldset>
 
             <fieldset className="p-4 border border-lightest-navy rounded-md">
-                <legend className="px-2 text-lg font-semibold text-bright-cyan">Contact Information</legend>
+                <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.contactInfoLegend}</legend>
                 <div className="grid md:grid-cols-2 gap-4 mt-2">
                     <div>
-                        <label htmlFor="firstName" className="block text-sm font-medium text-light-slate mb-1">First Name</label>
+                        <label htmlFor="firstName" className="block text-sm font-medium text-light-slate mb-1">{t.firstNameLabel}</label>
                         <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
                     </div>
                     <div>
-                        <label htmlFor="lastName" className="block text-sm font-medium text-light-slate mb-1">Last Name</label>
+                        <label htmlFor="lastName" className="block text-sm font-medium text-light-slate mb-1">{t.lastNameLabel}</label>
                         <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
                     </div>
                     <div>
-                        <label htmlFor="title" className="block text-sm font-medium text-light-slate mb-1">Title / Role</label>
+                        <label htmlFor="title" className="block text-sm font-medium text-light-slate mb-1">{t.titleRoleLabel}</label>
                         <select id="title" name="title" value={formData.title} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan">
-                            <option value="">Select Role...</option>
-                            {TITLES.map(t => <option key={t} value={t}>{t}</option>)}
+                            <option value="">{t.roleSelectPlaceholder}</option>
+                            {t.TITLES.map(title => <option key={title} value={title}>{title}</option>)}
                             <option value="Other">Other</option>
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-light-slate mb-1">Phone Number</label>
+                        <label htmlFor="phone" className="block text-sm font-medium text-light-slate mb-1">{t.phoneLabel}</label>
                         <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
                     </div>
                     <div className="md:col-span-2">
-                        <label htmlFor="email" className="block text-sm font-medium text-light-slate mb-1">Email Address</label>
+                        <label htmlFor="email" className="block text-sm font-medium text-light-slate mb-1">{t.emailLabel}</label>
                         <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
                     </div>
                 </div>
             </fieldset>
 
             <fieldset className="p-4 border border-lightest-navy rounded-md">
-                <legend className="px-2 text-lg font-semibold text-bright-cyan">Scope & Timeline</legend>
+                <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.scopeTimelineLegend}</legend>
                 <div className="space-y-4 mt-2">
                     <div>
-                        <label htmlFor="unitInfo" className="block text-sm font-medium text-light-slate mb-1">Unit # / Unit Count / Area</label>
-                        <input type="text" id="unitInfo" name="unitInfo" value={formData.unitInfo} onChange={handleInputChange} placeholder="Single Unit" required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
+                        <label htmlFor="unitInfo" className="block text-sm font-medium text-light-slate mb-1">{t.unitInfoLabel}</label>
+                        <input type="text" id="unitInfo" name="unitInfo" value={formData.unitInfo} onChange={handleInputChange} placeholder={t.unitInfoPlaceholder} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-light-slate mb-2">Service Needed (Select Multiple)</label>
+                        <label className="block text-sm font-medium text-light-slate mb-2">{t.serviceNeededLabel}</label>
                         <div className="grid sm:grid-cols-2 gap-2">
-                            {SERVICES.map(service => (
+                            {t.SERVICES.map(service => (
                                 <label key={service} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.services.includes(service) ? 'bg-bright-cyan/20 ring-2 ring-bright-cyan' : 'bg-navy hover:bg-lightest-navy'}`}>
                                     <input type="checkbox" checked={formData.services.includes(service)} onChange={() => handleCheckboxChange('services', service)} className="hidden"/>
                                     <div className={`w-5 h-5 border-2 ${formData.services.includes(service) ? 'border-bright-cyan bg-bright-cyan' : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
@@ -357,31 +363,31 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                                 </label>
                             ))}
                         </div>
-                        {formData.services.includes('Other: we have many Associate Subs') && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder="Please specify 'Other' service" className="mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>}
+                        {formData.services.includes(translations.en.SERVICES[7]) && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder={t.otherServicePlaceholder} className="mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>}
                     </div>
                     <div>
-                        <label htmlFor="timeline" className="block text-sm font-medium text-light-slate mb-1">Project Timeline</label>
+                        <label htmlFor="timeline" className="block text-sm font-medium text-light-slate mb-1">{t.timelineLabel}</label>
                         <select id="timeline" name="timeline" value={formData.timeline} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan">
-                            <option value="">Select timeline...</option>
-                            {TIMELINES.map(t => <option key={t} value={t}>{t}</option>)}
+                            <option value="">{t.timelineSelectPlaceholder}</option>
+                            {t.TIMELINES.map(timeline => <option key={timeline} value={timeline}>{timeline}</option>)}
                         </select>
                     </div>
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label htmlFor="notes" className="block text-sm font-medium text-light-slate">Additional Notes and Dynamics</label>
+                            <label htmlFor="notes" className="block text-sm font-medium text-light-slate">{t.notesLabel}</label>
                             <button type="button" onClick={handleGenerateNotes} disabled={isGenerating} className="flex items-center gap-1 text-xs text-bright-pink hover:text-opacity-80 disabled:text-slate">
-                                {isGenerating ? <><LoadingSpinner />Generating...</> : <><SparklesIcon className="h-4 w-4" /> Generate AI Draft</>}
+                                {isGenerating ? <><LoadingSpinner />{t.generatingButton}</> : <><SparklesIcon className="h-4 w-4" /> {t.generateAIDraftButton}</>}
                             </button>
                         </div>
-                        <textarea id="notes" name="notes" rows={4} value={formData.notes} onChange={handleInputChange} placeholder="Let it all out here. We'll figure it out fast..." className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"></textarea>
+                        <textarea id="notes" name="notes" rows={4} value={formData.notes} onChange={handleInputChange} placeholder={t.notesPlaceholder} className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"></textarea>
                     </div>
                 </div>
             </fieldset>
             
             <fieldset className="p-4 border border-lightest-navy rounded-md">
-                <legend className="px-2 text-lg font-semibold text-bright-cyan">How would you like to be contacted?</legend>
+                <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.contactMethodLegend}</legend>
                  <div className="grid sm:grid-cols-2 gap-2 mt-2">
-                    {CONTACT_METHODS.map(method => (
+                    {t.CONTACT_METHODS.map(method => (
                         <label key={method} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.contactMethods.includes(method) ? 'bg-bright-cyan/20 ring-2 ring-bright-cyan' : 'bg-navy hover:bg-lightest-navy'}`}>
                             <input type="checkbox" checked={formData.contactMethods.includes(method)} onChange={() => handleCheckboxChange('contactMethods', method)} className="hidden"/>
                             <div className={`w-5 h-5 border-2 ${formData.contactMethods.includes(method) ? 'border-bright-cyan bg-bright-cyan' : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
@@ -394,7 +400,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
             </fieldset>
 
             <button type="submit" disabled={submissionStatus === 'submitting'} className="w-full flex items-center justify-center gap-2 bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all text-lg disabled:bg-slate disabled:cursor-not-allowed">
-                {submissionStatus === 'submitting' ? <><LoadingSpinner /> Submitting...</> : <>SUBMIT FOR IMMEDIATE REPLY <PaperAirplaneIcon className="h-5 w-5" /></>}
+                {submissionStatus === 'submitting' ? <><LoadingSpinner /> {t.submittingButton}</> : <>{t.submitButton} <PaperAirplaneIcon className="h-5 w-5" /></>}
             </button>
             <p className="text-center text-xs text-slate">Data secured for Jes Stone internal use only.</p>
         </form>

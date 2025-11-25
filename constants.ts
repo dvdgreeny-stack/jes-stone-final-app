@@ -1,32 +1,4 @@
-export const SERVICES: string[] = [
-  'Countertops - Quartz',
-  'Countertops - Granite',
-  'Cabinets - Refacing',
-  'Cabinets - Replacement',
-  'Contract Make-Ready',
-  'Tile - Wall',
-  'Tile - Flooring',
-  'Other: we have many Associate Subs',
-];
+// This file is now empty. All translatable constant arrays have been moved to translations.ts.
+// It is kept for potential future use for non-translatable constants.
 
-export const TITLES: string[] = [
-  'Onsite Manager',
-  'Onsite Maintenance',
-  'Regional Manager',
-];
-
-export const TIMELINES: string[] = [
-    'Emergency',
-    'Service - Time Sensitive',
-    'Service - Repairs',
-    'Consultation',
-    'CapEx Budget - Future',
-    'CapEx Budget - Surplus'
-];
-
-export const CONTACT_METHODS: string[] = [
-    'Phone Call (immediate)',
-    'Email Reply',
-    'Text Message (SMS)',
-    'Schedule Meeting Link',
-];
+export {}; // Ensures the file is treated as a module.
