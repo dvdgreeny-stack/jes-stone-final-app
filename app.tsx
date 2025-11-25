@@ -62,7 +62,8 @@ const App: React.FC = () => {
 
     // Helper function for routing, now depends on fetched companyData
     const getRouteFromHash = useCallback((data: Company[]) => {
-        const surveyMatch = window.location.hash.match(/^#\/survey\/([a-zA-Z0-9_-]+)$/);
+        const hash = window.location.hash;
+        const surveyMatch = hash.match(/^#\/survey\/([a-zA-Z0-9_-]+)/);
         if (surveyMatch && data.find(c => c.id === surveyMatch[1])) {
             return { page: 'survey' as const, companyId: surveyMatch[1] };
         }
@@ -198,6 +199,20 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [isGenerating, setIsGenerating] = useState(false);
 
+    // Pre-populate form from URL query parameters on initial load
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.hash.split('?')[1]);
+        const firstName = params.get('firstName');
+        const email = params.get('email');
+        if (firstName || email) {
+            setFormData(prev => ({
+                ...prev,
+                firstName: firstName ? decodeURIComponent(firstName) : prev.firstName,
+                email: email ? decodeURIComponent(email) : prev.email,
+            }));
+        }
+    }, []); // Run only once on component mount
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -283,7 +298,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-light-slate mb-1">Property Address</label>
-                        <div className="w-full bg-navy p-2 border border-lightest-navy rounded-md min-h-[40px] flex items-center text-slate">
+                        <div className="w-full bg-navy p-2 border border-lightest-navy rounded-md flex items-start text-slate">
                             {selectedProperty ? selectedProperty.address : 'Address auto-populates...'}
                         </div>
                     </div>
@@ -369,10 +384,10 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                             <input type="checkbox" checked={formData.contactMethods.includes(method)} onChange={() => handleCheckboxChange('contactMethods', method)} className="hidden"/>
                             <div className={`w-5 h-5 border-2 ${formData.contactMethods.includes(method) ? 'border-bright-cyan bg-bright-cyan' : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
                                 {formData.contactMethods.includes(method) && <svg className="w-3 h-3 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
-                            </div>
-                            <span>{method}</span>
-                        </label>
-                    ))}
+                                    </div>
+                                    <span>{method}</span>
+                                </label>
+                            ))}
                 </div>
             </fieldset>
 
