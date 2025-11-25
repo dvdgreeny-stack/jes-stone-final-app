@@ -6,7 +6,7 @@ export const SERVICES: string[] = [
   'Contract Make-Ready',
   'Tile - Wall',
   'Tile - Flooring',
-  'Other',
+  'Other: we have many Associate Subs',
 ];
 
 export const TITLES: string[] = [

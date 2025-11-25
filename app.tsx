@@ -3,7 +3,7 @@ import { generateNotesDraft } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
 import { SERVICES, TITLES, TIMELINES, CONTACT_METHODS } from './constants';
 import type { Company, SurveyData } from './types';
-import { LoadingSpinner, JesStoneLogo, ClockIcon, BuildingBlocksIcon, UsersIcon, SparklesIcon, PaperAirplaneIcon } from './components/icons';
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon } from './components/icons';
 
 // --- ACTION REQUIRED ---
 // Paste your deployed Google Apps Script Web App URL here.
@@ -157,8 +157,8 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
     
     return (
         <div className="bg-light-navy p-6 rounded-lg shadow-2xl">
-            <h2 className="text-2xl font-bold text-lightest-slate mb-2">Campaign Asset: Email Template</h2>
-            <p className="mb-6 text-slate">Subject: Turnkey Countertops for DFW Multifamily - Volume Ready</p>
+            <h2 className="text-3xl font-bold text-lightest-slate mb-2">Service Assistant</h2>
+            <p className="mb-6 text-bright-cyan">For {selectedCompany?.name || 'DFW'} DFW Properties</p>
 
             <div className="mb-8">
                 <label htmlFor="company-select" className="block text-sm font-medium text-light-slate mb-2">Select Target Company:</label>
@@ -171,18 +171,12 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
             
             <div className="bg-navy p-8 rounded-lg flex flex-col items-center">
                 <div className="bg-platinum text-navy w-full max-w-md p-8 rounded-lg shadow-xl text-center">
-                    <JesStoneLogo className="h-16 w-auto mx-auto mb-2 text-navy" />
-                    <h3 className="text-2xl font-bold">JES STONE</h3>
-                    <p className="text-sm font-medium text-slate tracking-widest mb-4">REMODELING & GRANITE</p>
-                    <h4 className="text-xl font-semibold mt-8 mb-2">Fabricating solid relationships</h4>
-                    <p className="text-slate mb-8">Service is happening while upgrades and repairs are planning.</p>
-                    <div className="flex justify-around items-center text-xs font-bold text-light-navy mb-8">
-                        <div className="flex flex-col items-center gap-2"><ClockIcon className="h-8 w-8" /><span>RAPID INSTALL</span></div>
-                        <div className="flex flex-col items-center gap-2"><BuildingBlocksIcon className="h-8 w-8" /><span>VOLUME READY</span></div>
-                        <div className="flex flex-col items-center gap-2"><UsersIcon className="h-8 w-8" /><span>TURNKEY CREW</span></div>
+                    <div className="flex items-center justify-center gap-4 bg-navy p-4 rounded-md mb-8">
+                        <JesStoneLogo className="h-12 w-auto text-bright-cyan" />
+                        <span className="text-2xl font-bold text-lightest-slate tracking-wider">JES STONE SERVICES</span>
                     </div>
                     <a href={surveyUrl} onClick={handleNav} className="block w-full bg-navy text-platinum font-bold py-4 px-6 rounded-md hover:bg-lightest-navy transition-all text-lg">
-                        REQUEST SINGLE / MULTI DOOR QUOTE
+                        Service/ Repair/ Renovation Assistant
                     </a>
                 </div>
             </div>
@@ -359,7 +353,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                                 </label>
                             ))}
                         </div>
-                        {formData.services.includes('Other') && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder="Please specify 'Other' service" className="mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>}
+                        {formData.services.includes('Other: we have many Associate Subs') && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder="Please specify 'Other' service" className="mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>}
                     </div>
                     <div>
                         <label htmlFor="timeline" className="block text-sm font-medium text-light-slate mb-1">Project Timeline</label>
@@ -375,7 +369,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                                 {isGenerating ? <><LoadingSpinner />Generating...</> : <><SparklesIcon className="h-4 w-4" /> Generate AI Draft</>}
                             </button>
                         </div>
-                        <textarea id="notes" name="notes" rows={4} value={formData.notes} onChange={handleInputChange} placeholder="Tell us about your upcoming turns or renovation scope..." className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"></textarea>
+                        <textarea id="notes" name="notes" rows={4} value={formData.notes} onChange={handleInputChange} placeholder="Let it all out here. We'll figure it out fast..." className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"></textarea>
                     </div>
                 </div>
             </fieldset>
