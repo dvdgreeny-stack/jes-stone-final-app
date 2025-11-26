@@ -24,7 +24,7 @@ const Header: React.FC<{ surveyUrl: string }> = ({ surveyUrl }) => (
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center py-3">
             <a href="#/" onClick={handleNav} className="flex items-center gap-3">
                 <JesStoneLogo className="h-10 w-auto" />
-                <span className="text-lg font-bold text-lightest-slate tracking-wider">JES STONE <span className="text-slate font-normal">MARKETING</span></span>
+                <span className="text-lg font-bold text-lightest-slate tracking-wider">JES STONE <span className="text-slate font-normal">REMODELING & GRANITE</span></span>
             </a>
             <div className="flex items-center space-x-2 sm:space-x-4">
                 <a href="#/" onClick={handleNav} className="text-sm sm:text-base font-medium text-lightest-slate bg-lightest-navy/50 px-3 py-2 rounded-md hover:bg-lightest-navy transition-colors">Email Flyer</a>
@@ -166,15 +166,15 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
             </div>
             
             <div className="bg-navy p-8 rounded-lg flex flex-col items-center">
-                 <div className="bg-platinum text-navy w-full max-w-md p-8 rounded-lg shadow-xl text-center">
-                    <div className="flex items-center justify-center gap-4 bg-navy p-4 rounded-md mb-8">
-                        <JesStoneLogo className="h-12 w-auto text-bright-cyan" />
-                        <span className="text-2xl font-bold text-lightest-slate tracking-wider">JES STONE SERVICES</span>
-                    </div>
-                    <a href={surveyUrl} onClick={handleNav} className="block w-full bg-navy text-platinum font-bold py-4 px-6 rounded-md hover:bg-lightest-navy transition-all text-lg">
-                        Service/ Repair/ Renovation Assistant
-                    </a>
-                </div>
+                 <a 
+                    href={surveyUrl} 
+                    onClick={handleNav} 
+                    className="block w-full max-w-md bg-navy text-platinum font-bold py-4 px-6 rounded-md transition-all text-lg text-center
+                               shadow-[0_5px_15px_rgba(100,255,218,0.4)] hover:shadow-[0_8px_25px_rgba(100,255,218,0.6)]
+                               hover:-translate-y-1"
+                >
+                    Service/ Repair/ Renovation Assistant
+                </a>
             </div>
         </div>
     );
@@ -209,6 +209,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     const [formData, setFormData] = useState<SurveyData>(getInitialFormData);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [isGenerating, setIsGenerating] = useState(false);
+
+    // Smart logic for phone number requirement
+    const isPhoneRequired = useMemo(() => {
+        return formData.contactMethods.includes('Phone Call (immediate)') || formData.contactMethods.includes('Text Message (SMS)');
+    }, [formData.contactMethods]);
 
     useEffect(() => {
         setFormData(getInitialFormData());
@@ -258,11 +263,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     if (submissionStatus === 'success') {
         return (
             <div className="bg-light-navy p-8 rounded-lg shadow-2xl text-center">
-                <h2 className="text-3xl font-bold text-bright-cyan mb-4">Thank You!</h2>
-                <p className="text-lightest-slate text-lg">Your request has been received.</p>
-                <p className="text-slate mt-2">A representative from Jes Stone will contact you shortly for an immediate reply.</p>
+                <h2 className="text-3xl font-bold text-bright-cyan mb-4">{t.submitSuccessTitle}</h2>
+                <p className="text-lightest-slate text-lg">{t.submitSuccessMessage1}</p>
+                <p className="text-slate mt-2">{t.submitSuccessMessage2}</p>
                 <a href="#/" onClick={handleNav} className="mt-8 inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all">
-                    Return Home
+                    {t.returnHomeButton}
                 </a>
             </div>
         );
@@ -271,11 +276,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     if (submissionStatus === 'error') {
          return (
             <div className="bg-light-navy p-8 rounded-lg shadow-2xl text-center">
-                <h2 className="text-3xl font-bold text-red-400 mb-4">Submission Failed</h2>
-                <p className="text-lightest-slate text-lg">We couldn't submit your request at this time.</p>
-                <p className="text-slate mt-2">Please try again later or contact us directly.</p>
+                <h2 className="text-3xl font-bold text-red-400 mb-4">{t.submitErrorTitle}</h2>
+                <p className="text-lightest-slate text-lg">{t.submitErrorMessage1}</p>
+                <p className="text-slate mt-2">{t.submitErrorMessage2}</p>
                 <button onClick={() => setSubmissionStatus('idle')} className="mt-8 inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all">
-                    Try Again
+                    {t.tryAgainButton}
                 </button>
             </div>
         );
@@ -286,9 +291,9 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
         <div className="flex justify-between items-center">
             <div>
                 <h2 className="text-2xl font-bold text-lightest-slate mb-1">{t.surveyTitle}</h2>
-                <p className="mb-6 text-slate">{t.surveySubtitle} <span className="font-bold text-bright-blue">{company.name}</span> {t.surveySubtitleProperties}</p>
+                <p className="mb-6 text-slate">{t.surveySubtitle} <span className="font-bold text-bright-blue">{company.name}</span>{t.surveySubtitleProperties}</p>
             </div>
-            <button onClick={() => setLang(lang === 'en' ? 'es' : 'en')} className="text-sm font-medium text-bright-cyan hover:text-opacity-80">
+            <button onClick={() => setLang(lang === 'en' ? 'es' : 'en')} className="text-sm font-medium text-bright-cyan hover:text-opacity-80 px-3 py-1 rounded-md border border-bright-cyan/50">
                 {t.languageToggle}
             </button>
         </div>
@@ -333,8 +338,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-light-slate mb-1">{t.phoneLabel}</label>
-                        <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
+                        <label htmlFor="phone" className="block text-sm font-medium text-light-slate mb-1">
+                            {t.phoneLabel} 
+                            {isPhoneRequired && <span className="text-bright-pink ml-1">*</span>}
+                        </label>
+                        <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required={isPhoneRequired} className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
                     </div>
                     <div className="md:col-span-2">
                         <label htmlFor="email" className="block text-sm font-medium text-light-slate mb-1">{t.emailLabel}</label>
@@ -363,7 +371,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                                 </label>
                             ))}
                         </div>
-                        {formData.services.includes(translations.en.SERVICES[7]) && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder={t.otherServicePlaceholder} className="mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>}
+                        {formData.services.some(s => s.startsWith('Other') || s.startsWith('Otro')) && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder={t.otherServicePlaceholder} className="mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>}
                     </div>
                     <div>
                         <label htmlFor="timeline" className="block text-sm font-medium text-light-slate mb-1">{t.timelineLabel}</label>
@@ -396,6 +404,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                                     <span>{method}</span>
                                 </label>
                             ))}
+                </div>
+                <div className="mt-4 text-center">
+                    <a href="https://wix.to/6Ct5eP8" target="_blank" rel="noopener noreferrer" className="text-bright-cyan hover:underline">
+                        {t.schedulingLinkText}
+                    </a>
                 </div>
             </fieldset>
 

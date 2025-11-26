@@ -30,7 +30,7 @@ export const translations = {
     propertySelectPlaceholderProperty: "property...",
     addressPlaceholder: "Address auto-populates...",
     roleSelectPlaceholder: "Select Role...",
-    unitInfoPlaceholder: "Let it all out here. We'll figure it out fast...",
+    unitInfoPlaceholder: "Tell us the site directions...",
     otherServicePlaceholder: "Please specify 'Other' service",
     timelineSelectPlaceholder: "Select timeline...",
     notesPlaceholder: "Let it all out here. We'll figure it out fast...",
@@ -41,7 +41,6 @@ export const translations = {
     submitButton: "SUBMIT FOR IMMEDIATE REPLY",
     submittingButton: "Submitting...",
 
-    // FIX: Add missing translation keys for submission status messages.
     // Submission Status Messages
     submitSuccessTitle: "Submission Received!",
     submitSuccessMessage1: "Thank you for your request. Our team will get back to you shortly.",
@@ -51,6 +50,9 @@ export const translations = {
     submitErrorMessage1: "There was an error processing your request.",
     submitErrorMessage2: "Please try again or contact us directly if the problem persists.",
     tryAgainButton: "Try Again",
+
+    // New key for the direct scheduling link
+    schedulingLinkText: "Or click here to schedule a meeting now.",
 
     // Options (Arrays)
     SERVICES: [
@@ -80,7 +82,6 @@ export const translations = {
       'Phone Call (immediate)',
       'Email Reply',
       'Text Message (SMS)',
-      'Schedule Meeting Link',
     ],
   },
   es: {
@@ -114,7 +115,7 @@ export const translations = {
     propertySelectPlaceholderProperty: "...",
     addressPlaceholder: "La dirección se autocompleta...",
     roleSelectPlaceholder: "Seleccione Cargo...",
-    unitInfoPlaceholder: "Cuéntenos todo aquí. Lo resolveremos rápido...",
+    unitInfoPlaceholder: "Díganos las direcciones del sitio...",
     otherServicePlaceholder: "Por favor, especifique el servicio 'Otro'",
     timelineSelectPlaceholder: "Seleccione cronograma...",
     notesPlaceholder: "Cuéntenos todo aquí. Lo resolveremos rápido...",
@@ -125,7 +126,6 @@ export const translations = {
     submitButton: "ENVIAR PARA RESPUESTA INMEDIATA",
     submittingButton: "Enviando...",
 
-    // FIX: Add missing translation keys for submission status messages.
     // Mensajes de Estado de Envío
     submitSuccessTitle: "¡Solicitud Recibida!",
     submitSuccessMessage1: "Gracias por su solicitud. Nuestro equipo se pondrá en contacto con usted en breve.",
@@ -135,6 +135,9 @@ export const translations = {
     submitErrorMessage1: "Hubo un error al procesar su solicitud.",
     submitErrorMessage2: "Por favor, inténtelo de nuevo o contáctenos directamente si el problema persiste.",
     tryAgainButton: "Intentar de Nuevo",
+
+    // New key for the direct scheduling link
+    schedulingLinkText: "O haga clic aquí para programar una reunión ahora.",
 
     // Opciones (Arrays)
     SERVICES: [
@@ -164,7 +167,6 @@ export const translations = {
       'Llamada Telefónica (inmediata)',
       'Respuesta por Correo Electrónico',
       'Mensaje de Texto (SMS)',
-      'Agendar Enlace de Reunión',
     ],
   }
 };
