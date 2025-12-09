@@ -452,12 +452,11 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
         setCurrentUser(null);
     };
 
-    if (!currentUser) {
-        return <DashboardLogin companyData={companyData} onLogin={handleLogin} />;
-    }
-
+    // MOVED UP: Must call hooks unconditionally (before any return statements)
     // Filter properties based on role
     const visibleCompany = useMemo(() => {
+        if (!currentUser) return null;
+
         const baseCompany = currentUser.company;
         
         // Safety check if company is somehow null/undefined
@@ -477,6 +476,11 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
             properties: filteredProperties
         };
     }, [currentUser]);
+
+    // Now it is safe to return early if not logged in
+    if (!currentUser) {
+        return <DashboardLogin companyData={companyData} onLogin={handleLogin} />;
+    }
 
     // Safety check if rendering failed to produce a company
     if (!visibleCompany) {
