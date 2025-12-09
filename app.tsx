@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { generateNotesDraft } from './services/geminiService';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
 import { translations } from './translations';
 import type { Company, SurveyData } from './types';
-import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon } from './components/icons';
+import { Chat, GenerateContentResponse } from "@google/genai";
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon } from './components/icons';
 
 // --- ACTION REQUIRED ---
 // Paste your deployed Google Apps Script Web App URL here.
@@ -18,18 +19,17 @@ const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
     }
 };
 
+// --- Shared Styles ---
+const GLOW_CLASSES = "shadow-[0_5px_15px_rgba(100,255,218,0.4)] hover:shadow-[0_8px_25px_rgba(100,255,218,0.6)] transition-all";
+
 // --- Layout Components ---
 const Header: React.FC<{ surveyUrl: string }> = ({ surveyUrl }) => (
     <header className="bg-light-navy/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center py-3">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-center items-center">
             <a href="#/" onClick={handleNav} className="flex items-center gap-3">
                 <JesStoneLogo className="h-10 w-auto" />
-                <span className="text-lg font-bold text-lightest-slate tracking-wider">JES STONE <span className="text-slate font-normal">REMODELING & GRANITE</span></span>
+                <span className="text-lg font-bold text-lightest-slate tracking-wider text-center">JES STONE <span className="text-slate font-normal">REMODELING & GRANITE</span></span>
             </a>
-            <div className="flex items-center space-x-2 sm:space-x-4">
-                <a href="#/" onClick={handleNav} className="text-sm sm:text-base font-medium text-lightest-slate bg-lightest-navy/50 px-3 py-2 rounded-md hover:bg-lightest-navy transition-colors">Email Flyer</a>
-                <a href={surveyUrl} onClick={handleNav} className="text-sm sm:text-base font-medium text-lightest-slate bg-lightest-navy/50 px-3 py-2 rounded-md hover:bg-lightest-navy transition-colors">Live Survey</a>
-            </div>
         </nav>
     </header>
 );
@@ -52,6 +52,129 @@ const Footer: React.FC = () => (
         </div>
     </footer>
 );
+
+// --- Chat Widget Component ---
+const ChatWidget: React.FC = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const chatSessionRef = useRef<Chat | null>(null);
+
+    // Initialize chat session on mount
+    useEffect(() => {
+        chatSessionRef.current = createChatSession();
+    }, []);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, isOpen]);
+
+    const handleSend = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim() || !chatSessionRef.current) return;
+
+        const userMessage = input;
+        setInput('');
+        setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+        setIsLoading(true);
+
+        try {
+            const result = await chatSessionRef.current.sendMessageStream({ message: userMessage });
+            
+            let fullText = '';
+            setMessages(prev => [...prev, { role: 'model', text: '' }]);
+
+            for await (const chunk of result) {
+                const c = chunk as GenerateContentResponse;
+                const text = c.text || '';
+                fullText += text;
+                
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMsg = newMessages[newMessages.length - 1];
+                    if (lastMsg && lastMsg.role === 'model') {
+                        lastMsg.text = fullText;
+                    }
+                    return newMessages;
+                });
+            }
+        } catch (error) {
+            console.error("Chat Error", error);
+            setMessages(prev => [...prev, { role: 'model', text: "Sorry, I'm having trouble connecting right now." }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+            {isOpen && (
+                <div className="bg-light-navy border border-lightest-navy rounded-lg shadow-2xl w-80 sm:w-96 mb-4 flex flex-col max-h-[500px] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+                    <div className="bg-lightest-navy/50 p-4 border-b border-lightest-navy flex justify-between items-center">
+                        <h3 className="font-bold text-lightest-slate">Jes Stone Assistant</h3>
+                        <button onClick={() => setIsOpen(false)} className="text-slate hover:text-bright-cyan">
+                            <XMarkIcon className="h-5 w-5" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[300px]">
+                        {messages.length === 0 && (
+                            <p className="text-slate text-center text-sm mt-8">
+                                Hello! I can help you understand our remodeling services or fill out the survey. How can I help?
+                            </p>
+                        )}
+                        {messages.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] p-3 rounded-lg text-sm ${
+                                    msg.role === 'user' 
+                                    ? 'bg-bright-cyan/20 text-lightest-slate rounded-br-none' 
+                                    : 'bg-navy border border-lightest-navy text-slate rounded-bl-none'
+                                }`}>
+                                    {msg.text}
+                                </div>
+                            </div>
+                        ))}
+                        {isLoading && (
+                            <div className="flex justify-start">
+                                <div className="bg-navy border border-lightest-navy p-3 rounded-lg rounded-bl-none">
+                                    <LoadingSpinner />
+                                </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+                    <form onSubmit={handleSend} className="p-3 border-t border-lightest-navy bg-navy/50 flex gap-2">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Type a message..."
+                            className="flex-1 bg-navy text-lightest-slate text-sm p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-1 focus:ring-bright-cyan"
+                        />
+                        <button 
+                            type="submit" 
+                            disabled={isLoading || !input.trim()}
+                            className="bg-bright-cyan/20 text-bright-cyan p-2 rounded-md hover:bg-bright-cyan/30 disabled:opacity-50 transition-colors"
+                        >
+                            <PaperAirplaneIcon className="h-5 w-5" />
+                        </button>
+                    </form>
+                </div>
+            )}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="bg-bright-cyan text-navy p-4 rounded-full shadow-lg hover:bg-bright-cyan/90 transition-all hover:scale-105 active:scale-95"
+            >
+                {isOpen ? <XMarkIcon className="h-6 w-6" /> : <ChatBubbleIcon className="h-6 w-6" />}
+            </button>
+        </div>
+    );
+};
 
 // --- Main App Component ---
 const App: React.FC = () => {
@@ -124,12 +247,13 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="dark min-h-screen bg-navy text-light-slate font-sans">
+        <div className="dark min-h-screen bg-navy text-light-slate font-sans relative">
             <Header surveyUrl={surveyUrlForHeader} />
             <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {renderContent()}
             </main>
             <Footer />
+            <ChatWidget />
         </div>
     );
 };
@@ -158,7 +282,12 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
 
             <div className="mb-8">
                 <label htmlFor="company-select" className="block text-sm font-medium text-light-slate mb-2">Select Target Company:</label>
-                <select id="company-select" value={selectedCompany?.id || ''} onChange={handleCompanyChange} className="w-full bg-navy text-lightest-slate p-3 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan">
+                <select 
+                    id="company-select" 
+                    value={selectedCompany?.id || ''} 
+                    onChange={handleCompanyChange} 
+                    className={`w-full bg-navy text-lightest-slate p-3 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                >
                     {companyData.map(company => (
                         <option key={company.id} value={company.id}>{company.name}</option>
                     ))}
@@ -169,9 +298,7 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
                  <a 
                     href={surveyUrl} 
                     onClick={handleNav} 
-                    className="block w-full max-w-md bg-navy text-platinum font-bold py-4 px-6 rounded-md transition-all text-lg text-center
-                               shadow-[0_5px_15px_rgba(100,255,218,0.4)] hover:shadow-[0_8px_25px_rgba(100,255,218,0.6)]
-                               hover:-translate-y-1"
+                    className={`block w-full max-w-md bg-navy text-platinum font-bold py-4 px-6 rounded-md text-lg text-center hover:-translate-y-1 ${GLOW_CLASSES}`}
                 >
                     Service/ Repair/ Renovation Assistant
                 </a>
@@ -187,22 +314,38 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     const company = useMemo(() => companyData.find(c => c.id === companyId), [companyId, companyData]);
     
     const getInitialFormData = useCallback(() => {
+        // 1. Get URL Params
         const params = new URLSearchParams(window.location.hash.split('?')[1]);
-        const firstName = params.get('firstName');
-        const email = params.get('email');
-        return {
+        const urlData = {
+            firstName: params.get('firstName') ? decodeURIComponent(params.get('firstName')!) : undefined,
+            email: params.get('email') ? decodeURIComponent(params.get('email')!) : undefined,
+        };
+
+        // 2. Get Local Storage Data (Persisted Session)
+        const savedJSON = localStorage.getItem('jes_stone_survey_draft');
+        const savedData = savedJSON ? JSON.parse(savedJSON) : {};
+
+        // 3. Defaults
+        const defaults = {
             propertyId: '', 
-            firstName: firstName ? decodeURIComponent(firstName) : '', 
+            firstName: '', 
             lastName: '', 
             title: '', 
             phone: '', 
-            email: email ? decodeURIComponent(email) : '',
+            email: '',
             unitInfo: '', 
             services: [], 
             otherService: '', 
             timeline: '', 
             notes: '', 
             contactMethods: [],
+        };
+
+        // Merge: Defaults -> Saved Data -> URL Params (URL takes priority for specific fields)
+        return {
+            ...defaults,
+            ...savedData,
+            ...Object.fromEntries(Object.entries(urlData).filter(([_, v]) => v !== undefined))
         };
     }, []);
 
@@ -215,9 +358,17 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
         return formData.contactMethods.includes('Phone Call (immediate)') || formData.contactMethods.includes('Text Message (SMS)');
     }, [formData.contactMethods]);
 
+    // Persist to Local Storage
     useEffect(() => {
-        setFormData(getInitialFormData());
-    }, [companyId, getInitialFormData]);
+        localStorage.setItem('jes_stone_survey_draft', JSON.stringify(formData));
+    }, [formData]);
+
+    // Clear Local Storage on Success
+    useEffect(() => {
+        if (submissionStatus === 'success') {
+            localStorage.removeItem('jes_stone_survey_draft');
+        }
+    }, [submissionStatus]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -266,7 +417,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                 <h2 className="text-3xl font-bold text-bright-cyan mb-4">{t.submitSuccessTitle}</h2>
                 <p className="text-lightest-slate text-lg">{t.submitSuccessMessage1}</p>
                 <p className="text-slate mt-2">{t.submitSuccessMessage2}</p>
-                <a href="#/" onClick={handleNav} className="mt-8 inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all">
+                <a href="#/" onClick={handleNav} className={`mt-8 inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all ${GLOW_CLASSES}`}>
                     {t.returnHomeButton}
                 </a>
             </div>
@@ -279,7 +430,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                 <h2 className="text-3xl font-bold text-red-400 mb-4">{t.submitErrorTitle}</h2>
                 <p className="text-lightest-slate text-lg">{t.submitErrorMessage1}</p>
                 <p className="text-slate mt-2">{t.submitErrorMessage2}</p>
-                <button onClick={() => setSubmissionStatus('idle')} className="mt-8 inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all">
+                <button onClick={() => setSubmissionStatus('idle')} className={`mt-8 inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all ${GLOW_CLASSES}`}>
                     {t.tryAgainButton}
                 </button>
             </div>
@@ -304,14 +455,21 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                 <div className="grid md:grid-cols-2 gap-4 mt-2">
                     <div>
                         <label htmlFor="propertyId" className="block text-sm font-medium text-light-slate mb-1">{t.propertyNameLabel}</label>
-                        <select id="propertyId" name="propertyId" value={formData.propertyId} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan">
-                            <option value="">{t.propertySelectPlaceholder} {company.name}{t.propertySelectPlaceholderProperty}</option>
+                        <select 
+                            id="propertyId" 
+                            name="propertyId" 
+                            value={formData.propertyId} 
+                            onChange={handleInputChange} 
+                            required 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        >
+                            <option value="">{t.propertySelectPlaceholder}</option>
                             {company.properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-light-slate mb-1">{t.propertyAddressLabel}</label>
-                        <div className="w-full bg-navy p-2 border border-lightest-navy rounded-md flex items-start text-slate min-h-[40px]">
+                        <div className={`w-full bg-navy p-2 border border-lightest-navy rounded-md flex items-start text-slate min-h-[40px] ${GLOW_CLASSES}`}>
                             {selectedProperty ? selectedProperty.address : t.addressPlaceholder}
                         </div>
                     </div>
@@ -323,15 +481,38 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                 <div className="grid md:grid-cols-2 gap-4 mt-2">
                     <div>
                         <label htmlFor="firstName" className="block text-sm font-medium text-light-slate mb-1">{t.firstNameLabel}</label>
-                        <input type="text" id="firstName" name="firstName" value={formData.firstName} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
+                        <input 
+                            type="text" 
+                            id="firstName" 
+                            name="firstName" 
+                            value={formData.firstName} 
+                            onChange={handleInputChange} 
+                            required 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        />
                     </div>
                     <div>
                         <label htmlFor="lastName" className="block text-sm font-medium text-light-slate mb-1">{t.lastNameLabel}</label>
-                        <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
+                        <input 
+                            type="text" 
+                            id="lastName" 
+                            name="lastName" 
+                            value={formData.lastName} 
+                            onChange={handleInputChange} 
+                            required 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        />
                     </div>
                     <div>
                         <label htmlFor="title" className="block text-sm font-medium text-light-slate mb-1">{t.titleRoleLabel}</label>
-                        <select id="title" name="title" value={formData.title} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan">
+                        <select 
+                            id="title" 
+                            name="title" 
+                            value={formData.title} 
+                            onChange={handleInputChange} 
+                            required 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        >
                             <option value="">{t.roleSelectPlaceholder}</option>
                             {t.TITLES.map(title => <option key={title} value={title}>{title}</option>)}
                             <option value="Other">Other</option>
@@ -342,11 +523,27 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                             {t.phoneLabel} 
                             {isPhoneRequired && <span className="text-bright-pink ml-1">*</span>}
                         </label>
-                        <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required={isPhoneRequired} className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            name="phone" 
+                            value={formData.phone} 
+                            onChange={handleInputChange} 
+                            required={isPhoneRequired} 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        />
                     </div>
                     <div className="md:col-span-2">
                         <label htmlFor="email" className="block text-sm font-medium text-light-slate mb-1">{t.emailLabel}</label>
-                        <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            value={formData.email} 
+                            onChange={handleInputChange} 
+                            required 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        />
                     </div>
                 </div>
             </fieldset>
@@ -356,13 +553,22 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                 <div className="space-y-4 mt-2">
                     <div>
                         <label htmlFor="unitInfo" className="block text-sm font-medium text-light-slate mb-1">{t.unitInfoLabel}</label>
-                        <input type="text" id="unitInfo" name="unitInfo" value={formData.unitInfo} onChange={handleInputChange} placeholder={t.unitInfoPlaceholder} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>
+                        <input 
+                            type="text" 
+                            id="unitInfo" 
+                            name="unitInfo" 
+                            value={formData.unitInfo} 
+                            onChange={handleInputChange} 
+                            placeholder={t.unitInfoPlaceholder} 
+                            required 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-light-slate mb-2">{t.serviceNeededLabel}</label>
                         <div className="grid sm:grid-cols-2 gap-2">
                             {t.SERVICES.map(service => (
-                                <label key={service} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.services.includes(service) ? 'bg-bright-cyan/20 ring-2 ring-bright-cyan' : 'bg-navy hover:bg-lightest-navy'}`}>
+                                <label key={service} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.services.includes(service) ? 'bg-bright-cyan/20 ring-2 ring-bright-cyan' : 'bg-navy hover:bg-lightest-navy'} ${GLOW_CLASSES}`}>
                                     <input type="checkbox" checked={formData.services.includes(service)} onChange={() => handleCheckboxChange('services', service)} className="hidden"/>
                                     <div className={`w-5 h-5 border-2 ${formData.services.includes(service) ? 'border-bright-cyan bg-bright-cyan' : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
                                         {formData.services.includes(service) && <svg className="w-3 h-3 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
@@ -371,11 +577,18 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                                 </label>
                             ))}
                         </div>
-                        {formData.services.some(s => s.startsWith('Other') || s.startsWith('Otro')) && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder={t.otherServicePlaceholder} className="mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"/>}
+                        {formData.services.some(s => s.startsWith('Other') || s.startsWith('Otro')) && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder={t.otherServicePlaceholder} className={`mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}/>}
                     </div>
                     <div>
                         <label htmlFor="timeline" className="block text-sm font-medium text-light-slate mb-1">{t.timelineLabel}</label>
-                        <select id="timeline" name="timeline" value={formData.timeline} onChange={handleInputChange} required className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan">
+                        <select 
+                            id="timeline" 
+                            name="timeline" 
+                            value={formData.timeline} 
+                            onChange={handleInputChange} 
+                            required 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        >
                             <option value="">{t.timelineSelectPlaceholder}</option>
                             {t.TIMELINES.map(timeline => <option key={timeline} value={timeline}>{timeline}</option>)}
                         </select>
@@ -387,7 +600,15 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                                 {isGenerating ? <><LoadingSpinner />{t.generatingButton}</> : <><SparklesIcon className="h-4 w-4" /> {t.generateAIDraftButton}</>}
                             </button>
                         </div>
-                        <textarea id="notes" name="notes" rows={4} value={formData.notes} onChange={handleInputChange} placeholder={t.notesPlaceholder} className="w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan"></textarea>
+                        <textarea 
+                            id="notes" 
+                            name="notes" 
+                            rows={4} 
+                            value={formData.notes} 
+                            onChange={handleInputChange} 
+                            placeholder={t.notesPlaceholder} 
+                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                        ></textarea>
                     </div>
                 </div>
             </fieldset>
@@ -396,7 +617,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                 <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.contactMethodLegend}</legend>
                  <div className="grid sm:grid-cols-2 gap-2 mt-2">
                     {t.CONTACT_METHODS.map(method => (
-                        <label key={method} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.contactMethods.includes(method) ? 'bg-bright-cyan/20 ring-2 ring-bright-cyan' : 'bg-navy hover:bg-lightest-navy'}`}>
+                        <label key={method} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.contactMethods.includes(method) ? 'bg-bright-cyan/20 ring-2 ring-bright-cyan' : 'bg-navy hover:bg-lightest-navy'} ${GLOW_CLASSES}`}>
                             <input type="checkbox" checked={formData.contactMethods.includes(method)} onChange={() => handleCheckboxChange('contactMethods', method)} className="hidden"/>
                             <div className={`w-5 h-5 border-2 ${formData.contactMethods.includes(method) ? 'border-bright-cyan bg-bright-cyan' : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
                                 {formData.contactMethods.includes(method) && <svg className="w-3 h-3 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
@@ -405,14 +626,9 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
                                 </label>
                             ))}
                 </div>
-                <div className="mt-4 text-center">
-                    <a href="https://wix.to/6Ct5eP8" target="_blank" rel="noopener noreferrer" className="text-bright-cyan hover:underline">
-                        {t.schedulingLinkText}
-                    </a>
-                </div>
             </fieldset>
 
-            <button type="submit" disabled={submissionStatus === 'submitting'} className="w-full flex items-center justify-center gap-2 bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all text-lg disabled:bg-slate disabled:cursor-not-allowed">
+            <button type="submit" disabled={submissionStatus === 'submitting'} className={`w-full flex items-center justify-center gap-2 bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all text-lg disabled:bg-slate disabled:cursor-not-allowed ${GLOW_CLASSES}`}>
                 {submissionStatus === 'submitting' ? <><LoadingSpinner /> {t.submittingButton}</> : <>{t.submitButton} <PaperAirplaneIcon className="h-5 w-5" /></>}
             </button>
             <p className="text-center text-xs text-slate">Data secured for Jes Stone internal use only.</p>

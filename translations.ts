@@ -26,8 +26,7 @@ export const translations = {
     notesLabel: "Additional Notes and Dynamics",
 
     // Placeholders & Default Text
-    propertySelectPlaceholder: "Select",
-    propertySelectPlaceholderProperty: "property...",
+    propertySelectPlaceholder: "Select CushWake property...",
     addressPlaceholder: "Address auto-populates...",
     roleSelectPlaceholder: "Select Role...",
     unitInfoPlaceholder: "Tell us the site directions...",
@@ -51,9 +50,11 @@ export const translations = {
     submitErrorMessage2: "Please try again or contact us directly if the problem persists.",
     tryAgainButton: "Try Again",
 
-    // New key for the direct scheduling link
-    schedulingLinkText: "Or click here to schedule a meeting now.",
-
+    // Chat Widget
+    chatTitle: "Jes Stone Assistant",
+    chatPlaceholder: "Ask about services or get help...",
+    chatSend: "Send",
+    
     // Options (Arrays)
     SERVICES: [
       'Countertops - Quartz',
@@ -111,8 +112,7 @@ export const translations = {
     notesLabel: "Notas y Dinámicas Adicionales",
 
     // Placeholders y Texto por Defecto
-    propertySelectPlaceholder: "Seleccione una propiedad de",
-    propertySelectPlaceholderProperty: "...",
+    propertySelectPlaceholder: "Seleccione una propiedad CushWake...",
     addressPlaceholder: "La dirección se autocompleta...",
     roleSelectPlaceholder: "Seleccione Cargo...",
     unitInfoPlaceholder: "Díganos las direcciones del sitio...",
@@ -136,8 +136,10 @@ export const translations = {
     submitErrorMessage2: "Por favor, inténtelo de nuevo o contáctenos directamente si el problema persiste.",
     tryAgainButton: "Intentar de Nuevo",
 
-    // New key for the direct scheduling link
-    schedulingLinkText: "O haga clic aquí para programar una reunión ahora.",
+    // Chat Widget
+    chatTitle: "Asistente Jes Stone",
+    chatPlaceholder: "Pregunte sobre servicios o ayuda...",
+    chatSend: "Enviar",
 
     // Opciones (Arrays)
     SERVICES: [
