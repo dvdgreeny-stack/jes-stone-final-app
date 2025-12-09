@@ -6,6 +6,15 @@ import type { Company, SurveyData } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon } from './components/icons';
 
+// --- LOGO CONFIGURATION ---
+// 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
+// Leave empty "" to use the default Triangle placeholder.
+const JES_STONE_LOGO_URL = "https://static.wixstatic.com/media/d78791_1119d8d2b7e54f93bcb2a3136b765488~mv2.png"; 
+
+// 2. PASTE YOUR DFWSA / AI STUDIO LOGO URL INSIDE THE QUOTES BELOW
+// Leave empty "" to use the default AI STUDIO text badge.
+const FOOTER_LOGO_URL = "https://static.wixstatic.com/media/d78791_bd04d4849b6f4a2c9af61da70df2c9e6~mv2.png"; 
+
 // --- ACTION REQUIRED ---
 // Paste your deployed Google Apps Script Web App URL here.
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwlTxJzHJiJvLFkK1UkFCgrfnuwxspsMBFBigh3IXwkW8ZI1PPkjUWuFm9lz1-zsk59/exec'; 
@@ -27,7 +36,11 @@ const Header: React.FC<{ surveyUrl: string }> = ({ surveyUrl }) => (
     <header className="bg-light-navy/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-center items-center">
             <a href="#/" onClick={handleNav} className="flex items-center gap-3">
-                <JesStoneLogo className="h-10 w-auto" />
+                {JES_STONE_LOGO_URL ? (
+                    <img src={JES_STONE_LOGO_URL} alt="Jes Stone Logo" className="h-12 w-auto object-contain" />
+                ) : (
+                    <JesStoneLogo className="h-10 w-auto" />
+                )}
                 <span className="text-lg font-bold text-lightest-slate tracking-wider text-center">JES STONE <span className="text-slate font-normal">REMODELING & GRANITE</span></span>
             </a>
         </nav>
@@ -47,7 +60,11 @@ const Footer: React.FC = () => (
             <p>&copy; {new Date().getFullYear()} Jes Stone Remodeling and Granite | <a href="https://www.jesstone.net" target="_blank" rel="noopener noreferrer" className="hover:text-bright-cyan">www.jesstone.net</a></p>
             <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
-                <span className="bg-slate text-navy font-bold text-xs px-2 py-1 rounded-sm">AI STUDIO</span>
+                {FOOTER_LOGO_URL ? (
+                    <img src={FOOTER_LOGO_URL} alt="Partner Logo" className="h-8 w-auto object-contain" />
+                ) : (
+                    <span className="bg-slate text-navy font-bold text-xs px-2 py-1 rounded-sm">AI STUDIO</span>
+                )}
             </div>
         </div>
     </footer>
