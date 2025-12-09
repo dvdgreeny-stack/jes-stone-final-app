@@ -26,7 +26,7 @@ export const translations = {
     notesLabel: "Additional Notes and Dynamics",
 
     // Placeholders & Default Text
-    propertySelectPlaceholder: "Select CushWake property...",
+    propertySelectPlaceholder: "Select Property...",
     addressPlaceholder: "Address auto-populates...",
     roleSelectPlaceholder: "Select Role...",
     unitInfoPlaceholder: "Tell us the site directions...",
@@ -112,7 +112,7 @@ export const translations = {
     notesLabel: "Notas y Dinámicas Adicionales",
 
     // Placeholders y Texto por Defecto
-    propertySelectPlaceholder: "Seleccione una propiedad CushWake...",
+    propertySelectPlaceholder: "Seleccione una propiedad...",
     addressPlaceholder: "La dirección se autocompleta...",
     roleSelectPlaceholder: "Seleccione Cargo...",
     unitInfoPlaceholder: "Díganos las direcciones del sitio...",
