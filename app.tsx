@@ -440,6 +440,7 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
              <div className="min-h-screen bg-navy flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-bright-pink mb-4">Error: Company Profile Not Found</p>
+                    <p className="text-xs text-slate mb-4">It seems the property data for your access code is not currently available.</p>
                     <button onClick={handleLogout} className="text-bright-cyan underline">Return to Login</button>
                 </div>
              </div>
@@ -561,7 +562,14 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
             const accessRecord = MOCK_ACCESS_DB[normalizedCode];
 
             if (accessRecord) {
-                // Find company
+                // Find company - SAFER FIND LOGIC
+                // Check if companyData exists before searching
+                if (!companyData || companyData.length === 0) {
+                     setError("System data not loaded. Please refresh the page.");
+                     setIsVerifying(false);
+                     return;
+                }
+
                 const company = companyData.find(c => c.id === accessRecord.companyId) || 
                               (normalizedCode === 'DEMO' ? companyData[0] : null);
 
@@ -572,7 +580,7 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
                         allowedPropertyIds: accessRecord.allowedPropertyIds
                     });
                 } else {
-                    setError("Access Code valid, but Company data not loaded. Please refresh.");
+                    setError("Code matched, but associated company data is missing.");
                 }
             } else {
                 setError("Invalid Access Code. Please try again.");
@@ -631,8 +639,8 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
 const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => void }> = ({ companyData, onNewRequest }) => {
     const t = translations['en'];
     
-    // Safety reduce with optional chaining
-    const totalProperties = companyData?.reduce((acc, c) => acc + (c?.properties?.length || 0), 0) || 0;
+    // Safety reduce with optional chaining AND check if array exists
+    const totalProperties = (companyData || []).reduce((acc, c) => acc + (c?.properties?.length || 0), 0) || 0;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-300">
