@@ -1,34 +1,34 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
 import { translations } from './translations';
 import type { Company, SurveyData, UserSession, UserRole } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, UsersIcon } from './components/icons';
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, UsersIcon, CloudArrowUpIcon, TrashIcon } from './components/icons';
 
 // --- LOGO CONFIGURATION ---
 // 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
 // Leave empty "" to use the default Triangle placeholder.
-const JES_STONE_LOGO_URL = "https://static.wixstatic.com/media/d78791_1119d8d2b7e54f93bcb2a3136b765488~mv2.png"; 
+const JES_STONE_LOGO_URL = ""; 
 
 // 2. PASTE YOUR DFWSA / AI STUDIO LOGO URL INSIDE THE QUOTES BELOW
 // Leave empty "" to use the default AI STUDIO text badge.
-const FOOTER_LOGO_URL = "https://static.wixstatic.com/media/d78791_bd04d4849b6f4a2c9af61da70df2c9e6~mv2.png"; 
+const FOOTER_LOGO_URL = ""; 
 
 // --- ACTION REQUIRED ---
 // Paste your deployed Google Apps Script Web App URL here.
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwlTxJzHJiJvLFkK1UkFCgrfnuwxspsMBFBigh3IXwkW8ZI1PPkjUWuFm9lz1-zsk59/exec'; 
 
 // --- MOCK ACCESS DATABASE ---
-// Simplified for Single Property Focus
+// Simplified for Single Property Focus + Regional Demo
 const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowedPropertyIds: string[] }> = {
     // Single Property Access (Site Manager)
-    // Matches ID 'kv-1' -> "The Arts at Park Place" in your current script data
     'PARKPLACE': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] },
-    
-    // Another Single Property (Site Manager)
-    // Matches ID 'kv-2' -> "Canyon Creek"
     'CANYON': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-2'] },
+
+    // Regional Manager Demo (Access to both properties)
+    'REGION1': { role: 'regional_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1', 'kv-2'] },
 
     // Fallback Demo
     'DEMO': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] }, 
@@ -675,7 +675,7 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
                     <button 
                         type="submit" 
                         disabled={!code || isVerifying}
-                        className="w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2"
+                        className={`w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 transition-all flex justify-center items-center gap-2 ${!code || isVerifying ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {isVerifying ? <><LoadingSpinner /> Verifying...</> : t.loginButton}
                     </button>
@@ -683,7 +683,7 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
                  <div className="mt-6 text-xs text-slate space-y-1">
                      <p>Demo Codes:</p>
                      <p><span className="text-bright-cyan font-mono">PARKPLACE</span> (Site Manager)</p>
-                     <p><span className="text-bright-cyan font-mono">CANYON</span> (Site Manager)</p>
+                     <p><span className="text-bright-cyan font-mono">REGION1</span> (Regional)</p>
                 </div>
                 <div className="mt-4 text-xs text-slate">
                     <a href="#/" className="hover:text-bright-cyan">Return to Public Site</a>
@@ -922,6 +922,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
             timeline: '', 
             notes: '', 
             contactMethods: [],
+            attachments: [],
         };
 
         // Merge: Defaults -> Saved Data -> URL Params (URL takes priority for specific fields)
@@ -935,6 +936,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
     const [formData, setFormData] = useState<SurveyData>(getInitialFormData);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [isGenerating, setIsGenerating] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Smart logic for phone requirement
     const isPhoneRequired = useMemo(() => {
@@ -944,7 +946,9 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
     // Persist to Local Storage
     useEffect(() => {
         if (submissionStatus !== 'success') {
-            localStorage.setItem('jes_stone_survey_draft', JSON.stringify(formData));
+            // Exclude attachments from local storage to save space
+            const { attachments, ...dataToSave } = formData;
+            localStorage.setItem('jes_stone_survey_draft', JSON.stringify(dataToSave));
         }
     }, [formData, submissionStatus]);
 
@@ -956,8 +960,6 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
     }, [submissionStatus]);
 
     const handleReset = () => {
-        // Reset form but keep basic contact info if desired, or wipe clean. 
-        // Here we wipe clean but keep the Company/Property selection via route context.
         setFormData({
             propertyId: formData.propertyId, // Keep property selected for convenience
             firstName: formData.firstName,   // Keep contact info for convenience
@@ -971,6 +973,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
             timeline: '', 
             notes: '', 
             contactMethods: [],
+            attachments: [],
         });
         setSubmissionStatus('idle');
     };
@@ -986,6 +989,56 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
             const newGroup = currentGroup.includes(value) ? currentGroup.filter(item => item !== value) : [...currentGroup, value];
             return { ...prev, [group]: newGroup };
         });
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        
+        const files = Array.from(e.target.files);
+        const newAttachments: {name: string, type: string, data: string}[] = [];
+
+        // Simple size validation (2MB limit per file)
+        const MAX_SIZE = 2 * 1024 * 1024;
+
+        for (const file of files) {
+            if (file.size > MAX_SIZE) {
+                alert(`File ${file.name} is too large. Max size is 2MB.`);
+                continue;
+            }
+
+            try {
+                const base64 = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = error => reject(error);
+                });
+                // Remove data:image/png;base64, prefix for cleaner storage if needed, 
+                // but for now keeping it makes it easier to display/use.
+                newAttachments.push({
+                    name: file.name,
+                    type: file.type,
+                    data: base64
+                });
+            } catch (error) {
+                console.error("Error reading file:", error);
+            }
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            attachments: [...(prev.attachments || []), ...newAttachments]
+        }));
+        
+        // Reset input so same file can be selected again if needed
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const handleRemovePhoto = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            attachments: prev.attachments?.filter((_, i) => i !== index)
+        }));
     };
     
     const handleGenerateNotes = useCallback(async () => {
@@ -1227,6 +1280,49 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                             {t.TIMELINES.map(timeline => <option key={timeline} value={timeline}>{timeline}</option>)}
                         </select>
                     </div>
+
+                    {/* PHOTO UPLOAD SECTION */}
+                    <div>
+                         <label className="block text-sm font-medium text-light-slate mb-2">{t.photosLabel}</label>
+                         <div 
+                            className={`border-2 border-dashed border-lightest-navy hover:border-bright-cyan bg-navy rounded-md p-6 flex flex-col items-center justify-center cursor-pointer transition-colors group ${GLOW_CLASSES}`}
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <input 
+                                type="file" 
+                                ref={fileInputRef}
+                                className="hidden" 
+                                accept="image/*" 
+                                multiple 
+                                onChange={handlePhotoUpload} 
+                            />
+                            <CloudArrowUpIcon className="h-10 w-10 text-slate group-hover:text-bright-cyan mb-2" />
+                            <p className="text-sm text-slate group-hover:text-lightest-slate">{t.dragDropText}</p>
+                            <button type="button" className="mt-2 bg-light-navy text-bright-cyan text-xs font-bold py-1 px-3 rounded hover:bg-bright-cyan/20">
+                                {t.uploadButton}
+                            </button>
+                         </div>
+                         
+                         {/* Photo Preview List */}
+                         {formData.attachments && formData.attachments.length > 0 && (
+                             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {formData.attachments.map((file, index) => (
+                                    <div key={index} className="relative aspect-square bg-light-navy rounded overflow-hidden border border-lightest-navy group">
+                                        <img src={file.data} alt="Preview" className="w-full h-full object-cover" />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleRemovePhoto(index)}
+                                            className="absolute top-1 right-1 bg-navy/80 text-bright-pink p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title={t.removePhoto}
+                                        >
+                                            <TrashIcon className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                             </div>
+                         )}
+                    </div>
+
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <label htmlFor="notes" className="block text-sm font-medium text-light-slate">{t.notesLabel}</label>

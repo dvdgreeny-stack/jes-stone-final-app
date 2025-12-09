@@ -1,3 +1,4 @@
+
 export interface Property {
   id: string;
   name: string;
@@ -25,6 +26,11 @@ export interface SurveyData {
   timeline: string;
   notes: string;
   contactMethods: string[];
+  attachments?: {
+    name: string;
+    type: string;
+    data: string; // Base64 string
+  }[];
 }
 
 export type UserRole = 'site_manager' | 'regional_manager' | 'executive';

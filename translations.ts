@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     // Survey Headers
@@ -11,6 +12,7 @@ export const translations = {
     contactInfoLegend: "Contact Information",
     scopeTimelineLegend: "Scope & Timeline",
     contactMethodLegend: "How would you like to be contacted?",
+    photosLegend: "Photos & Attachments",
 
     // Field Labels
     propertyNameLabel: "Property Name",
@@ -24,6 +26,7 @@ export const translations = {
     serviceNeededLabel: "Service Needed (Select Multiple)",
     timelineLabel: "Project Timeline",
     notesLabel: "Additional Notes and Dynamics",
+    photosLabel: "Upload 'Before' Photos (Max 2MB per file)",
 
     // Placeholders & Default Text
     propertySelectPlaceholder: "Select Property...",
@@ -33,6 +36,7 @@ export const translations = {
     otherServicePlaceholder: "Please specify 'Other' service",
     timelineSelectPlaceholder: "Select timeline...",
     notesPlaceholder: "Let it all out here. We'll figure it out fast...",
+    dragDropText: "Drag & Drop photos here, or click to select",
 
     // Buttons
     generateAIDraftButton: "Generate AI Draft",
@@ -41,6 +45,8 @@ export const translations = {
     submittingButton: "Submitting...",
     submitAnotherButton: "Submit Another Request",
     enterDashboardButton: "Enter Personal Dashboard",
+    uploadButton: "Add Photos",
+    removePhoto: "Remove",
 
     // Submission Status Messages
     submitSuccessTitle: "Submission Received!",
@@ -121,6 +127,7 @@ export const translations = {
     contactInfoLegend: "Información de Contacto",
     scopeTimelineLegend: "Alcance y Cronograma",
     contactMethodLegend: "¿Cómo le gustaría ser contactado?",
+    photosLegend: "Fotos y Adjuntos",
 
     // Etiquetas de Campo
     propertyNameLabel: "Nombre de la Propiedad",
@@ -134,6 +141,7 @@ export const translations = {
     serviceNeededLabel: "Servicio Requerido (Seleccione Múltiples)",
     timelineLabel: "Cronograma del Proyecto",
     notesLabel: "Notas y Dinámicas Adicionales",
+    photosLabel: "Subir fotos 'Antes' (Máx. 2MB por archivo)",
 
     // Placeholders y Texto por Defecto
     propertySelectPlaceholder: "Seleccione una propiedad...",
@@ -143,6 +151,7 @@ export const translations = {
     otherServicePlaceholder: "Por favor, especifique el servicio 'Otro'",
     timelineSelectPlaceholder: "Seleccione cronograma...",
     notesPlaceholder: "Cuéntenos todo aquí. Lo resolveremos rápido...",
+    dragDropText: "Arrastre fotos aquí, o haga clic para seleccionar",
 
     // Botones
     generateAIDraftButton: "Generar Borrador con IA",
@@ -151,6 +160,8 @@ export const translations = {
     submittingButton: "Enviando...",
     submitAnotherButton: "Enviar Otra Solicitud",
     enterDashboardButton: "Entrar al Panel Personal",
+    uploadButton: "Agregar Fotos",
+    removePhoto: "Eliminar",
 
     // Mensajes de Estado de Envío
     submitSuccessTitle: "¡Solicitud Recibida!",
