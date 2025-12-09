@@ -9,11 +9,11 @@ import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubb
 // --- LOGO CONFIGURATION ---
 // 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
 // Leave empty "" to use the default Triangle placeholder.
-const JES_STONE_LOGO_URL = "https://static.wixstatic.com/media/d78791_1119d8d2b7e54f93bcb2a3136b765488~mv2.png"; 
+const JES_STONE_LOGO_URL = ""; 
 
 // 2. PASTE YOUR DFWSA / AI STUDIO LOGO URL INSIDE THE QUOTES BELOW
 // Leave empty "" to use the default AI STUDIO text badge.
-const FOOTER_LOGO_URL = "https://static.wixstatic.com/media/d78791_bd04d4849b6f4a2c9af61da70df2c9e6~mv2.png"; 
+const FOOTER_LOGO_URL = ""; 
 
 // --- ACTION REQUIRED ---
 // Paste your deployed Google Apps Script Web App URL here.
@@ -295,7 +295,7 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
     return (
         <div className="bg-light-navy p-6 rounded-lg shadow-2xl">
             <h2 className="text-3xl font-bold text-lightest-slate mb-2">Service Assistant</h2>
-            <p className="mb-6 text-bright-cyan">For {selectedCompany?.name || 'DFW'} Properties</p>
+            <p className="mb-6 text-bright-cyan">For CushWake Properties</p>
 
             <div className="mb-8">
                 <label htmlFor="company-select" className="block text-sm font-medium text-light-slate mb-2">Select Target Company:</label>
@@ -430,7 +430,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
 
     if (submissionStatus === 'success') {
         return (
-            <div className="bg-light-navy p-8 rounded-lg shadow-2xl text-center">
+            <div className={`bg-light-navy p-8 rounded-lg text-center ${GLOW_CLASSES}`}>
                 <h2 className="text-3xl font-bold text-bright-cyan mb-4">{t.submitSuccessTitle}</h2>
                 <p className="text-lightest-slate text-lg">{t.submitSuccessMessage1}</p>
                 <p className="text-slate mt-2">{t.submitSuccessMessage2}</p>
@@ -443,7 +443,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     
     if (submissionStatus === 'error') {
          return (
-            <div className="bg-light-navy p-8 rounded-lg shadow-2xl text-center">
+            <div className={`bg-light-navy p-8 rounded-lg text-center ${GLOW_CLASSES}`}>
                 <h2 className="text-3xl font-bold text-red-400 mb-4">{t.submitErrorTitle}</h2>
                 <p className="text-lightest-slate text-lg">{t.submitErrorMessage1}</p>
                 <p className="text-slate mt-2">{t.submitErrorMessage2}</p>
@@ -455,11 +455,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     }
   
     return (
-      <div className="bg-light-navy p-6 rounded-lg shadow-2xl">
+      <div className={`bg-light-navy p-6 rounded-lg ${GLOW_CLASSES}`}>
         <div className="flex justify-between items-center">
             <div>
                 <h2 className="text-2xl font-bold text-lightest-slate mb-1">{t.surveyTitle}</h2>
-                <p className="mb-6 text-slate">{t.surveySubtitle} <span className="font-bold text-bright-blue">{company.name}</span>{t.surveySubtitleProperties}</p>
+                <p className="mb-6 text-slate">For <span className="font-bold text-bright-cyan">CushWake</span> Properties</p>
             </div>
             <button onClick={() => setLang(lang === 'en' ? 'es' : 'en')} className="text-sm font-medium text-bright-cyan hover:text-opacity-80 px-3 py-1 rounded-md border border-bright-cyan/50">
                 {t.languageToggle}
