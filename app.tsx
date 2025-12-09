@@ -416,18 +416,35 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
     const visibleCompany = useMemo(() => {
         const baseCompany = currentUser.company;
         
+        // Safety check if company is somehow null/undefined
+        if (!baseCompany) return null;
+
         // If executive (empty list), allow all.
-        if (currentUser.allowedPropertyIds.length === 0) {
+        if (!currentUser.allowedPropertyIds || currentUser.allowedPropertyIds.length === 0) {
             return baseCompany;
         }
 
         // Otherwise filter
-        const filteredProperties = baseCompany.properties.filter(p => currentUser.allowedPropertyIds.includes(p.id));
+        // Safe access to properties array
+        const props = baseCompany.properties || [];
+        const filteredProperties = props.filter(p => currentUser.allowedPropertyIds.includes(p.id));
         return {
             ...baseCompany,
             properties: filteredProperties
         };
     }, [currentUser]);
+
+    // Safety check if rendering failed to produce a company
+    if (!visibleCompany) {
+         return (
+             <div className="min-h-screen bg-navy flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-bright-pink mb-4">Error: Company Profile Not Found</p>
+                    <button onClick={handleLogout} className="text-bright-cyan underline">Return to Login</button>
+                </div>
+             </div>
+         );
+    }
 
     const roleLabel = {
         'site_manager': t.roleSiteManager,
@@ -444,7 +461,7 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                         <JesStoneLogo className="h-8 w-auto" />
                         <span className="font-bold text-lightest-slate">JES STONE</span>
                     </a>
-                    <div className="bg-navy px-3 py-1 rounded-full text-xs font-bold text-bright-cyan border border-bright-cyan/30">
+                    <div className="bg-navy px-3 py-1 rounded-full text-xs font-bold text-bright-cyan border border-bright-cyan/30 text-center">
                         {visibleCompany.name}
                     </div>
                     <div className="mt-2 text-xs text-slate uppercase tracking-wider font-semibold">
@@ -614,8 +631,8 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
 const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => void }> = ({ companyData, onNewRequest }) => {
     const t = translations['en'];
     
-    // In a real app, calculate real stats from filtered properties
-    const totalProperties = companyData.reduce((acc, c) => acc + c.properties.length, 0);
+    // Safety reduce with optional chaining
+    const totalProperties = companyData?.reduce((acc, c) => acc + (c?.properties?.length || 0), 0) || 0;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-300">
