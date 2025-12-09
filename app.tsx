@@ -34,6 +34,49 @@ const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowe
     'DEMO': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] }, 
 };
 
+// --- ERROR BOUNDARY COMPONENT ---
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-navy flex items-center justify-center p-4">
+          <div className="bg-light-navy p-8 rounded-lg border border-bright-pink text-center max-w-lg shadow-2xl">
+            <h1 className="text-2xl font-bold text-bright-pink mb-4">Something went wrong.</h1>
+            <p className="text-slate mb-4">The application encountered an unexpected error while rendering.</p>
+            <div className="bg-navy p-4 rounded text-left overflow-auto max-h-40 mb-6 border border-lightest-navy">
+                <code className="text-xs text-bright-pink font-mono block break-all">{this.state.error?.toString()}</code>
+            </div>
+            <button 
+                onClick={() => {
+                    window.location.hash = ''; // Reset route
+                    window.location.reload();
+                }} 
+                className="bg-bright-cyan text-navy font-bold py-2 px-6 rounded hover:bg-opacity-90 transition-all"
+            >
+                Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // --- Navigation Handler ---
 const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -385,10 +428,12 @@ const App: React.FC = () => {
     };
 
     return (
-        <div className="dark min-h-screen bg-navy text-light-slate font-sans relative">
-            {renderContent()}
-            <ChatWidget />
-        </div>
+        <ErrorBoundary>
+            <div className="dark min-h-screen bg-navy text-light-slate font-sans relative">
+                {renderContent()}
+                <ChatWidget />
+            </div>
+        </ErrorBoundary>
     );
 };
 
@@ -452,6 +497,11 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
         'executive': t.roleExecutive,
     }[currentUser.role];
 
+    // Safely get property name with optional chaining to prevent crashes
+    const displayName = visibleCompany.properties.length === 1 
+        ? visibleCompany.properties[0]?.name 
+        : visibleCompany.name;
+
     return (
         <div className="min-h-screen flex bg-navy">
             {/* Sidebar */}
@@ -461,8 +511,8 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                         <JesStoneLogo className="h-8 w-auto" />
                         <span className="font-bold text-lightest-slate">JES STONE</span>
                     </a>
-                    <div className="bg-navy px-3 py-1 rounded-full text-xs font-bold text-bright-cyan border border-bright-cyan/30 text-center">
-                        {visibleCompany.properties.length === 1 ? visibleCompany.properties[0].name : visibleCompany.name}
+                    <div className="bg-navy px-3 py-1 rounded-full text-xs font-bold text-bright-cyan border border-bright-cyan/30 text-center max-w-full truncate">
+                        {displayName || 'Loading...'}
                     </div>
                     <div className="mt-2 text-xs text-slate uppercase tracking-wider font-semibold">
                         {roleLabel}
@@ -508,7 +558,11 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                     <div className="flex flex-col">
                         <span className="font-bold text-lightest-slate">{t.dashboardLoginTitle}</span>
                         <div className="flex gap-2 text-xs">
-                             <span className="text-bright-cyan">{visibleCompany.properties.length === 1 ? visibleCompany.properties[0].name.substring(0, 15) + '...' : visibleCompany.name}</span>
+                             <span className="text-bright-cyan">
+                                {visibleCompany.properties.length === 1 
+                                    ? (visibleCompany.properties[0]?.name?.substring(0, 15) || '') + '...' 
+                                    : visibleCompany.name}
+                             </span>
                         </div>
                     </div>
                     <button onClick={handleLogout}><LogoutIcon className="h-6 w-6 text-slate" /></button>
@@ -617,7 +671,6 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
                     <button 
                         type="submit" 
                         disabled={!code || isVerifying}
-                        // UPDATED: Changed cursor-wait to cursor-not-allowed to prevent confusion on disabled state
                         className="w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2"
                     >
                         {isVerifying ? <><LoadingSpinner /> Verifying...</> : t.loginButton}
