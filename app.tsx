@@ -9,11 +9,11 @@ import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubb
 // --- LOGO CONFIGURATION ---
 // 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
 // Leave empty "" to use the default Triangle placeholder.
-const JES_STONE_LOGO_URL = ""; 
+const JES_STONE_LOGO_URL = "https://static.wixstatic.com/media/d78791_392bb5b2b4e6444b9ddc1fbf7d848704~mv2.jpg"; 
 
 // 2. PASTE YOUR DFWSA / AI STUDIO LOGO URL INSIDE THE QUOTES BELOW
 // Leave empty "" to use the default AI STUDIO text badge.
-const FOOTER_LOGO_URL = ""; 
+const FOOTER_LOGO_URL = "https://static.wixstatic.com/media/ef2481_0ff0476fd83d4bb2bfae99b6ff7eb282~mv2.png"; 
 
 // --- ACTION REQUIRED ---
 // Paste your deployed Google Apps Script Web App URL here.
