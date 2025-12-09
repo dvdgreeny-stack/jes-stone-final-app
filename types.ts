@@ -11,7 +11,8 @@ export interface Company {
 }
 
 export interface SurveyData {
-  propertyId: string;
+  propertyName?: string;
+  propertyAddress?: string;
   firstName: string;
   lastName: string;
   title: string;
