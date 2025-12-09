@@ -9,11 +9,11 @@ import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubb
 // --- LOGO CONFIGURATION ---
 // 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
 // Leave empty "" to use the default Triangle placeholder.
-const JES_STONE_LOGO_URL = "https://static.wixstatic.com/media/d78791_1119d8d2b7e54f93bcb2a3136b765488~mv2.png"; 
+const JES_STONE_LOGO_URL = ""; 
 
 // 2. PASTE YOUR DFWSA / AI STUDIO LOGO URL INSIDE THE QUOTES BELOW
 // Leave empty "" to use the default AI STUDIO text badge.
-const FOOTER_LOGO_URL = "https://static.wixstatic.com/media/ef2481_0ff0476fd83d4bb2bfae99b6ff7eb282~mv2.png"; 
+const FOOTER_LOGO_URL = ""; 
 
 // --- ACTION REQUIRED ---
 // Paste your deployed Google Apps Script Web App URL here.
@@ -197,6 +197,7 @@ const ChatWidget: React.FC = () => {
 const App: React.FC = () => {
     const [companyData, setCompanyData] = useState<Company[]>([]);
     const [status, setStatus] = useState<'loading' | 'error' | 'success'>('loading');
+    const [errorMessage, setErrorMessage] = useState<string>('');
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [route, setRoute] = useState({ page: 'campaign', companyId: null as string | null });
 
@@ -219,8 +220,9 @@ const App: React.FC = () => {
                 }
                 setStatus('success');
                 setRoute(getRouteFromHash(data));
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to load company data:", error);
+                setErrorMessage(error.message || "Unknown error occurred.");
                 setStatus('error');
             }
         };
@@ -245,10 +247,42 @@ const App: React.FC = () => {
             return <div className="text-center py-20"><LoadingSpinner /> <p className="mt-4">Loading Property Data...</p></div>;
         }
         if (status === 'error') {
-            return <div className="text-center py-20 text-red-400">
-                <h2 className="text-2xl font-bold">Failed to Load Data</h2>
-                <p>Please check your APPS_SCRIPT_URL and ensure the Google Script is deployed correctly.</p>
-            </div>;
+             const isFetchError = errorMessage.toLowerCase().includes("failed to fetch") || errorMessage.toLowerCase().includes("network error");
+            return (
+                <div className="text-center py-20 text-red-400 max-w-2xl mx-auto">
+                    <h2 className="text-2xl font-bold mb-4">Failed to Load Data</h2>
+                    
+                    {isFetchError ? (
+                        <div className="bg-navy border border-bright-pink/30 p-6 rounded-lg text-left mb-6">
+                            <h3 className="font-bold text-bright-pink mb-2">⚠️ Permissions Error Detected</h3>
+                            <p className="text-lightest-slate mb-4">
+                                The app cannot connect to your Google Sheet. This is usually because the Google Script permissions are too restrictive.
+                            </p>
+                            <ol className="list-decimal list-inside text-sm text-slate space-y-2">
+                                <li>Open your <a href={APPS_SCRIPT_URL.replace('/exec', '/edit')} target="_blank" className="underline hover:text-bright-cyan">Google Apps Script</a>.</li>
+                                <li>Click <strong>Deploy</strong> &rarr; <strong>Manage Deployments</strong>.</li>
+                                <li>Click the <strong>Pencil (Edit)</strong> icon.</li>
+                                <li>Change <strong>Who has access</strong> to <strong>"Anyone"</strong>.</li>
+                                <li>Click <strong>Deploy</strong>.</li>
+                            </ol>
+                            <p className="text-xs mt-4 text-slate italic">Note: "Anyone" allows the web app to submit data without requiring the user to log in to Google.</p>
+                        </div>
+                    ) : (
+                        <p className="mb-6 text-slate">Please check your APPS_SCRIPT_URL and ensure the Google Script is deployed correctly.</p>
+                    )}
+
+                    <div className="bg-navy border border-lightest-navy p-4 rounded text-left overflow-auto mb-6">
+                        <p className="font-bold text-xs text-bright-pink uppercase mb-1">Error Details:</p>
+                        <code className="text-sm font-mono text-light-slate">{errorMessage}</code>
+                    </div>
+                    <button 
+                        onClick={() => window.location.reload()} 
+                        className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold hover:bg-bright-cyan/90 transition-colors"
+                    >
+                        Retry Connection
+                    </button>
+                </div>
+            );
         }
         if (route.page === 'campaign') {
             return <CampaignSuite 
@@ -370,7 +404,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [isGenerating, setIsGenerating] = useState(false);
 
-    // Smart logic for phone number requirement
+    // Smart logic for phone requirement
     const isPhoneRequired = useMemo(() => {
         return formData.contactMethods.includes('Phone Call (immediate)') || formData.contactMethods.includes('Text Message (SMS)');
     }, [formData.contactMethods]);

@@ -14,13 +14,27 @@ export async function fetchCompanyData(apiUrl: string): Promise<Company[]> {
       'Content-Type': 'text/plain', 
     },
     body: JSON.stringify({ action: 'getCompanyData' }),
+    redirect: 'follow', // Follow Google's 302 redirects
+    credentials: 'omit', // Prevent sending cookies to avoid auth popup issues
   });
 
   if (!response.ok) {
-    throw new Error('Network response from Google Apps Script was not ok.');
+    throw new Error(`Network Error: ${response.status} ${response.statusText}`);
   }
 
-  const result = await response.json();
+  const text = await response.text();
+  let result;
+  
+  try {
+    result = JSON.parse(text);
+  } catch (e) {
+    // If the script crashes, it often returns an HTML error page instead of JSON.
+    if (text.includes("<!DOCTYPE html>")) {
+       throw new Error('Google Apps Script crashed. Check the script logs or syntax.');
+    }
+    throw new Error('Invalid JSON response from server.');
+  }
+
   if (!result.success) {
     throw new Error(result.error || 'The API script returned an error while fetching data.');
   }
@@ -41,13 +55,26 @@ export async function submitSurveyData(apiUrl: string, data: SurveyData): Promis
       'Content-Type': 'text/plain',
     },
     body: JSON.stringify({ action: 'submitSurveyData', payload: data }),
+    redirect: 'follow',
+    credentials: 'omit',
   });
 
   if (!response.ok) {
-    throw new Error('Network response from Google Apps Script was not ok during submission.');
+     throw new Error(`Network Error: ${response.status} ${response.statusText}`);
   }
 
-  const result = await response.json();
+  const text = await response.text();
+  let result;
+  
+  try {
+    result = JSON.parse(text);
+  } catch (e) {
+    if (text.includes("<!DOCTYPE html>")) {
+       throw new Error('Google Apps Script crashed during submission.');
+    }
+    throw new Error('Invalid JSON response from server during submission.');
+  }
+
   if (!result.success) {
     throw new Error(result.error || 'The API script returned an error during submission.');
   }
