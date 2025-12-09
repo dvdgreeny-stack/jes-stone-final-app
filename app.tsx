@@ -200,6 +200,8 @@ const App: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [route, setRoute] = useState({ page: 'campaign', companyId: null as string | null });
+    // Added for debugging URLs on the fly
+    const [overrideUrl, setOverrideUrl] = useState<string>('');
 
     const getRouteFromHash = useCallback((data: Company[]) => {
         const hash = window.location.hash;
@@ -210,24 +212,29 @@ const App: React.FC = () => {
         return { page: 'campaign' as const, companyId: null };
     }, []);
 
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const data = await fetchCompanyData(APPS_SCRIPT_URL);
-                setCompanyData(data);
-                if (data.length > 0) {
-                    setSelectedCompanyId(data[0].id);
-                }
-                setStatus('success');
-                setRoute(getRouteFromHash(data));
-            } catch (error: any) {
-                console.error("Failed to load company data:", error);
-                setErrorMessage(error.message || "Unknown error occurred.");
-                setStatus('error');
+    const loadData = useCallback(async (urlOverride?: string) => {
+        setStatus('loading');
+        setErrorMessage('');
+        const targetUrl = urlOverride || APPS_SCRIPT_URL;
+        
+        try {
+            const data = await fetchCompanyData(targetUrl);
+            setCompanyData(data);
+            if (data.length > 0) {
+                setSelectedCompanyId(data[0].id);
             }
-        };
-        loadData();
+            setStatus('success');
+            setRoute(getRouteFromHash(data));
+        } catch (error: any) {
+            console.error("Failed to load company data:", error);
+            setErrorMessage(error.message || "Unknown error occurred.");
+            setStatus('error');
+        }
     }, [getRouteFromHash]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
     
     useEffect(() => {
         const handleHashChange = () => {
@@ -254,18 +261,20 @@ const App: React.FC = () => {
                     
                     {isFetchError ? (
                         <div className="bg-navy border border-bright-pink/30 p-6 rounded-lg text-left mb-6">
-                            <h3 className="font-bold text-bright-pink mb-2">⚠️ Permissions Error Detected</h3>
+                            <h3 className="font-bold text-bright-pink mb-2">⚠️ Connection Error</h3>
                             <p className="text-lightest-slate mb-4">
-                                The app cannot connect to your Google Sheet. This is usually because the Google Script permissions are too restrictive.
+                                The app cannot connect to the Google Script. Since permissions are set to "Anyone", this is likely due to:
                             </p>
-                            <ol className="list-decimal list-inside text-sm text-slate space-y-2">
-                                <li>Open your <a href={APPS_SCRIPT_URL.replace('/exec', '/edit')} target="_blank" className="underline hover:text-bright-cyan">Google Apps Script</a>.</li>
-                                <li>Click <strong>Deploy</strong> &rarr; <strong>Manage Deployments</strong>.</li>
-                                <li>Click the <strong>Pencil (Edit)</strong> icon.</li>
-                                <li>Change <strong>Who has access</strong> to <strong>"Anyone"</strong>.</li>
-                                <li>Click <strong>Deploy</strong>.</li>
+                            <ul className="list-disc list-inside text-sm text-slate space-y-2 mb-4">
+                                <li>A <strong>Syntax Error</strong> in the script you just edited (missing bracket or comma).</li>
+                                <li>The <strong>Script URL changed</strong> (if you created a "New Deployment" instead of "New Version").</li>
+                            </ul>
+                            <p className="text-sm text-bright-cyan font-bold mb-2">How to Fix:</p>
+                             <ol className="list-decimal list-inside text-sm text-slate space-y-2">
+                                <li>Check your Google Script editor for red syntax errors.</li>
+                                <li>If you created a new deployment, copy the new Web App URL.</li>
+                                <li>Paste the new URL below to test it immediately.</li>
                             </ol>
-                            <p className="text-xs mt-4 text-slate italic">Note: "Anyone" allows the web app to submit data without requiring the user to log in to Google.</p>
                         </div>
                     ) : (
                         <p className="mb-6 text-slate">Please check your APPS_SCRIPT_URL and ensure the Google Script is deployed correctly.</p>
@@ -275,12 +284,22 @@ const App: React.FC = () => {
                         <p className="font-bold text-xs text-bright-pink uppercase mb-1">Error Details:</p>
                         <code className="text-sm font-mono text-light-slate">{errorMessage}</code>
                     </div>
-                    <button 
-                        onClick={() => window.location.reload()} 
-                        className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold hover:bg-bright-cyan/90 transition-colors"
-                    >
-                        Retry Connection
-                    </button>
+
+                    <div className="flex flex-col gap-4 max-w-md mx-auto">
+                        <input 
+                            type="text" 
+                            placeholder="Paste new Web App URL here (optional)"
+                            value={overrideUrl}
+                            onChange={(e) => setOverrideUrl(e.target.value)}
+                            className="bg-navy border border-lightest-navy p-2 rounded text-sm text-lightest-slate focus:ring-1 focus:ring-bright-cyan"
+                        />
+                        <button 
+                            onClick={() => loadData(overrideUrl)} 
+                            className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold hover:bg-bright-cyan/90 transition-colors"
+                        >
+                            Retry Connection
+                        </button>
+                    </div>
                 </div>
             );
         }
@@ -292,7 +311,11 @@ const App: React.FC = () => {
             />;
         }
         if (route.page === 'survey' && route.companyId) {
-            return <Survey companyId={route.companyId} companyData={companyData} />;
+            return <Survey 
+                companyId={route.companyId} 
+                companyData={companyData} 
+                scriptUrl={overrideUrl || APPS_SCRIPT_URL} // Pass dynamic URL to survey
+            />;
         }
         return null;
     };
@@ -358,7 +381,7 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
     );
 };
 
-const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ companyId, companyData }) => {
+const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: string }> = ({ companyId, companyData, scriptUrl }) => {
     const [lang, setLang] = useState<'en' | 'es'>('en');
     const t = useMemo(() => translations[lang], [lang]);
 
@@ -464,7 +487,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
         // --- NEW LOGIC END ---
 
         try {
-            await submitSurveyData(APPS_SCRIPT_URL, payload);
+            await submitSurveyData(scriptUrl, payload);
             setSubmissionStatus('success');
         } catch (error) {
             console.error('Survey Submission Failed:', error);
