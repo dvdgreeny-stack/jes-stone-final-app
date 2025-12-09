@@ -20,19 +20,18 @@ const FOOTER_LOGO_URL = "";
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwlTxJzHJiJvLFkK1UkFCgrfnuwxspsMBFBigh3IXwkW8ZI1PPkjUWuFm9lz1-zsk59/exec'; 
 
 // --- MOCK ACCESS DATABASE ---
-// This simulates a backend permission system.
-// In production, this would be an API call to validate the code and get permissions.
+// Simplified for Single Property Focus
 const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowedPropertyIds: string[] }> = {
-    // Executive Access (All Properties)
-    'KV2025': { role: 'executive', companyId: 'knightvest', allowedPropertyIds: [] },
-    'CW2025': { role: 'executive', companyId: 'cushwake', allowedPropertyIds: [] },
-    'DEMO': { role: 'executive', companyId: 'knightvest', allowedPropertyIds: [] }, // Default demo to Knightvest Exec
-
-    // Regional Manager Access (Subset of Properties - Simulation)
-    'KV-REGION-N': { role: 'regional_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1', 'kv-2'] }, // Specific IDs must match your Google Sheet data
-
-    // Site Manager Access (Single Property - Simulation)
+    // Single Property Access (Site Manager)
+    // Matches ID 'kv-1' -> "The Arts at Park Place" in your current script data
     'PARKPLACE': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] },
+    
+    // Another Single Property (Site Manager)
+    // Matches ID 'kv-2' -> "Canyon Creek"
+    'CANYON': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-2'] },
+
+    // Fallback Demo
+    'DEMO': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] }, 
 };
 
 // --- Navigation Handler ---
@@ -463,7 +462,7 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                         <span className="font-bold text-lightest-slate">JES STONE</span>
                     </a>
                     <div className="bg-navy px-3 py-1 rounded-full text-xs font-bold text-bright-cyan border border-bright-cyan/30 text-center">
-                        {visibleCompany.name}
+                        {visibleCompany.properties.length === 1 ? visibleCompany.properties[0].name : visibleCompany.name}
                     </div>
                     <div className="mt-2 text-xs text-slate uppercase tracking-wider font-semibold">
                         {roleLabel}
@@ -509,9 +508,7 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                     <div className="flex flex-col">
                         <span className="font-bold text-lightest-slate">{t.dashboardLoginTitle}</span>
                         <div className="flex gap-2 text-xs">
-                             <span className="text-bright-cyan">{visibleCompany.name}</span>
-                             <span className="text-slate">|</span>
-                             <span className="text-slate">{roleLabel}</span>
+                             <span className="text-bright-cyan">{visibleCompany.properties.length === 1 ? visibleCompany.properties[0].name.substring(0, 15) + '...' : visibleCompany.name}</span>
                         </div>
                     </div>
                     <button onClick={handleLogout}><LogoutIcon className="h-6 w-6 text-slate" /></button>
@@ -557,6 +554,7 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
         setError('');
         setIsVerifying(true);
 
+        // Simulated network delay - slightly reduced for snappier feel
         setTimeout(() => {
             const normalizedCode = code.toUpperCase().trim();
             const accessRecord = MOCK_ACCESS_DB[normalizedCode];
@@ -570,6 +568,8 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
                      return;
                 }
 
+                // If DEMO, just pick the first company available. 
+                // If specific code, match the companyId.
                 const company = companyData.find(c => c.id === accessRecord.companyId) || 
                               (normalizedCode === 'DEMO' ? companyData[0] : null);
 
@@ -587,7 +587,7 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
                 setCode('');
             }
             setIsVerifying(false);
-        }, 1500);
+        }, 1000);
     };
 
     return (
@@ -617,16 +617,16 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
                     <button 
                         type="submit" 
                         disabled={!code || isVerifying}
-                        className="w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 disabled:opacity-50 disabled:cursor-wait transition-all flex justify-center items-center gap-2"
+                        // UPDATED: Changed cursor-wait to cursor-not-allowed to prevent confusion on disabled state
+                        className="w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2"
                     >
                         {isVerifying ? <><LoadingSpinner /> Verifying...</> : t.loginButton}
                     </button>
                 </form>
                  <div className="mt-6 text-xs text-slate space-y-1">
                      <p>Demo Codes:</p>
-                     <p><span className="text-bright-cyan font-mono">KV2025</span> (Knightvest Exec)</p>
-                     <p><span className="text-bright-cyan font-mono">KV-REGION-N</span> (Regional)</p>
                      <p><span className="text-bright-cyan font-mono">PARKPLACE</span> (Site Manager)</p>
+                     <p><span className="text-bright-cyan font-mono">CANYON</span> (Site Manager)</p>
                 </div>
                 <div className="mt-4 text-xs text-slate">
                     <a href="#/" className="hover:text-bright-cyan">Return to Public Site</a>
@@ -641,13 +641,18 @@ const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => 
     
     // Safety reduce with optional chaining AND check if array exists
     const totalProperties = (companyData || []).reduce((acc, c) => acc + (c?.properties?.length || 0), 0) || 0;
+    
+    // If single property view, get its name for display
+    const singlePropertyName = totalProperties === 1 && companyData[0]?.properties[0]?.name;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-lightest-slate">Welcome Back</h1>
-                    <p className="text-slate">Managing {totalProperties} property locations.</p>
+                    <p className="text-slate">
+                        {singlePropertyName ? `Managing ${singlePropertyName}` : `Managing ${totalProperties} property locations.`}
+                    </p>
                 </div>
                 <button onClick={onNewRequest} className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold shadow-lg hover:bg-bright-cyan/90 transition-all">
                     + New Request
@@ -662,7 +667,7 @@ const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => 
                          <BuildingBlocksIcon className="h-5 w-5 text-bright-cyan opacity-50" />
                     </div>
                     <p className="text-4xl font-bold text-lightest-slate mt-2">3</p>
-                    <p className="text-xs text-slate mt-1">Across all accessible sites</p>
+                    <p className="text-xs text-slate mt-1">In progress</p>
                 </div>
                 <div className="bg-light-navy p-6 rounded-lg border-l-4 border-bright-pink shadow-lg">
                     <div className="flex justify-between items-start">
