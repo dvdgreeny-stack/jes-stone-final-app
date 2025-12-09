@@ -200,8 +200,11 @@ const App: React.FC = () => {
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [route, setRoute] = useState({ page: 'campaign', companyId: null as string | null });
-    // Added for debugging URLs on the fly
-    const [overrideUrl, setOverrideUrl] = useState<string>('');
+    
+    // URL Override State (auto-load from localStorage if available)
+    const [overrideUrl, setOverrideUrl] = useState<string>(() => {
+        return localStorage.getItem('jes_stone_script_url') || '';
+    });
 
     const getRouteFromHash = useCallback((data: Company[]) => {
         const hash = window.location.hash;
@@ -215,8 +218,16 @@ const App: React.FC = () => {
     const loadData = useCallback(async (urlOverride?: string) => {
         setStatus('loading');
         setErrorMessage('');
-        const targetUrl = urlOverride || APPS_SCRIPT_URL;
         
+        // Use override if provided, otherwise check state (from localstorage), otherwise default
+        const targetUrl = urlOverride || overrideUrl || APPS_SCRIPT_URL;
+        
+        if (!targetUrl) {
+            setErrorMessage("No API URL configured.");
+            setStatus('error');
+            return;
+        }
+
         try {
             const data = await fetchCompanyData(targetUrl);
             setCompanyData(data);
@@ -225,12 +236,19 @@ const App: React.FC = () => {
             }
             setStatus('success');
             setRoute(getRouteFromHash(data));
+
+            // If we successfully connected with an override, save it!
+            if (urlOverride) {
+                localStorage.setItem('jes_stone_script_url', urlOverride);
+                setOverrideUrl(urlOverride); // Update state to reflect valid URL
+            }
+
         } catch (error: any) {
             console.error("Failed to load company data:", error);
             setErrorMessage(error.message || "Unknown error occurred.");
             setStatus('error');
         }
-    }, [getRouteFromHash]);
+    }, [getRouteFromHash, overrideUrl]);
 
     useEffect(() => {
         loadData();
@@ -268,12 +286,13 @@ const App: React.FC = () => {
                             <ul className="list-disc list-inside text-sm text-slate space-y-2 mb-4">
                                 <li>A <strong>Syntax Error</strong> in the script you just edited (missing bracket or comma).</li>
                                 <li>The <strong>Script URL changed</strong> (if you created a "New Deployment" instead of "New Version").</li>
+                                <li><strong>Missing Functions:</strong> Ensure the script has the <code>doPost</code> and <code>getCompanyData</code> functions. If you only see <code>saveToSheet</code>, you need to restore the full code.</li>
                             </ul>
                             <p className="text-sm text-bright-cyan font-bold mb-2">How to Fix:</p>
                              <ol className="list-decimal list-inside text-sm text-slate space-y-2">
-                                <li>Check your Google Script editor for red syntax errors.</li>
-                                <li>If you created a new deployment, copy the new Web App URL.</li>
-                                <li>Paste the new URL below to test it immediately.</li>
+                                <li>Copy the <strong>FULL SCRIPT</strong> provided by the assistant and replace everything in your Google Script Editor.</li>
+                                <li>Deploy as <strong>New Version</strong>.</li>
+                                <li>If the URL changed, paste it below.</li>
                             </ol>
                         </div>
                     ) : (
@@ -289,12 +308,15 @@ const App: React.FC = () => {
                         <input 
                             type="text" 
                             placeholder="Paste new Web App URL here (optional)"
-                            value={overrideUrl}
-                            onChange={(e) => setOverrideUrl(e.target.value)}
+                            defaultValue={overrideUrl}
+                            id="urlInput"
                             className="bg-navy border border-lightest-navy p-2 rounded text-sm text-lightest-slate focus:ring-1 focus:ring-bright-cyan"
                         />
                         <button 
-                            onClick={() => loadData(overrideUrl)} 
+                            onClick={() => {
+                                const input = document.getElementById('urlInput') as HTMLInputElement;
+                                if(input) loadData(input.value.trim());
+                            }} 
                             className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold hover:bg-bright-cyan/90 transition-colors"
                         >
                             Retry Connection
