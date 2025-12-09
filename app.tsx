@@ -9,7 +9,7 @@ import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubb
 // --- LOGO CONFIGURATION ---
 // 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
 // Leave empty "" to use the default Triangle placeholder.
-const JES_STONE_LOGO_URL = "https://static.wixstatic.com/media/d78791_392bb5b2b4e6444b9ddc1fbf7d848704~mv2.jpg"; 
+const JES_STONE_LOGO_URL = "https://shttps://static.wixstatic.com/media/d78791_1119d8d2b7e54f93bcb2a3136b765488~mv2.pngtatic.wixstatic.com/media/d78791_392bb5b2b4e6444b9ddc1fbf7d848704~mv2.jpg"; 
 
 // 2. PASTE YOUR DFWSA / AI STUDIO LOGO URL INSIDE THE QUOTES BELOW
 // Leave empty "" to use the default AI STUDIO text badge.
