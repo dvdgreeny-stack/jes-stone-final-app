@@ -4,7 +4,7 @@ import { fetchCompanyData, submitSurveyData } from './services/apiService';
 import { translations } from './translations';
 import type { Company, SurveyData } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon } from './components/icons';
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon } from './components/icons';
 
 // --- LOGO CONFIGURATION ---
 // 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
@@ -208,6 +208,9 @@ const App: React.FC = () => {
 
     const getRouteFromHash = useCallback((data: Company[]) => {
         const hash = window.location.hash;
+        if (hash === '#dashboard') {
+            return { page: 'dashboard' as const, companyId: null };
+        }
         const surveyMatch = hash.match(/^#\/survey\/([a-zA-Z0-9_-]+)/);
         if (surveyMatch && data.find(c => c.id === surveyMatch[1])) {
             return { page: 'survey' as const, companyId: surveyMatch[1] };
@@ -325,36 +328,308 @@ const App: React.FC = () => {
                 </div>
             );
         }
-        if (route.page === 'campaign') {
-            return <CampaignSuite 
-                companyData={companyData}
-                onCompanyChange={setSelectedCompanyId} 
-                initialCompanyId={selectedCompanyId || (companyData.length > 0 ? companyData[0].id : '')} 
+        
+        if (route.page === 'dashboard') {
+            return <Dashboard 
+                companyData={companyData} 
+                scriptUrl={overrideUrl || APPS_SCRIPT_URL} 
             />;
         }
+
+        if (route.page === 'campaign') {
+            return (
+                <>
+                <Header surveyUrl={surveyUrlForHeader} />
+                <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <CampaignSuite 
+                        companyData={companyData}
+                        onCompanyChange={setSelectedCompanyId} 
+                        initialCompanyId={selectedCompanyId || (companyData.length > 0 ? companyData[0].id : '')} 
+                    />
+                </main>
+                <Footer />
+                </>
+            );
+        }
         if (route.page === 'survey' && route.companyId) {
-            return <Survey 
-                companyId={route.companyId} 
-                companyData={companyData} 
-                scriptUrl={overrideUrl || APPS_SCRIPT_URL} // Pass dynamic URL to survey
-            />;
+            return (
+                <>
+                <Header surveyUrl={surveyUrlForHeader} />
+                <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <Survey 
+                        companyId={route.companyId} 
+                        companyData={companyData} 
+                        scriptUrl={overrideUrl || APPS_SCRIPT_URL} // Pass dynamic URL to survey
+                    />
+                </main>
+                <Footer />
+                </>
+            );
         }
         return null;
     };
 
     return (
         <div className="dark min-h-screen bg-navy text-light-slate font-sans relative">
-            <Header surveyUrl={surveyUrlForHeader} />
-            <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {renderContent()}
-            </main>
-            <Footer />
+            {renderContent()}
             <ChatWidget />
         </div>
     );
 };
 
 // --- Page Components ---
+
+const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ companyData, scriptUrl }) => {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [activeTab, setActiveTab] = useState<'overview' | 'newRequest' | 'gallery' | 'history'>('overview');
+    const t = translations['en']; // Default to English for dashboard for now
+
+    if (!isLoggedIn) {
+        return <DashboardLogin onLogin={() => setIsLoggedIn(true)} />;
+    }
+
+    return (
+        <div className="min-h-screen flex bg-navy">
+            {/* Sidebar */}
+            <aside className="w-64 bg-light-navy border-r border-lightest-navy hidden md:flex flex-col">
+                <div className="p-6 border-b border-lightest-navy flex justify-center">
+                    <a href="#/" className="flex items-center gap-2">
+                        <JesStoneLogo className="h-8 w-auto" />
+                        <span className="font-bold text-lightest-slate">JES STONE</span>
+                    </a>
+                </div>
+                <nav className="flex-1 p-4 space-y-2">
+                    <button 
+                        onClick={() => setActiveTab('overview')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'overview' ? 'bg-bright-cyan/20 text-bright-cyan border-l-2 border-bright-cyan' : 'text-slate hover:text-lightest-slate hover:bg-navy'}`}
+                    >
+                        <DashboardIcon className="h-5 w-5" /> {t.tabOverview}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('newRequest')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'newRequest' ? 'bg-bright-cyan/20 text-bright-cyan border-l-2 border-bright-cyan' : 'text-slate hover:text-lightest-slate hover:bg-navy'}`}
+                    >
+                         <ClipboardListIcon className="h-5 w-5" /> {t.tabNewRequest}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('gallery')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'gallery' ? 'bg-bright-cyan/20 text-bright-cyan border-l-2 border-bright-cyan' : 'text-slate hover:text-lightest-slate hover:bg-navy'}`}
+                    >
+                        <PhotoIcon className="h-5 w-5" /> {t.tabGallery}
+                    </button>
+                    <button 
+                         onClick={() => setActiveTab('history')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'history' ? 'bg-bright-cyan/20 text-bright-cyan border-l-2 border-bright-cyan' : 'text-slate hover:text-lightest-slate hover:bg-navy'}`}
+                    >
+                        <ClockIcon className="h-5 w-5" /> {t.tabHistory}
+                    </button>
+                </nav>
+                <div className="p-4 border-t border-lightest-navy">
+                    <button onClick={() => window.location.hash = "#/"} className="w-full flex items-center gap-3 px-4 py-2 text-slate hover:text-bright-pink transition-colors">
+                        <LogoutIcon className="h-5 w-5" /> {t.logout}
+                    </button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <div className="flex-1 overflow-auto">
+                {/* Mobile Header */}
+                <header className="md:hidden bg-light-navy p-4 flex justify-between items-center border-b border-lightest-navy sticky top-0 z-10">
+                    <span className="font-bold text-lightest-slate">{t.dashboardLoginTitle}</span>
+                    <button onClick={() => setIsLoggedIn(false)}><LogoutIcon className="h-6 w-6 text-slate" /></button>
+                </header>
+                
+                {/* Mobile Nav */}
+                <div className="md:hidden bg-navy flex justify-around p-2 border-b border-lightest-navy">
+                     <button onClick={() => setActiveTab('overview')} className={`p-2 ${activeTab === 'overview' ? 'text-bright-cyan' : 'text-slate'}`}><DashboardIcon className="h-6 w-6" /></button>
+                     <button onClick={() => setActiveTab('newRequest')} className={`p-2 ${activeTab === 'newRequest' ? 'text-bright-cyan' : 'text-slate'}`}><ClipboardListIcon className="h-6 w-6" /></button>
+                     <button onClick={() => setActiveTab('gallery')} className={`p-2 ${activeTab === 'gallery' ? 'text-bright-cyan' : 'text-slate'}`}><PhotoIcon className="h-6 w-6" /></button>
+                </div>
+
+                <div className="p-4 md:p-8 max-w-6xl mx-auto">
+                    {activeTab === 'overview' && <DashboardOverview companyData={companyData} onNewRequest={() => setActiveTab('newRequest')} />}
+                    {activeTab === 'newRequest' && (
+                        <div className="animate-in fade-in duration-300">
+                             <h2 className="text-2xl font-bold text-lightest-slate mb-6">New Service Request</h2>
+                             {/* Embed Survey without header/footer */}
+                             <Survey 
+                                companyId={companyData[0]?.id || ''} 
+                                companyData={companyData} 
+                                scriptUrl={scriptUrl} 
+                                embedded={true}
+                                onSuccess={() => setActiveTab('overview')}
+                            />
+                        </div>
+                    )}
+                    {activeTab === 'gallery' && <DashboardGallery />}
+                    {activeTab === 'history' && <DashboardHistory />}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DashboardLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
+    const t = translations['en'];
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onLogin();
+    };
+
+    return (
+        <div className="min-h-screen bg-navy flex items-center justify-center p-4">
+            <div className={`bg-light-navy p-8 rounded-lg max-w-md w-full text-center ${GLOW_CLASSES}`}>
+                <div className="flex justify-center mb-6">
+                    <div className="p-4 bg-navy rounded-full border border-bright-cyan shadow-[0_0_15px_rgba(100,255,218,0.3)]">
+                        <LockClosedIcon className="h-8 w-8 text-bright-cyan" />
+                    </div>
+                </div>
+                <h1 className="text-2xl font-bold text-lightest-slate mb-2">{t.dashboardLoginTitle}</h1>
+                <p className="text-slate mb-8">{t.dashboardLoginSubtitle}</p>
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="text-left">
+                        <label className="block text-sm font-medium text-light-slate mb-1">{t.accessCodeLabel}</label>
+                        <input 
+                            type="password" 
+                            className="w-full bg-navy border border-lightest-navy rounded-md p-3 text-center tracking-widest text-xl text-bright-cyan focus:ring-2 focus:ring-bright-cyan focus:outline-none"
+                            placeholder="••••"
+                        />
+                    </div>
+                    <button type="submit" className="w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 transition-all">
+                        {t.loginButton}
+                    </button>
+                </form>
+                <div className="mt-6 text-xs text-slate">
+                    <a href="#/" className="hover:text-bright-cyan">Return to Public Site</a>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => void }> = ({ companyData, onNewRequest }) => {
+    const t = translations['en'];
+    return (
+        <div className="space-y-8 animate-in fade-in duration-300">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-lightest-slate">Welcome Back</h1>
+                    <p className="text-slate">Here is what is happening with your properties today.</p>
+                </div>
+                <button onClick={onNewRequest} className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold shadow-lg hover:bg-bright-cyan/90 transition-all">
+                    + New Request
+                </button>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-light-navy p-6 rounded-lg border-l-4 border-bright-cyan shadow-lg">
+                    <p className="text-slate text-sm font-bold uppercase">{t.statsActive}</p>
+                    <p className="text-4xl font-bold text-lightest-slate mt-2">3</p>
+                    <p className="text-xs text-slate mt-1">2 make-readies, 1 counter</p>
+                </div>
+                <div className="bg-light-navy p-6 rounded-lg border-l-4 border-bright-pink shadow-lg">
+                    <p className="text-slate text-sm font-bold uppercase">{t.statsPending}</p>
+                    <p className="text-4xl font-bold text-lightest-slate mt-2">1</p>
+                    <p className="text-xs text-slate mt-1">Awaiting your approval</p>
+                </div>
+                <div className="bg-light-navy p-6 rounded-lg border-l-4 border-slate shadow-lg">
+                    <p className="text-slate text-sm font-bold uppercase">{t.statsCompleted}</p>
+                    <p className="text-4xl font-bold text-lightest-slate mt-2">12</p>
+                    <p className="text-xs text-slate mt-1">This month</p>
+                </div>
+            </div>
+
+            {/* Recent Activity List (Mock) */}
+            <div className="bg-light-navy rounded-lg p-6 shadow-lg">
+                <h3 className="text-xl font-bold text-lightest-slate mb-4">{t.recentActivity}</h3>
+                <div className="space-y-4">
+                    {[
+                        { date: 'Today', title: 'Unit 104 - Countertop Replace', status: 'In Progress', color: 'text-bright-cyan' },
+                        { date: 'Yesterday', title: 'Unit 302 - Make Ready', status: 'Pending', color: 'text-bright-pink' },
+                        { date: 'Feb 14', title: 'Lobby Tile Repair', status: 'Completed', color: 'text-slate' },
+                    ].map((item, i) => (
+                        <div key={i} className="flex justify-between items-center border-b border-lightest-navy pb-3 last:border-0 last:pb-0">
+                            <div>
+                                <p className="font-bold text-lightest-slate">{item.title}</p>
+                                <p className="text-xs text-slate">{item.date}</p>
+                            </div>
+                            <span className={`text-sm font-bold ${item.color}`}>{item.status}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DashboardGallery: React.FC = () => {
+    const t = translations['en'];
+    // Mock images
+    const images = [
+        "https://images.unsplash.com/photo-1584622050111-993a426fbf0a?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1595428774223-ef52624120d2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+    ];
+
+    return (
+        <div className="animate-in fade-in duration-300">
+            <h2 className="text-2xl font-bold text-lightest-slate mb-2">{t.galleryTitle}</h2>
+            <p className="text-slate mb-6">{t.gallerySubtitle}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {images.map((src, i) => (
+                    <div key={i} className="aspect-video bg-navy rounded-lg overflow-hidden relative group shadow-lg">
+                        <img src={src} alt={`Project ${i}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-bright-cyan font-bold border border-bright-cyan px-4 py-2 rounded">View Details</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const DashboardHistory: React.FC = () => (
+    <div className="animate-in fade-in duration-300">
+        <h2 className="text-2xl font-bold text-lightest-slate mb-6">Request History</h2>
+        <div className="bg-light-navy rounded-lg overflow-hidden">
+            <table className="w-full text-left text-sm">
+                <thead className="bg-navy text-slate uppercase text-xs">
+                    <tr>
+                        <th className="p-4">Date</th>
+                        <th className="p-4">Property</th>
+                        <th className="p-4">Service</th>
+                        <th className="p-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-lightest-navy">
+                    <tr className="hover:bg-navy/50">
+                        <td className="p-4 text-lightest-slate">Feb 20, 2025</td>
+                        <td className="p-4 text-slate">The Arts at Park Place</td>
+                        <td className="p-4 text-slate">Countertops - Quartz</td>
+                        <td className="p-4 text-bright-cyan font-bold">Approved</td>
+                    </tr>
+                     <tr className="hover:bg-navy/50">
+                        <td className="p-4 text-lightest-slate">Feb 18, 2025</td>
+                        <td className="p-4 text-slate">Canyon Creek</td>
+                        <td className="p-4 text-slate">Make-Ready</td>
+                        <td className="p-4 text-bright-pink font-bold">Pending</td>
+                    </tr>
+                     <tr className="hover:bg-navy/50">
+                        <td className="p-4 text-lightest-slate">Jan 15, 2025</td>
+                        <td className="p-4 text-slate">The Arts at Park Place</td>
+                        <td className="p-4 text-slate">Tile - Flooring</td>
+                        <td className="p-4 text-slate font-bold">Completed</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+);
+
 const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: string) => void, initialCompanyId: string }> = ({ companyData, onCompanyChange, initialCompanyId }) => {
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(companyData.find(c => c.id === initialCompanyId) || companyData[0] || null);
 
@@ -390,7 +665,7 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
                 </select>
             </div>
             
-            <div className="bg-navy p-8 rounded-lg flex flex-col items-center">
+            <div className="bg-navy p-8 rounded-lg flex flex-col items-center gap-4">
                  <a 
                     href={surveyUrl} 
                     onClick={handleNav} 
@@ -398,16 +673,25 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
                 >
                     Service/ Repair/ Renovation Assistant
                 </a>
+                
+                {/* Link to Dashboard */}
+                 <a 
+                    href="#dashboard"
+                    onClick={handleNav} 
+                    className="text-sm text-slate hover:text-bright-cyan flex items-center gap-2 mt-4"
+                >
+                    <LockClosedIcon className="h-4 w-4" /> Client Portal Login
+                </a>
             </div>
         </div>
     );
 };
 
-const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: string }> = ({ companyId, companyData, scriptUrl }) => {
+const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: string, embedded?: boolean, onSuccess?: () => void }> = ({ companyId, companyData, scriptUrl, embedded = false, onSuccess }) => {
     const [lang, setLang] = useState<'en' | 'es'>('en');
     const t = useMemo(() => translations[lang], [lang]);
 
-    const company = useMemo(() => companyData.find(c => c.id === companyId), [companyId, companyData]);
+    const company = useMemo(() => companyData.find(c => c.id === companyId) || companyData[0], [companyId, companyData]);
     
     const getInitialFormData = useCallback(() => {
         // 1. Get URL Params
@@ -533,6 +817,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
         try {
             await submitSurveyData(scriptUrl, payload);
             setSubmissionStatus('success');
+            // If embedded in dashboard, we might want to auto-redirect after a delay, or show a simplified success message
         } catch (error) {
             console.error('Survey Submission Failed:', error);
             setSubmissionStatus('error');
@@ -544,18 +829,27 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
 
     if (submissionStatus === 'success') {
         return (
-            <div className={`bg-light-navy p-8 rounded-lg text-center ${GLOW_CLASSES}`}>
+            <div className={`bg-light-navy p-8 rounded-lg text-center ${!embedded ? GLOW_CLASSES : ''}`}>
                 <h2 className="text-3xl font-bold text-bright-cyan mb-4">{t.submitSuccessTitle}</h2>
                 <p className="text-lightest-slate text-lg">{t.submitSuccessMessage1}</p>
                 <p className="text-slate mt-2">{t.submitSuccessMessage2}</p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-                    <button onClick={handleReset} className={`inline-block bg-navy border border-bright-cyan text-bright-cyan font-bold py-3 px-6 rounded-md hover:bg-bright-cyan/10 transition-all ${GLOW_CLASSES}`}>
-                        {t.submitAnotherButton}
-                    </button>
-                    <a href="#/" onClick={handleNav} className={`inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all ${GLOW_CLASSES}`}>
-                        {t.returnHomeButton}
-                    </a>
+                    {onSuccess ? (
+                        <button onClick={() => { handleReset(); onSuccess(); }} className="inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all">
+                             Return to Overview
+                        </button>
+                    ) : (
+                        <button onClick={handleReset} className={`inline-block bg-navy border border-bright-cyan text-bright-cyan font-bold py-3 px-6 rounded-md hover:bg-bright-cyan/10 transition-all ${GLOW_CLASSES}`}>
+                            {t.submitAnotherButton}
+                        </button>
+                    )}
+
+                    {!embedded && (
+                        <a href="#dashboard" onClick={handleNav} className={`inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all ${GLOW_CLASSES}`}>
+                            {t.enterDashboardButton}
+                        </a>
+                    )}
                 </div>
             </div>
         );
@@ -563,7 +857,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
     
     if (submissionStatus === 'error') {
          return (
-            <div className={`bg-light-navy p-8 rounded-lg text-center ${GLOW_CLASSES}`}>
+            <div className={`bg-light-navy p-8 rounded-lg text-center ${!embedded ? GLOW_CLASSES : ''}`}>
                 <h2 className="text-3xl font-bold text-red-400 mb-4">{t.submitErrorTitle}</h2>
                 <p className="text-lightest-slate text-lg">{t.submitErrorMessage1}</p>
                 <p className="text-slate mt-2">{t.submitErrorMessage2}</p>
@@ -575,11 +869,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
     }
   
     return (
-      <div className={`bg-light-navy p-6 rounded-lg ${GLOW_CLASSES}`}>
-        <div className="flex justify-between items-center">
+      <div className={`bg-light-navy rounded-lg ${!embedded ? `p-6 ${GLOW_CLASSES}` : ''}`}>
+        <div className="flex justify-between items-center mb-6">
             <div>
-                <h2 className="text-2xl font-bold text-lightest-slate mb-1">{t.surveyTitle}</h2>
-                <p className="mb-6 text-slate">For <span className="font-bold text-bright-cyan">{company.name}</span> Properties</p>
+                {!embedded && <h2 className="text-2xl font-bold text-lightest-slate mb-1">{t.surveyTitle}</h2>}
+                <p className="text-slate">{t.surveySubtitle} <span className="font-bold text-bright-cyan">{company.name}</span> {t.surveySubtitleProperties}</p>
             </div>
             <button onClick={() => setLang(lang === 'en' ? 'es' : 'en')} className="text-sm font-medium text-bright-cyan hover:text-opacity-80 px-3 py-1 rounded-md border border-bright-cyan/50">
                 {t.languageToggle}

@@ -40,11 +40,12 @@ export const translations = {
     submitButton: "SUBMIT FOR IMMEDIATE REPLY",
     submittingButton: "Submitting...",
     submitAnotherButton: "Submit Another Request",
+    enterDashboardButton: "Enter Personal Dashboard", // New
 
     // Submission Status Messages
     submitSuccessTitle: "Submission Received!",
     submitSuccessMessage1: "Thank you for your request. Our team will get back to you shortly.",
-    submitSuccessMessage2: "You can now safely close this page.",
+    submitSuccessMessage2: "You can track this request in your dashboard.", // Updated
     returnHomeButton: "Return to Home",
     submitErrorTitle: "Submission Failed",
     submitErrorMessage1: "There was an error processing your request.",
@@ -55,6 +56,23 @@ export const translations = {
     chatTitle: "Jes Stone Assistant",
     chatPlaceholder: "Ask about services or get help...",
     chatSend: "Send",
+
+    // Dashboard
+    dashboardLoginTitle: "Client Portal",
+    dashboardLoginSubtitle: "Secure access for Property Managers",
+    accessCodeLabel: "Enter Access Code",
+    loginButton: "Enter Dashboard",
+    tabOverview: "Overview",
+    tabNewRequest: "New Request",
+    tabGallery: "Photo Gallery",
+    tabHistory: "History",
+    statsActive: "Active Jobs",
+    statsCompleted: "Completed",
+    statsPending: "Pending Approval",
+    recentActivity: "Recent Activity",
+    galleryTitle: "Project Photos",
+    gallerySubtitle: "View your recent remodeling updates",
+    logout: "Log Out",
     
     // Options (Arrays)
     SERVICES: [
@@ -127,11 +145,12 @@ export const translations = {
     submitButton: "ENVIAR PARA RESPUESTA INMEDIATA",
     submittingButton: "Enviando...",
     submitAnotherButton: "Enviar Otra Solicitud",
+    enterDashboardButton: "Entrar al Panel Personal",
 
     // Mensajes de Estado de Envío
     submitSuccessTitle: "¡Solicitud Recibida!",
     submitSuccessMessage1: "Gracias por su solicitud. Nuestro equipo se pondrá en contacto con usted en breve.",
-    submitSuccessMessage2: "Ahora puede cerrar esta página de forma segura.",
+    submitSuccessMessage2: "Puede rastrear esta solicitud en su panel.",
     returnHomeButton: "Volver al Inicio",
     submitErrorTitle: "Error en el Envío",
     submitErrorMessage1: "Hubo un error al procesar su solicitud.",
@@ -142,6 +161,23 @@ export const translations = {
     chatTitle: "Asistente Jes Stone",
     chatPlaceholder: "Pregunte sobre servicios o ayuda...",
     chatSend: "Enviar",
+
+    // Dashboard
+    dashboardLoginTitle: "Portal de Clientes",
+    dashboardLoginSubtitle: "Acceso seguro para Gerentes",
+    accessCodeLabel: "Código de Acceso",
+    loginButton: "Entrar al Panel",
+    tabOverview: "Resumen",
+    tabNewRequest: "Nueva Solicitud",
+    tabGallery: "Galería de Fotos",
+    tabHistory: "Historial",
+    statsActive: "Trabajos Activos",
+    statsCompleted: "Completados",
+    statsPending: "Pendiente Aprobación",
+    recentActivity: "Actividad Reciente",
+    galleryTitle: "Fotos del Proyecto",
+    gallerySubtitle: "Vea sus actualizaciones recientes",
+    logout: "Cerrar Sesión",
 
     // Opciones (Arrays)
     SERVICES: [
