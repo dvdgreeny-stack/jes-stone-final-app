@@ -450,8 +450,21 @@ const Survey: React.FC<{ companyId: string, companyData: Company[] }> = ({ compa
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmissionStatus('submitting');
+        
+        // --- NEW LOGIC START ---
+        // Lookup the selected property to get its real Name and Address
+        const selectedProperty = company.properties.find(p => p.id === formData.propertyId);
+        
+        // Prepare the payload including the explicit Property Name and Address
+        const payload: SurveyData = {
+            ...formData,
+            propertyName: selectedProperty?.name || 'Unknown Property',
+            propertyAddress: selectedProperty?.address || 'Unknown Address'
+        };
+        // --- NEW LOGIC END ---
+
         try {
-            await submitSurveyData(APPS_SCRIPT_URL, formData);
+            await submitSurveyData(APPS_SCRIPT_URL, payload);
             setSubmissionStatus('success');
         } catch (error) {
             console.error('Survey Submission Failed:', error);
