@@ -11,6 +11,7 @@ export interface Company {
 }
 
 export interface SurveyData {
+  propertyId: string;
   propertyName?: string;
   propertyAddress?: string;
   firstName: string;
@@ -24,4 +25,12 @@ export interface SurveyData {
   timeline: string;
   notes: string;
   contactMethods: string[];
+}
+
+export type UserRole = 'site_manager' | 'regional_manager' | 'executive';
+
+export interface UserSession {
+  company: Company;
+  role: UserRole;
+  allowedPropertyIds: string[]; // If empty, user has access to ALL properties (Executive)
 }

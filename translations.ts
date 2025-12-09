@@ -40,12 +40,12 @@ export const translations = {
     submitButton: "SUBMIT FOR IMMEDIATE REPLY",
     submittingButton: "Submitting...",
     submitAnotherButton: "Submit Another Request",
-    enterDashboardButton: "Enter Personal Dashboard", // New
+    enterDashboardButton: "Enter Personal Dashboard",
 
     // Submission Status Messages
     submitSuccessTitle: "Submission Received!",
     submitSuccessMessage1: "Thank you for your request. Our team will get back to you shortly.",
-    submitSuccessMessage2: "You can track this request in your dashboard.", // Updated
+    submitSuccessMessage2: "You can track this request in your dashboard.",
     returnHomeButton: "Return to Home",
     submitErrorTitle: "Submission Failed",
     submitErrorMessage1: "There was an error processing your request.",
@@ -74,6 +74,11 @@ export const translations = {
     gallerySubtitle: "View your recent remodeling updates",
     logout: "Log Out",
     
+    // Roles
+    roleSiteManager: "Site Manager",
+    roleRegionalManager: "Regional Manager",
+    roleExecutive: "Executive",
+
     // Options (Arrays)
     SERVICES: [
       'Countertops - Quartz',
@@ -178,6 +183,11 @@ export const translations = {
     galleryTitle: "Fotos del Proyecto",
     gallerySubtitle: "Vea sus actualizaciones recientes",
     logout: "Cerrar Sesión",
+    
+    // Roles
+    roleSiteManager: "Gerente de Sitio",
+    roleRegionalManager: "Gerente Regional",
+    roleExecutive: "Ejecutivo",
 
     // Opciones (Arrays)
     SERVICES: [

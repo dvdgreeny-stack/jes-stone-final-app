@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
 import { translations } from './translations';
-import type { Company, SurveyData } from './types';
+import type { Company, SurveyData, UserSession, UserRole } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon } from './components/icons';
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, UsersIcon } from './components/icons';
 
 // --- LOGO CONFIGURATION ---
 // 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
@@ -18,6 +18,22 @@ const FOOTER_LOGO_URL = "";
 // --- ACTION REQUIRED ---
 // Paste your deployed Google Apps Script Web App URL here.
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwlTxJzHJiJvLFkK1UkFCgrfnuwxspsMBFBigh3IXwkW8ZI1PPkjUWuFm9lz1-zsk59/exec'; 
+
+// --- MOCK ACCESS DATABASE ---
+// This simulates a backend permission system.
+// In production, this would be an API call to validate the code and get permissions.
+const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowedPropertyIds: string[] }> = {
+    // Executive Access (All Properties)
+    'KV2025': { role: 'executive', companyId: 'knightvest', allowedPropertyIds: [] },
+    'CW2025': { role: 'executive', companyId: 'cushwake', allowedPropertyIds: [] },
+    'DEMO': { role: 'executive', companyId: 'knightvest', allowedPropertyIds: [] }, // Default demo to Knightvest Exec
+
+    // Regional Manager Access (Subset of Properties - Simulation)
+    'KV-REGION-N': { role: 'regional_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1', 'kv-2'] }, // Specific IDs must match your Google Sheet data
+
+    // Site Manager Access (Single Property - Simulation)
+    'PARKPLACE': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] },
+};
 
 // --- Navigation Handler ---
 const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -380,23 +396,60 @@ const App: React.FC = () => {
 // --- Page Components ---
 
 const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ companyData, scriptUrl }) => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
     const [activeTab, setActiveTab] = useState<'overview' | 'newRequest' | 'gallery' | 'history'>('overview');
-    const t = translations['en']; // Default to English for dashboard for now
+    const t = translations['en']; 
 
-    if (!isLoggedIn) {
-        return <DashboardLogin onLogin={() => setIsLoggedIn(true)} />;
+    const handleLogin = (session: UserSession) => {
+        setCurrentUser(session);
+    };
+
+    const handleLogout = () => {
+        setCurrentUser(null);
+    };
+
+    if (!currentUser) {
+        return <DashboardLogin companyData={companyData} onLogin={handleLogin} />;
     }
+
+    // Filter properties based on role
+    const visibleCompany = useMemo(() => {
+        const baseCompany = currentUser.company;
+        
+        // If executive (empty list), allow all.
+        if (currentUser.allowedPropertyIds.length === 0) {
+            return baseCompany;
+        }
+
+        // Otherwise filter
+        const filteredProperties = baseCompany.properties.filter(p => currentUser.allowedPropertyIds.includes(p.id));
+        return {
+            ...baseCompany,
+            properties: filteredProperties
+        };
+    }, [currentUser]);
+
+    const roleLabel = {
+        'site_manager': t.roleSiteManager,
+        'regional_manager': t.roleRegionalManager,
+        'executive': t.roleExecutive,
+    }[currentUser.role];
 
     return (
         <div className="min-h-screen flex bg-navy">
             {/* Sidebar */}
             <aside className="w-64 bg-light-navy border-r border-lightest-navy hidden md:flex flex-col">
-                <div className="p-6 border-b border-lightest-navy flex justify-center">
-                    <a href="#/" className="flex items-center gap-2">
+                <div className="p-6 border-b border-lightest-navy flex justify-center flex-col items-center">
+                    <a href="#/" className="flex items-center gap-2 mb-2">
                         <JesStoneLogo className="h-8 w-auto" />
                         <span className="font-bold text-lightest-slate">JES STONE</span>
                     </a>
+                    <div className="bg-navy px-3 py-1 rounded-full text-xs font-bold text-bright-cyan border border-bright-cyan/30">
+                        {visibleCompany.name}
+                    </div>
+                    <div className="mt-2 text-xs text-slate uppercase tracking-wider font-semibold">
+                        {roleLabel}
+                    </div>
                 </div>
                 <nav className="flex-1 p-4 space-y-2">
                     <button 
@@ -425,7 +478,7 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                     </button>
                 </nav>
                 <div className="p-4 border-t border-lightest-navy">
-                    <button onClick={() => window.location.hash = "#/"} className="w-full flex items-center gap-3 px-4 py-2 text-slate hover:text-bright-pink transition-colors">
+                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-slate hover:text-bright-pink transition-colors">
                         <LogoutIcon className="h-5 w-5" /> {t.logout}
                     </button>
                 </div>
@@ -435,8 +488,15 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
             <div className="flex-1 overflow-auto">
                 {/* Mobile Header */}
                 <header className="md:hidden bg-light-navy p-4 flex justify-between items-center border-b border-lightest-navy sticky top-0 z-10">
-                    <span className="font-bold text-lightest-slate">{t.dashboardLoginTitle}</span>
-                    <button onClick={() => setIsLoggedIn(false)}><LogoutIcon className="h-6 w-6 text-slate" /></button>
+                    <div className="flex flex-col">
+                        <span className="font-bold text-lightest-slate">{t.dashboardLoginTitle}</span>
+                        <div className="flex gap-2 text-xs">
+                             <span className="text-bright-cyan">{visibleCompany.name}</span>
+                             <span className="text-slate">|</span>
+                             <span className="text-slate">{roleLabel}</span>
+                        </div>
+                    </div>
+                    <button onClick={handleLogout}><LogoutIcon className="h-6 w-6 text-slate" /></button>
                 </header>
                 
                 {/* Mobile Nav */}
@@ -447,14 +507,13 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                 </div>
 
                 <div className="p-4 md:p-8 max-w-6xl mx-auto">
-                    {activeTab === 'overview' && <DashboardOverview companyData={companyData} onNewRequest={() => setActiveTab('newRequest')} />}
+                    {activeTab === 'overview' && <DashboardOverview companyData={[visibleCompany]} onNewRequest={() => setActiveTab('newRequest')} />}
                     {activeTab === 'newRequest' && (
                         <div className="animate-in fade-in duration-300">
                              <h2 className="text-2xl font-bold text-lightest-slate mb-6">New Service Request</h2>
-                             {/* Embed Survey without header/footer */}
                              <Survey 
-                                companyId={companyData[0]?.id || ''} 
-                                companyData={companyData} 
+                                companyId={visibleCompany.id} 
+                                companyData={[visibleCompany]} // Pass the filtered company so dropdown is correct
                                 scriptUrl={scriptUrl} 
                                 embedded={true}
                                 onSuccess={() => setActiveTab('overview')}
@@ -469,18 +528,48 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
     );
 };
 
-const DashboardLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
+const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: UserSession) => void }> = ({ companyData, onLogin }) => {
     const t = translations['en'];
+    const [code, setCode] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [error, setError] = useState('');
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onLogin();
+        setError('');
+        setIsVerifying(true);
+
+        setTimeout(() => {
+            const normalizedCode = code.toUpperCase().trim();
+            const accessRecord = MOCK_ACCESS_DB[normalizedCode];
+
+            if (accessRecord) {
+                // Find company
+                const company = companyData.find(c => c.id === accessRecord.companyId) || 
+                              (normalizedCode === 'DEMO' ? companyData[0] : null);
+
+                if (company) {
+                    onLogin({
+                        company: company,
+                        role: accessRecord.role,
+                        allowedPropertyIds: accessRecord.allowedPropertyIds
+                    });
+                } else {
+                    setError("Access Code valid, but Company data not loaded. Please refresh.");
+                }
+            } else {
+                setError("Invalid Access Code. Please try again.");
+                setCode('');
+            }
+            setIsVerifying(false);
+        }, 1500);
     };
 
     return (
         <div className="min-h-screen bg-navy flex items-center justify-center p-4">
             <div className={`bg-light-navy p-8 rounded-lg max-w-md w-full text-center ${GLOW_CLASSES}`}>
                 <div className="flex justify-center mb-6">
-                    <div className="p-4 bg-navy rounded-full border border-bright-cyan shadow-[0_0_15px_rgba(100,255,218,0.3)]">
+                    <div className={`p-4 bg-navy rounded-full border border-bright-cyan shadow-[0_0_15px_rgba(100,255,218,0.3)] ${isVerifying ? 'animate-pulse' : ''}`}>
                         <LockClosedIcon className="h-8 w-8 text-bright-cyan" />
                     </div>
                 </div>
@@ -492,15 +581,29 @@ const DashboardLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
                         <label className="block text-sm font-medium text-light-slate mb-1">{t.accessCodeLabel}</label>
                         <input 
                             type="password" 
-                            className="w-full bg-navy border border-lightest-navy rounded-md p-3 text-center tracking-widest text-xl text-bright-cyan focus:ring-2 focus:ring-bright-cyan focus:outline-none"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            className={`w-full bg-navy border ${error ? 'border-bright-pink' : 'border-lightest-navy'} rounded-md p-3 text-center tracking-widest text-xl text-bright-cyan focus:ring-2 focus:ring-bright-cyan focus:outline-none transition-all`}
                             placeholder="••••"
+                            autoFocus
                         />
+                         {error && <p className="text-bright-pink text-xs mt-2 text-center animate-bounce">{error}</p>}
                     </div>
-                    <button type="submit" className="w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 transition-all">
-                        {t.loginButton}
+                    <button 
+                        type="submit" 
+                        disabled={!code || isVerifying}
+                        className="w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 disabled:opacity-50 disabled:cursor-wait transition-all flex justify-center items-center gap-2"
+                    >
+                        {isVerifying ? <><LoadingSpinner /> Verifying...</> : t.loginButton}
                     </button>
                 </form>
-                <div className="mt-6 text-xs text-slate">
+                 <div className="mt-6 text-xs text-slate space-y-1">
+                     <p>Demo Codes:</p>
+                     <p><span className="text-bright-cyan font-mono">KV2025</span> (Knightvest Exec)</p>
+                     <p><span className="text-bright-cyan font-mono">KV-REGION-N</span> (Regional)</p>
+                     <p><span className="text-bright-cyan font-mono">PARKPLACE</span> (Site Manager)</p>
+                </div>
+                <div className="mt-4 text-xs text-slate">
                     <a href="#/" className="hover:text-bright-cyan">Return to Public Site</a>
                 </div>
             </div>
@@ -510,12 +613,16 @@ const DashboardLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
 
 const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => void }> = ({ companyData, onNewRequest }) => {
     const t = translations['en'];
+    
+    // In a real app, calculate real stats from filtered properties
+    const totalProperties = companyData.reduce((acc, c) => acc + c.properties.length, 0);
+
     return (
         <div className="space-y-8 animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-lightest-slate">Welcome Back</h1>
-                    <p className="text-slate">Here is what is happening with your properties today.</p>
+                    <p className="text-slate">Managing {totalProperties} property locations.</p>
                 </div>
                 <button onClick={onNewRequest} className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold shadow-lg hover:bg-bright-cyan/90 transition-all">
                     + New Request
@@ -525,17 +632,26 @@ const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-light-navy p-6 rounded-lg border-l-4 border-bright-cyan shadow-lg">
-                    <p className="text-slate text-sm font-bold uppercase">{t.statsActive}</p>
+                    <div className="flex justify-between items-start">
+                        <p className="text-slate text-sm font-bold uppercase">{t.statsActive}</p>
+                         <BuildingBlocksIcon className="h-5 w-5 text-bright-cyan opacity-50" />
+                    </div>
                     <p className="text-4xl font-bold text-lightest-slate mt-2">3</p>
-                    <p className="text-xs text-slate mt-1">2 make-readies, 1 counter</p>
+                    <p className="text-xs text-slate mt-1">Across all accessible sites</p>
                 </div>
                 <div className="bg-light-navy p-6 rounded-lg border-l-4 border-bright-pink shadow-lg">
-                    <p className="text-slate text-sm font-bold uppercase">{t.statsPending}</p>
+                    <div className="flex justify-between items-start">
+                        <p className="text-slate text-sm font-bold uppercase">{t.statsPending}</p>
+                        <ClockIcon className="h-5 w-5 text-bright-pink opacity-50" />
+                    </div>
                     <p className="text-4xl font-bold text-lightest-slate mt-2">1</p>
                     <p className="text-xs text-slate mt-1">Awaiting your approval</p>
                 </div>
                 <div className="bg-light-navy p-6 rounded-lg border-l-4 border-slate shadow-lg">
-                    <p className="text-slate text-sm font-bold uppercase">{t.statsCompleted}</p>
+                     <div className="flex justify-between items-start">
+                        <p className="text-slate text-sm font-bold uppercase">{t.statsCompleted}</p>
+                         <ClipboardListIcon className="h-5 w-5 text-slate opacity-50" />
+                    </div>
                     <p className="text-4xl font-bold text-lightest-slate mt-2">12</p>
                     <p className="text-xs text-slate mt-1">This month</p>
                 </div>
