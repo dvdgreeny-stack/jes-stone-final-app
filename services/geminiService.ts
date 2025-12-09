@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Chat } from "@google/genai";
 import type { SurveyData, Company } from '../types';
 
 export async function generateNotesDraft(formData: Partial<SurveyData>, companyData: Company[], companyName: string): Promise<string> {
@@ -37,4 +37,14 @@ export async function generateNotesDraft(formData: Partial<SurveyData>, companyD
     console.error("Error calling Gemini API for notes draft:", error);
     throw new Error("Failed to generate notes draft from Gemini API.");
   }
+}
+
+export function createChatSession(systemInstruction?: string): Chat {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return ai.chats.create({
+    model: 'gemini-2.5-flash',
+    config: {
+      systemInstruction: systemInstruction || "You are a helpful assistant for Jes Stone Remodeling and Granite. Your goal is to assist property managers in understanding our services (Countertops, Cabinets, Tile, Make-Ready) and filling out the service request survey. Be professional, concise, and helpful.",
+    }
+  });
 }
