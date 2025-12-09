@@ -456,8 +456,10 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
 
     // Persist to Local Storage
     useEffect(() => {
-        localStorage.setItem('jes_stone_survey_draft', JSON.stringify(formData));
-    }, [formData]);
+        if (submissionStatus !== 'success') {
+            localStorage.setItem('jes_stone_survey_draft', JSON.stringify(formData));
+        }
+    }, [formData, submissionStatus]);
 
     // Clear Local Storage on Success
     useEffect(() => {
@@ -465,6 +467,26 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
             localStorage.removeItem('jes_stone_survey_draft');
         }
     }, [submissionStatus]);
+
+    const handleReset = () => {
+        // Reset form but keep basic contact info if desired, or wipe clean. 
+        // Here we wipe clean but keep the Company/Property selection via route context.
+        setFormData({
+            propertyId: formData.propertyId, // Keep property selected for convenience
+            firstName: formData.firstName,   // Keep contact info for convenience
+            lastName: formData.lastName,
+            title: formData.title,
+            phone: formData.phone,
+            email: formData.email,
+            unitInfo: '', 
+            services: [], 
+            otherService: '', 
+            timeline: '', 
+            notes: '', 
+            contactMethods: [],
+        });
+        setSubmissionStatus('idle');
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -526,9 +548,15 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                 <h2 className="text-3xl font-bold text-bright-cyan mb-4">{t.submitSuccessTitle}</h2>
                 <p className="text-lightest-slate text-lg">{t.submitSuccessMessage1}</p>
                 <p className="text-slate mt-2">{t.submitSuccessMessage2}</p>
-                <a href="#/" onClick={handleNav} className={`mt-8 inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all ${GLOW_CLASSES}`}>
-                    {t.returnHomeButton}
-                </a>
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+                    <button onClick={handleReset} className={`inline-block bg-navy border border-bright-cyan text-bright-cyan font-bold py-3 px-6 rounded-md hover:bg-bright-cyan/10 transition-all ${GLOW_CLASSES}`}>
+                        {t.submitAnotherButton}
+                    </button>
+                    <a href="#/" onClick={handleNav} className={`inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all ${GLOW_CLASSES}`}>
+                        {t.returnHomeButton}
+                    </a>
+                </div>
             </div>
         );
     }

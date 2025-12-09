@@ -39,6 +39,7 @@ export const translations = {
     generatingButton: "Generating...",
     submitButton: "SUBMIT FOR IMMEDIATE REPLY",
     submittingButton: "Submitting...",
+    submitAnotherButton: "Submit Another Request",
 
     // Submission Status Messages
     submitSuccessTitle: "Submission Received!",
@@ -125,6 +126,7 @@ export const translations = {
     generatingButton: "Generando...",
     submitButton: "ENVIAR PARA RESPUESTA INMEDIATA",
     submittingButton: "Enviando...",
+    submitAnotherButton: "Enviar Otra Solicitud",
 
     // Mensajes de Estado de Envío
     submitSuccessTitle: "¡Solicitud Recibida!",
