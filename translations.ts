@@ -61,7 +61,7 @@ export const translations = {
     tryAgainButton: "Try Again",
 
     // Chat Widget
-    chatTitle: "Jes Stone Assistant",
+    chatTitle: "Assistant", // Removed company name
     chatPlaceholder: "Ask about services or get help...",
     chatSend: "Send",
 
@@ -74,6 +74,10 @@ export const translations = {
     tabNewRequest: "New Request",
     tabGallery: "Photo Gallery",
     tabHistory: "History",
+    // NEW TABS
+    tabEstimating: "Quick Estimates",
+    tabProjects: "Project Tracking",
+    
     statsActive: "Active Jobs",
     statsCompleted: "Completed",
     statsPending: "Pending Approval",
@@ -178,7 +182,7 @@ export const translations = {
     tryAgainButton: "Intentar de Nuevo",
 
     // Chat Widget
-    chatTitle: "Asistente Jes Stone",
+    chatTitle: "Asistente",
     chatPlaceholder: "Pregunte sobre servicios o ayuda...",
     chatSend: "Enviar",
 
@@ -191,6 +195,10 @@ export const translations = {
     tabNewRequest: "Nueva Solicitud",
     tabGallery: "Galería de Fotos",
     tabHistory: "Historial",
+    // NEW TABS
+    tabEstimating: "Estimaciones Rápidas",
+    tabProjects: "Seguimiento de Proyectos",
+
     statsActive: "Trabajos Activos",
     statsCompleted: "Completados",
     statsPending: "Pendiente Aprobación",

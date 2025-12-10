@@ -1,24 +1,14 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
 import { translations } from './translations';
+import { BRANDING } from './branding';
+import { THEME } from './theme';
 import type { Company, SurveyData, UserSession, UserRole } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, UsersIcon, CloudArrowUpIcon, TrashIcon } from './components/icons';
-
-// --- LOGO CONFIGURATION ---
-// 1. PASTE YOUR JES STONE LOGO URL INSIDE THE QUOTES BELOW (e.g., "https://example.com/logo.png")
-// Leave empty "" to use the default Triangle placeholder.
-const JES_STONE_LOGO_URL = ""; 
-
-// 2. PASTE YOUR DFWSA / AI STUDIO LOGO URL INSIDE THE QUOTES BELOW
-// Leave empty "" to use the default AI STUDIO text badge.
-const FOOTER_LOGO_URL = ""; 
-
-// --- ACTION REQUIRED ---
-// Paste your deployed Google Apps Script Web App URL here.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwlTxJzHJiJvLFkK1UkFCgrfnuwxspsMBFBigh3IXwkW8ZI1PPkjUWuFm9lz1-zsk59/exec'; 
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, UsersIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon } from './components/icons';
+import { EstimatingModule } from './components/EstimatingModule';
+import { ProjectManagementModule } from './components/ProjectManagementModule';
 
 // --- MOCK ACCESS DATABASE ---
 // Simplified for Single Property Focus + Regional Demo
@@ -35,13 +25,22 @@ const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowe
 };
 
 // --- ERROR BOUNDARY COMPONENT ---
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
-  constructor(props: {children: React.ReactNode}) {
+interface ErrorBoundaryProps {
+    children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+    hasError: boolean;
+    error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
@@ -52,19 +51,19 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-navy flex items-center justify-center p-4">
-          <div className="bg-light-navy p-8 rounded-lg border border-bright-pink text-center max-w-lg shadow-2xl">
-            <h1 className="text-2xl font-bold text-bright-pink mb-4">Something went wrong.</h1>
-            <p className="text-slate mb-4">The application encountered an unexpected error while rendering.</p>
-            <div className="bg-navy p-4 rounded text-left overflow-auto max-h-40 mb-6 border border-lightest-navy">
-                <code className="text-xs text-bright-pink font-mono block break-all">{this.state.error?.toString()}</code>
+        <div className={`min-h-screen ${THEME.colors.background} flex items-center justify-center p-4`}>
+          <div className={`${THEME.colors.surface} p-8 rounded-lg border ${THEME.colors.borderWarning} text-center max-w-lg shadow-2xl`}>
+            <h1 className={`text-2xl font-bold ${THEME.colors.textWarning} mb-4`}>Something went wrong.</h1>
+            <p className={`${THEME.colors.textSecondary} mb-4`}>The application encountered an unexpected error while rendering.</p>
+            <div className={`${THEME.colors.background} p-4 rounded text-left overflow-auto max-h-40 mb-6 border ${THEME.colors.borderSubtle}`}>
+                <code className={`text-xs ${THEME.colors.textWarning} font-mono block break-all`}>{this.state.error?.toString()}</code>
             </div>
             <button 
                 onClick={() => {
                     window.location.hash = ''; // Reset route
                     window.location.reload();
                 }} 
-                className="bg-bright-cyan text-navy font-bold py-2 px-6 rounded hover:bg-opacity-90 transition-all"
+                className={`${THEME.colors.buttonPrimary} font-bold py-2 px-6 rounded transition-all`}
             >
                 Reload Application
             </button>
@@ -86,42 +85,45 @@ const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
     }
 };
 
-// --- Shared Styles ---
-const GLOW_CLASSES = "shadow-[0_5px_15px_rgba(100,255,218,0.4)] hover:shadow-[0_8px_25px_rgba(100,255,218,0.6)] transition-all";
-
 // --- Layout Components ---
 const Header: React.FC<{ surveyUrl: string }> = ({ surveyUrl }) => (
-    <header className="bg-light-navy/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg">
+    <header className={`${THEME.colors.surface}/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg`}>
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-center items-center">
             <a href="#/" onClick={handleNav} className="flex items-center gap-3">
-                {JES_STONE_LOGO_URL ? (
-                    <img src={JES_STONE_LOGO_URL} alt="Jes Stone Logo" className="h-12 w-auto object-contain" />
+                {BRANDING.logoUrl ? (
+                    <img src={BRANDING.logoUrl} alt={`${BRANDING.companyName} Logo`} className="h-12 w-auto object-contain" />
                 ) : (
                     <JesStoneLogo className="h-10 w-auto" />
                 )}
-                <span className="text-lg font-bold text-lightest-slate tracking-wider text-center">JES STONE <span className="text-slate font-normal">REMODELING & GRANITE</span></span>
+                <span className={`text-lg font-bold ${THEME.colors.textMain} tracking-wider text-center`}>
+                    {BRANDING.companyName} <span className={`${THEME.colors.textSecondary} font-normal`}>{BRANDING.companySubtitle}</span>
+                </span>
             </a>
         </nav>
     </header>
 );
 
 const Footer: React.FC = () => (
-    <footer className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t border-lightest-navy text-center">
+    <footer className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t ${THEME.colors.borderSubtle} text-center`}>
         <div className="mb-6">
-            <h3 className="text-sm font-bold text-slate tracking-widest uppercase mb-4">Internal Team Contacts</h3>
-            <div className="inline-block bg-light-navy p-4 rounded-lg text-left">
-                <p className="font-bold text-lightest-slate">David Greenstein</p>
-                <p className="text-sm text-bright-cyan">Business Development</p>
+            <h3 className={`text-sm font-bold ${THEME.colors.textSecondary} tracking-widest uppercase mb-4`}>Internal Team Contacts</h3>
+            <div className={`inline-block ${THEME.colors.surface} p-4 rounded-lg text-left`}>
+                {BRANDING.teamContacts.map((contact, idx) => (
+                    <div key={idx}>
+                        <p className={`font-bold ${THEME.colors.textMain}`}>{contact.name}</p>
+                        <p className={`text-sm ${THEME.colors.textHighlight}`}>{contact.role}</p>
+                    </div>
+                ))}
             </div>
         </div>
-        <div className="flex justify-between items-center text-xs text-slate">
-            <p>&copy; {new Date().getFullYear()} Jes Stone Remodeling and Granite | <a href="https://www.jesstone.net" target="_blank" rel="noopener noreferrer" className="hover:text-bright-cyan">www.jesstone.net</a></p>
+        <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
+            <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <a href={BRANDING.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:text-bright-cyan">{BRANDING.websiteUrl}</a></p>
             <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
-                {FOOTER_LOGO_URL ? (
-                    <img src={FOOTER_LOGO_URL} alt="Partner Logo" className="h-8 w-auto object-contain" />
+                {BRANDING.footerLogoUrl ? (
+                    <img src={BRANDING.footerLogoUrl} alt="Partner Logo" className="h-8 w-auto object-contain" />
                 ) : (
-                    <span className="bg-slate text-navy font-bold text-xs px-2 py-1 rounded-sm">AI STUDIO</span>
+                    <span className={`bg-slate text-navy font-bold text-xs px-2 py-1 rounded-sm`}>{BRANDING.poweredByText}</span>
                 )}
             </div>
         </div>
@@ -190,16 +192,16 @@ const ChatWidget: React.FC = () => {
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {isOpen && (
-                <div className="bg-light-navy border border-lightest-navy rounded-lg shadow-2xl w-80 sm:w-96 mb-4 flex flex-col max-h-[500px] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
-                    <div className="bg-lightest-navy/50 p-4 border-b border-lightest-navy flex justify-between items-center">
-                        <h3 className="font-bold text-lightest-slate">Jes Stone Assistant</h3>
-                        <button onClick={() => setIsOpen(false)} className="text-slate hover:text-bright-cyan">
+                <div className={`${THEME.colors.surface} border ${THEME.colors.borderSubtle} rounded-lg shadow-2xl w-80 sm:w-96 mb-4 flex flex-col max-h-[500px] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200`}>
+                    <div className={`${THEME.colors.surfaceHighlight}/50 p-4 border-b ${THEME.colors.borderSubtle} flex justify-between items-center`}>
+                        <h3 className={`font-bold ${THEME.colors.textMain}`}>{BRANDING.assistantName}</h3>
+                        <button onClick={() => setIsOpen(false)} className={`${THEME.colors.textSecondary} hover:text-bright-cyan`}>
                             <XMarkIcon className="h-5 w-5" />
                         </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[300px]">
                         {messages.length === 0 && (
-                            <p className="text-slate text-center text-sm mt-8">
+                            <p className={`${THEME.colors.textSecondary} text-center text-sm mt-8`}>
                                 Hello! I can help you understand our remodeling services or fill out the survey. How can I help?
                             </p>
                         )}
@@ -208,7 +210,7 @@ const ChatWidget: React.FC = () => {
                                 <div className={`max-w-[85%] p-3 rounded-lg text-sm ${
                                     msg.role === 'user' 
                                     ? 'bg-bright-cyan/20 text-lightest-slate rounded-br-none' 
-                                    : 'bg-navy border border-lightest-navy text-slate rounded-bl-none'
+                                    : `${THEME.colors.background} border ${THEME.colors.borderSubtle} text-slate rounded-bl-none`
                                 }`}>
                                     {msg.text}
                                 </div>
@@ -216,20 +218,20 @@ const ChatWidget: React.FC = () => {
                         ))}
                         {isLoading && (
                             <div className="flex justify-start">
-                                <div className="bg-navy border border-lightest-navy p-3 rounded-lg rounded-bl-none">
+                                <div className={`${THEME.colors.background} border ${THEME.colors.borderSubtle} p-3 rounded-lg rounded-bl-none`}>
                                     <LoadingSpinner />
                                 </div>
                             </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
-                    <form onSubmit={handleSend} className="p-3 border-t border-lightest-navy bg-navy/50 flex gap-2">
+                    <form onSubmit={handleSend} className={`p-3 border-t ${THEME.colors.borderSubtle} bg-navy/50 flex gap-2`}>
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Type a message..."
-                            className="flex-1 bg-navy text-lightest-slate text-sm p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-1 focus:ring-bright-cyan"
+                            className={`flex-1 ${THEME.colors.inputBg} ${THEME.colors.textMain} text-sm p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-1 ${THEME.colors.inputFocus}`}
                         />
                         <button 
                             type="submit" 
@@ -243,7 +245,7 @@ const ChatWidget: React.FC = () => {
             )}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="bg-bright-cyan text-navy p-4 rounded-full shadow-lg hover:bg-bright-cyan/90 transition-all hover:scale-105 active:scale-95"
+                className={`${THEME.colors.buttonPrimary} p-4 rounded-full shadow-lg hover:bg-bright-cyan/90 transition-all hover:scale-105 active:scale-95`}
             >
                 {isOpen ? <XMarkIcon className="h-6 w-6" /> : <ChatBubbleIcon className="h-6 w-6" />}
             </button>
@@ -280,8 +282,8 @@ const App: React.FC = () => {
         setStatus('loading');
         setErrorMessage('');
         
-        // Use override if provided, otherwise check state (from localstorage), otherwise default
-        const targetUrl = urlOverride || overrideUrl || APPS_SCRIPT_URL;
+        // Use override if provided, otherwise check state (from localstorage), otherwise default from BRANDING
+        const targetUrl = urlOverride || overrideUrl || BRANDING.defaultApiUrl;
         
         if (!targetUrl) {
             setErrorMessage("No API URL configured.");
@@ -339,29 +341,29 @@ const App: React.FC = () => {
                     <h2 className="text-2xl font-bold mb-4">Failed to Load Data</h2>
                     
                     {isFetchError ? (
-                        <div className="bg-navy border border-bright-pink/30 p-6 rounded-lg text-left mb-6">
-                            <h3 className="font-bold text-bright-pink mb-2">⚠️ Connection Error</h3>
-                            <p className="text-lightest-slate mb-4">
+                        <div className={`${THEME.colors.background} border ${THEME.colors.borderWarning}/30 p-6 rounded-lg text-left mb-6`}>
+                            <h3 className={`font-bold ${THEME.colors.textWarning} mb-2`}>⚠️ Connection Error</h3>
+                            <p className={`${THEME.colors.textMain} mb-4`}>
                                 The app cannot connect to the Google Script. Since permissions are set to "Anyone", this is likely due to:
                             </p>
-                            <ul className="list-disc list-inside text-sm text-slate space-y-2 mb-4">
+                            <ul className={`list-disc list-inside text-sm ${THEME.colors.textSecondary} space-y-2 mb-4`}>
                                 <li>A <strong>Syntax Error</strong> in the script you just edited (missing bracket or comma).</li>
                                 <li>The <strong>Script URL changed</strong> (if you created a "New Deployment" instead of "New Version").</li>
-                                <li><strong>Missing Functions:</strong> Ensure the script has the <code>doPost</code> and <code>getCompanyData</code> functions. If you only see <code>saveToSheet</code>, you need to restore the full code.</li>
+                                <li><strong>Missing Functions:</strong> Ensure the script has the <code>doPost</code> and <code>getCompanyData</code> functions.</li>
                             </ul>
-                            <p className="text-sm text-bright-cyan font-bold mb-2">How to Fix:</p>
-                             <ol className="list-decimal list-inside text-sm text-slate space-y-2">
+                            <p className={`text-sm ${THEME.colors.textHighlight} font-bold mb-2`}>How to Fix:</p>
+                             <ol className={`list-decimal list-inside text-sm ${THEME.colors.textSecondary} space-y-2`}>
                                 <li>Copy the <strong>FULL SCRIPT</strong> provided by the assistant and replace everything in your Google Script Editor.</li>
                                 <li>Deploy as <strong>New Version</strong>.</li>
                                 <li>If the URL changed, paste it below.</li>
                             </ol>
                         </div>
                     ) : (
-                        <p className="mb-6 text-slate">Please check your APPS_SCRIPT_URL and ensure the Google Script is deployed correctly.</p>
+                        <p className={`mb-6 ${THEME.colors.textSecondary}`}>Please check your APPS_SCRIPT_URL and ensure the Google Script is deployed correctly.</p>
                     )}
 
-                    <div className="bg-navy border border-lightest-navy p-4 rounded text-left overflow-auto mb-6">
-                        <p className="font-bold text-xs text-bright-pink uppercase mb-1">Error Details:</p>
+                    <div className={`${THEME.colors.background} border ${THEME.colors.borderSubtle} p-4 rounded text-left overflow-auto mb-6`}>
+                        <p className={`font-bold text-xs ${THEME.colors.textWarning} uppercase mb-1`}>Error Details:</p>
                         <code className="text-sm font-mono text-light-slate">{errorMessage}</code>
                     </div>
 
@@ -371,14 +373,14 @@ const App: React.FC = () => {
                             placeholder="Paste new Web App URL here (optional)"
                             defaultValue={overrideUrl}
                             id="urlInput"
-                            className="bg-navy border border-lightest-navy p-2 rounded text-sm text-lightest-slate focus:ring-1 focus:ring-bright-cyan"
+                            className={`${THEME.colors.background} border ${THEME.colors.borderSubtle} p-2 rounded text-sm ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`}
                         />
                         <button 
                             onClick={() => {
                                 const input = document.getElementById('urlInput') as HTMLInputElement;
                                 if(input) loadData(input.value.trim());
                             }} 
-                            className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold hover:bg-bright-cyan/90 transition-colors"
+                            className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded-md font-bold transition-colors`}
                         >
                             Retry Connection
                         </button>
@@ -390,7 +392,7 @@ const App: React.FC = () => {
         if (route.page === 'dashboard') {
             return <Dashboard 
                 companyData={companyData} 
-                scriptUrl={overrideUrl || APPS_SCRIPT_URL} 
+                scriptUrl={overrideUrl || BRANDING.defaultApiUrl} 
             />;
         }
 
@@ -417,7 +419,7 @@ const App: React.FC = () => {
                     <Survey 
                         companyId={route.companyId} 
                         companyData={companyData} 
-                        scriptUrl={overrideUrl || APPS_SCRIPT_URL} // Pass dynamic URL to survey
+                        scriptUrl={overrideUrl || BRANDING.defaultApiUrl} // Pass dynamic URL to survey
                     />
                 </main>
                 <Footer />
@@ -429,7 +431,7 @@ const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
-            <div className="dark min-h-screen bg-navy text-light-slate font-sans relative">
+            <div className={`dark min-h-screen ${THEME.colors.background} ${THEME.colors.textSecondary} font-sans relative`}>
                 {renderContent()}
                 <ChatWidget />
             </div>
@@ -441,7 +443,7 @@ const App: React.FC = () => {
 
 const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ companyData, scriptUrl }) => {
     const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
-    const [activeTab, setActiveTab] = useState<'overview' | 'newRequest' | 'gallery' | 'history'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'newRequest' | 'gallery' | 'history' | 'estimating' | 'projects'>('overview');
     const t = translations['en']; 
 
     const handleLogin = (session: UserSession) => {
@@ -485,11 +487,11 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
     // Safety check if rendering failed to produce a company
     if (!visibleCompany) {
          return (
-             <div className="min-h-screen bg-navy flex items-center justify-center">
+             <div className={`min-h-screen ${THEME.colors.background} flex items-center justify-center`}>
                 <div className="text-center">
-                    <p className="text-bright-pink mb-4">Error: Company Profile Not Found</p>
-                    <p className="text-xs text-slate mb-4">It seems the property data for your access code is not currently available.</p>
-                    <button onClick={handleLogout} className="text-bright-cyan underline">Return to Login</button>
+                    <p className={`${THEME.colors.textWarning} mb-4`}>Error: Company Profile Not Found</p>
+                    <p className={`text-xs ${THEME.colors.textSecondary} mb-4`}>It seems the property data for your access code is not currently available.</p>
+                    <button onClick={handleLogout} className={`${THEME.colors.textHighlight} underline`}>Return to Login</button>
                 </div>
              </div>
          );
@@ -507,49 +509,63 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
         : visibleCompany.name;
 
     return (
-        <div className="min-h-screen flex bg-navy">
+        <div className={`min-h-screen flex ${THEME.colors.background}`}>
             {/* Sidebar */}
-            <aside className="w-64 bg-light-navy border-r border-lightest-navy hidden md:flex flex-col">
-                <div className="p-6 border-b border-lightest-navy flex justify-center flex-col items-center">
+            <aside className={`w-64 ${THEME.colors.surface} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
+                <div className={`p-6 border-b ${THEME.colors.borderSubtle} flex justify-center flex-col items-center`}>
                     <a href="#/" className="flex items-center gap-2 mb-2">
                         <JesStoneLogo className="h-8 w-auto" />
-                        <span className="font-bold text-lightest-slate">JES STONE</span>
+                        <span className={`font-bold ${THEME.colors.textMain}`}>{BRANDING.companyName}</span>
                     </a>
-                    <div className="bg-navy px-3 py-1 rounded-full text-xs font-bold text-bright-cyan border border-bright-cyan/30 text-center max-w-full truncate">
+                    <div className={`${THEME.colors.background} px-3 py-1 rounded-full text-xs font-bold ${THEME.colors.textHighlight} border ${THEME.colors.borderHighlight}/30 text-center max-w-full truncate`}>
                         {displayName || 'Loading...'}
                     </div>
-                    <div className="mt-2 text-xs text-slate uppercase tracking-wider font-semibold">
+                    <div className={`mt-2 text-xs ${THEME.colors.textSecondary} uppercase tracking-wider font-semibold`}>
                         {roleLabel}
                     </div>
                 </div>
                 <nav className="flex-1 p-4 space-y-2">
                     <button 
                         onClick={() => setActiveTab('overview')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'overview' ? 'bg-bright-cyan/20 text-bright-cyan border-l-2 border-bright-cyan' : 'text-slate hover:text-lightest-slate hover:bg-navy'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'overview' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
                     >
                         <DashboardIcon className="h-5 w-5" /> {t.tabOverview}
                     </button>
                     <button 
                         onClick={() => setActiveTab('newRequest')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'newRequest' ? 'bg-bright-cyan/20 text-bright-cyan border-l-2 border-bright-cyan' : 'text-slate hover:text-lightest-slate hover:bg-navy'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'newRequest' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
                     >
                          <ClipboardListIcon className="h-5 w-5" /> {t.tabNewRequest}
                     </button>
+                    {/* NEW SAAS MODULES */}
+                    <button 
+                        onClick={() => setActiveTab('estimating')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'estimating' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
+                    >
+                        <CalculatorIcon className="h-5 w-5" /> {t.tabEstimating}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('projects')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'projects' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
+                    >
+                        <ChartBarIcon className="h-5 w-5" /> {t.tabProjects}
+                    </button>
+                    <div className={`h-px ${THEME.colors.borderSubtle} my-2`}></div>
                     <button 
                         onClick={() => setActiveTab('gallery')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'gallery' ? 'bg-bright-cyan/20 text-bright-cyan border-l-2 border-bright-cyan' : 'text-slate hover:text-lightest-slate hover:bg-navy'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'gallery' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
                     >
                         <PhotoIcon className="h-5 w-5" /> {t.tabGallery}
                     </button>
                     <button 
                          onClick={() => setActiveTab('history')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'history' ? 'bg-bright-cyan/20 text-bright-cyan border-l-2 border-bright-cyan' : 'text-slate hover:text-lightest-slate hover:bg-navy'}`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'history' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
                     >
                         <ClockIcon className="h-5 w-5" /> {t.tabHistory}
                     </button>
                 </nav>
-                <div className="p-4 border-t border-lightest-navy">
-                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-slate hover:text-bright-pink transition-colors">
+                <div className={`p-4 border-t ${THEME.colors.borderSubtle}`}>
+                    <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-2 ${THEME.colors.textSecondary} hover:text-bright-pink transition-colors`}>
                         <LogoutIcon className="h-5 w-5" /> {t.logout}
                     </button>
                 </div>
@@ -558,32 +574,32 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
             {/* Main Content */}
             <div className="flex-1 overflow-auto">
                 {/* Mobile Header */}
-                <header className="md:hidden bg-light-navy p-4 flex justify-between items-center border-b border-lightest-navy sticky top-0 z-10">
+                <header className={`md:hidden ${THEME.colors.surface} p-4 flex justify-between items-center border-b ${THEME.colors.borderSubtle} sticky top-0 z-10`}>
                     <div className="flex flex-col">
-                        <span className="font-bold text-lightest-slate">{t.dashboardLoginTitle}</span>
+                        <span className={`font-bold ${THEME.colors.textMain}`}>{t.dashboardLoginTitle}</span>
                         <div className="flex gap-2 text-xs">
-                             <span className="text-bright-cyan">
+                             <span className={THEME.colors.textHighlight}>
                                 {visibleCompany.properties.length === 1 
                                     ? (visibleCompany.properties[0]?.name?.substring(0, 15) || '') + '...' 
                                     : visibleCompany.name}
                              </span>
                         </div>
                     </div>
-                    <button onClick={handleLogout}><LogoutIcon className="h-6 w-6 text-slate" /></button>
+                    <button onClick={handleLogout}><LogoutIcon className={`h-6 w-6 ${THEME.colors.textSecondary}`} /></button>
                 </header>
                 
                 {/* Mobile Nav */}
-                <div className="md:hidden bg-navy flex justify-around p-2 border-b border-lightest-navy">
-                     <button onClick={() => setActiveTab('overview')} className={`p-2 ${activeTab === 'overview' ? 'text-bright-cyan' : 'text-slate'}`}><DashboardIcon className="h-6 w-6" /></button>
-                     <button onClick={() => setActiveTab('newRequest')} className={`p-2 ${activeTab === 'newRequest' ? 'text-bright-cyan' : 'text-slate'}`}><ClipboardListIcon className="h-6 w-6" /></button>
-                     <button onClick={() => setActiveTab('gallery')} className={`p-2 ${activeTab === 'gallery' ? 'text-bright-cyan' : 'text-slate'}`}><PhotoIcon className="h-6 w-6" /></button>
+                <div className={`md:hidden ${THEME.colors.background} flex justify-around p-2 border-b ${THEME.colors.borderSubtle}`}>
+                     <button onClick={() => setActiveTab('overview')} className={`p-2 ${activeTab === 'overview' ? THEME.colors.textHighlight : THEME.colors.textSecondary}`}><DashboardIcon className="h-6 w-6" /></button>
+                     <button onClick={() => setActiveTab('newRequest')} className={`p-2 ${activeTab === 'newRequest' ? THEME.colors.textHighlight : THEME.colors.textSecondary}`}><ClipboardListIcon className="h-6 w-6" /></button>
+                     <button onClick={() => setActiveTab('estimating')} className={`p-2 ${activeTab === 'estimating' ? THEME.colors.textHighlight : THEME.colors.textSecondary}`}><CalculatorIcon className="h-6 w-6" /></button>
                 </div>
 
                 <div className="p-4 md:p-8 max-w-6xl mx-auto">
                     {activeTab === 'overview' && <DashboardOverview companyData={[visibleCompany]} onNewRequest={() => setActiveTab('newRequest')} />}
                     {activeTab === 'newRequest' && (
                         <div className="animate-in fade-in duration-300">
-                             <h2 className="text-2xl font-bold text-lightest-slate mb-6">New Service Request</h2>
+                             <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>New Service Request</h2>
                              <Survey 
                                 companyId={visibleCompany.id} 
                                 companyData={[visibleCompany]} // Pass the filtered company so dropdown is correct
@@ -593,6 +609,8 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                             />
                         </div>
                     )}
+                    {activeTab === 'estimating' && <EstimatingModule />}
+                    {activeTab === 'projects' && <ProjectManagementModule />}
                     {activeTab === 'gallery' && <DashboardGallery />}
                     {activeTab === 'history' && <DashboardHistory />}
                 </div>
@@ -649,43 +667,43 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
     };
 
     return (
-        <div className="min-h-screen bg-navy flex items-center justify-center p-4">
-            <div className={`bg-light-navy p-8 rounded-lg max-w-md w-full text-center ${GLOW_CLASSES}`}>
+        <div className={`min-h-screen ${THEME.colors.background} flex items-center justify-center p-4`}>
+            <div className={`${THEME.colors.surface} p-8 rounded-lg max-w-md w-full text-center ${THEME.effects.glow}`}>
                 <div className="flex justify-center mb-6">
-                    <div className={`p-4 bg-navy rounded-full border border-bright-cyan shadow-[0_0_15px_rgba(100,255,218,0.3)] ${isVerifying ? 'animate-pulse' : ''}`}>
-                        <LockClosedIcon className="h-8 w-8 text-bright-cyan" />
+                    <div className={`p-4 ${THEME.colors.background} rounded-full border ${THEME.colors.borderHighlight} shadow-[0_0_15px_rgba(100,255,218,0.3)] ${isVerifying ? 'animate-pulse' : ''}`}>
+                        <LockClosedIcon className={`h-8 w-8 ${THEME.colors.textHighlight}`} />
                     </div>
                 </div>
-                <h1 className="text-2xl font-bold text-lightest-slate mb-2">{t.dashboardLoginTitle}</h1>
-                <p className="text-slate mb-8">{t.dashboardLoginSubtitle}</p>
+                <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.dashboardLoginTitle}</h1>
+                <p className={`${THEME.colors.textSecondary} mb-8`}>{t.dashboardLoginSubtitle}</p>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="text-left">
-                        <label className="block text-sm font-medium text-light-slate mb-1">{t.accessCodeLabel}</label>
+                        <label className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.accessCodeLabel}</label>
                         <input 
                             type="password" 
                             value={code}
                             onChange={(e) => setCode(e.target.value)}
-                            className={`w-full bg-navy border ${error ? 'border-bright-pink' : 'border-lightest-navy'} rounded-md p-3 text-center tracking-widest text-xl text-bright-cyan focus:ring-2 focus:ring-bright-cyan focus:outline-none transition-all`}
+                            className={`w-full ${THEME.colors.inputBg} border ${error ? THEME.colors.borderWarning : THEME.colors.inputBorder} rounded-md p-3 text-center tracking-widest text-xl ${THEME.colors.textHighlight} focus:ring-2 focus:ring-bright-cyan focus:outline-none transition-all`}
                             placeholder="••••"
                             autoFocus
                         />
-                         {error && <p className="text-bright-pink text-xs mt-2 text-center animate-bounce">{error}</p>}
+                         {error && <p className={`${THEME.colors.textWarning} text-xs mt-2 text-center animate-bounce`}>{error}</p>}
                     </div>
                     <button 
                         type="submit" 
                         disabled={!code || isVerifying}
-                        className={`w-full bg-bright-cyan text-navy font-bold py-3 rounded-md hover:bg-bright-cyan/90 transition-all flex justify-center items-center gap-2 ${!code || isVerifying ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-full ${THEME.colors.buttonPrimary} font-bold py-3 rounded-md transition-all flex justify-center items-center gap-2 ${!code || isVerifying ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {isVerifying ? <><LoadingSpinner /> Verifying...</> : t.loginButton}
                     </button>
                 </form>
-                 <div className="mt-6 text-xs text-slate space-y-1">
+                 <div className={`mt-6 text-xs ${THEME.colors.textSecondary} space-y-1`}>
                      <p>Demo Codes:</p>
-                     <p><span className="text-bright-cyan font-mono">PARKPLACE</span> (Site Manager)</p>
-                     <p><span className="text-bright-cyan font-mono">REGION1</span> (Regional)</p>
+                     <p><span className={`${THEME.colors.textHighlight} font-mono`}>PARKPLACE</span> (Site Manager)</p>
+                     <p><span className={`${THEME.colors.textHighlight} font-mono`}>REGION1</span> (Regional)</p>
                 </div>
-                <div className="mt-4 text-xs text-slate">
+                <div className={`mt-4 text-xs ${THEME.colors.textSecondary}`}>
                     <a href="#/" className="hover:text-bright-cyan">Return to Public Site</a>
                 </div>
             </div>
@@ -706,57 +724,57 @@ const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => 
         <div className="space-y-8 animate-in fade-in duration-300">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-lightest-slate">Welcome Back</h1>
-                    <p className="text-slate">
+                    <h1 className={`text-3xl font-bold ${THEME.colors.textMain}`}>Welcome Back</h1>
+                    <p className={THEME.colors.textSecondary}>
                         {singlePropertyName ? `Managing ${singlePropertyName}` : `Managing ${totalProperties} property locations.`}
                     </p>
                 </div>
-                <button onClick={onNewRequest} className="bg-bright-cyan text-navy px-6 py-2 rounded-md font-bold shadow-lg hover:bg-bright-cyan/90 transition-all">
+                <button onClick={onNewRequest} className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded-md font-bold shadow-lg transition-all`}>
                     + New Request
                 </button>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-light-navy p-6 rounded-lg border-l-4 border-bright-cyan shadow-lg">
+                <div className={`${THEME.colors.surface} p-6 rounded-lg border-l-4 ${THEME.colors.borderHighlight} shadow-lg`}>
                     <div className="flex justify-between items-start">
-                        <p className="text-slate text-sm font-bold uppercase">{t.statsActive}</p>
-                         <BuildingBlocksIcon className="h-5 w-5 text-bright-cyan opacity-50" />
+                        <p className={`${THEME.colors.textSecondary} text-sm font-bold uppercase`}>{t.statsActive}</p>
+                         <BuildingBlocksIcon className={`h-5 w-5 ${THEME.colors.textHighlight} opacity-50`} />
                     </div>
-                    <p className="text-4xl font-bold text-lightest-slate mt-2">3</p>
-                    <p className="text-xs text-slate mt-1">In progress</p>
+                    <p className={`text-4xl font-bold ${THEME.colors.textMain} mt-2`}>3</p>
+                    <p className={`text-xs ${THEME.colors.textSecondary} mt-1`}>In progress</p>
                 </div>
-                <div className="bg-light-navy p-6 rounded-lg border-l-4 border-bright-pink shadow-lg">
+                <div className={`${THEME.colors.surface} p-6 rounded-lg border-l-4 ${THEME.colors.borderWarning} shadow-lg`}>
                     <div className="flex justify-between items-start">
-                        <p className="text-slate text-sm font-bold uppercase">{t.statsPending}</p>
-                        <ClockIcon className="h-5 w-5 text-bright-pink opacity-50" />
+                        <p className={`${THEME.colors.textSecondary} text-sm font-bold uppercase`}>{t.statsPending}</p>
+                        <ClockIcon className={`h-5 w-5 ${THEME.colors.textWarning} opacity-50`} />
                     </div>
-                    <p className="text-4xl font-bold text-lightest-slate mt-2">1</p>
-                    <p className="text-xs text-slate mt-1">Awaiting your approval</p>
+                    <p className={`text-4xl font-bold ${THEME.colors.textMain} mt-2`}>1</p>
+                    <p className={`text-xs ${THEME.colors.textSecondary} mt-1`}>Awaiting your approval</p>
                 </div>
-                <div className="bg-light-navy p-6 rounded-lg border-l-4 border-slate shadow-lg">
+                <div className={`${THEME.colors.surface} p-6 rounded-lg border-l-4 border-slate shadow-lg`}>
                      <div className="flex justify-between items-start">
-                        <p className="text-slate text-sm font-bold uppercase">{t.statsCompleted}</p>
+                        <p className={`${THEME.colors.textSecondary} text-sm font-bold uppercase`}>{t.statsCompleted}</p>
                          <ClipboardListIcon className="h-5 w-5 text-slate opacity-50" />
                     </div>
-                    <p className="text-4xl font-bold text-lightest-slate mt-2">12</p>
-                    <p className="text-xs text-slate mt-1">This month</p>
+                    <p className={`text-4xl font-bold ${THEME.colors.textMain} mt-2`}>12</p>
+                    <p className={`text-xs ${THEME.colors.textSecondary} mt-1`}>This month</p>
                 </div>
             </div>
 
             {/* Recent Activity List (Mock) */}
-            <div className="bg-light-navy rounded-lg p-6 shadow-lg">
-                <h3 className="text-xl font-bold text-lightest-slate mb-4">{t.recentActivity}</h3>
+            <div className={`${THEME.colors.surface} rounded-lg p-6 shadow-lg`}>
+                <h3 className={`text-xl font-bold ${THEME.colors.textMain} mb-4`}>{t.recentActivity}</h3>
                 <div className="space-y-4">
                     {[
-                        { date: 'Today', title: 'Unit 104 - Countertop Replace', status: 'In Progress', color: 'text-bright-cyan' },
-                        { date: 'Yesterday', title: 'Unit 302 - Make Ready', status: 'Pending', color: 'text-bright-pink' },
+                        { date: 'Today', title: 'Unit 104 - Countertop Replace', status: 'In Progress', color: THEME.colors.textHighlight },
+                        { date: 'Yesterday', title: 'Unit 302 - Make Ready', status: 'Pending', color: THEME.colors.textWarning },
                         { date: 'Feb 14', title: 'Lobby Tile Repair', status: 'Completed', color: 'text-slate' },
                     ].map((item, i) => (
-                        <div key={i} className="flex justify-between items-center border-b border-lightest-navy pb-3 last:border-0 last:pb-0">
+                        <div key={i} className={`flex justify-between items-center border-b ${THEME.colors.borderSubtle} pb-3 last:border-0 last:pb-0`}>
                             <div>
-                                <p className="font-bold text-lightest-slate">{item.title}</p>
-                                <p className="text-xs text-slate">{item.date}</p>
+                                <p className={`font-bold ${THEME.colors.textMain}`}>{item.title}</p>
+                                <p className={`text-xs ${THEME.colors.textSecondary}`}>{item.date}</p>
                             </div>
                             <span className={`text-sm font-bold ${item.color}`}>{item.status}</span>
                         </div>
@@ -779,14 +797,14 @@ const DashboardGallery: React.FC = () => {
 
     return (
         <div className="animate-in fade-in duration-300">
-            <h2 className="text-2xl font-bold text-lightest-slate mb-2">{t.galleryTitle}</h2>
-            <p className="text-slate mb-6">{t.gallerySubtitle}</p>
+            <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.galleryTitle}</h2>
+            <p className={`${THEME.colors.textSecondary} mb-6`}>{t.gallerySubtitle}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {images.map((src, i) => (
-                    <div key={i} className="aspect-video bg-navy rounded-lg overflow-hidden relative group shadow-lg">
+                    <div key={i} className={`aspect-video ${THEME.colors.background} rounded-lg overflow-hidden relative group shadow-lg`}>
                         <img src={src} alt={`Project ${i}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <span className="text-bright-cyan font-bold border border-bright-cyan px-4 py-2 rounded">View Details</span>
+                            <span className={`${THEME.colors.textHighlight} font-bold border ${THEME.colors.borderHighlight} px-4 py-2 rounded`}>View Details</span>
                         </div>
                     </div>
                 ))}
@@ -797,10 +815,10 @@ const DashboardGallery: React.FC = () => {
 
 const DashboardHistory: React.FC = () => (
     <div className="animate-in fade-in duration-300">
-        <h2 className="text-2xl font-bold text-lightest-slate mb-6">Request History</h2>
-        <div className="bg-light-navy rounded-lg overflow-hidden">
+        <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>Request History</h2>
+        <div className={`${THEME.colors.surface} rounded-lg overflow-hidden`}>
             <table className="w-full text-left text-sm">
-                <thead className="bg-navy text-slate uppercase text-xs">
+                <thead className={`${THEME.colors.background} text-slate uppercase text-xs`}>
                     <tr>
                         <th className="p-4">Date</th>
                         <th className="p-4">Property</th>
@@ -808,23 +826,23 @@ const DashboardHistory: React.FC = () => (
                         <th className="p-4">Status</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-lightest-navy">
-                    <tr className="hover:bg-navy/50">
-                        <td className="p-4 text-lightest-slate">Feb 20, 2025</td>
-                        <td className="p-4 text-slate">The Arts at Park Place</td>
-                        <td className="p-4 text-slate">Countertops - Quartz</td>
-                        <td className="p-4 text-bright-cyan font-bold">Approved</td>
+                <tbody className={`divide-y ${THEME.colors.borderSubtle}`}>
+                    <tr className={`hover:${THEME.colors.background}/50`}>
+                        <td className={`p-4 ${THEME.colors.textMain}`}>Feb 20, 2025</td>
+                        <td className={`p-4 ${THEME.colors.textSecondary}`}>The Arts at Park Place</td>
+                        <td className={`p-4 ${THEME.colors.textSecondary}`}>Countertops - Quartz</td>
+                        <td className={`p-4 ${THEME.colors.textHighlight} font-bold`}>Approved</td>
                     </tr>
-                     <tr className="hover:bg-navy/50">
-                        <td className="p-4 text-lightest-slate">Feb 18, 2025</td>
-                        <td className="p-4 text-slate">Canyon Creek</td>
-                        <td className="p-4 text-slate">Make-Ready</td>
-                        <td className="p-4 text-bright-pink font-bold">Pending</td>
+                     <tr className={`hover:${THEME.colors.background}/50`}>
+                        <td className={`p-4 ${THEME.colors.textMain}`}>Feb 18, 2025</td>
+                        <td className={`p-4 ${THEME.colors.textSecondary}`}>Canyon Creek</td>
+                        <td className={`p-4 ${THEME.colors.textSecondary}`}>Make-Ready</td>
+                        <td className={`p-4 ${THEME.colors.textWarning} font-bold`}>Pending</td>
                     </tr>
-                     <tr className="hover:bg-navy/50">
-                        <td className="p-4 text-lightest-slate">Jan 15, 2025</td>
-                        <td className="p-4 text-slate">The Arts at Park Place</td>
-                        <td className="p-4 text-slate">Tile - Flooring</td>
+                     <tr className={`hover:${THEME.colors.background}/50`}>
+                        <td className={`p-4 ${THEME.colors.textMain}`}>Jan 15, 2025</td>
+                        <td className={`p-4 ${THEME.colors.textSecondary}`}>The Arts at Park Place</td>
+                        <td className={`p-4 ${THEME.colors.textSecondary}`}>Tile - Flooring</td>
                         <td className="p-4 text-slate font-bold">Completed</td>
                     </tr>
                 </tbody>
@@ -850,17 +868,17 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
     };
     
     return (
-        <div className="bg-light-navy p-6 rounded-lg shadow-2xl">
-            <h2 className="text-3xl font-bold text-lightest-slate mb-2">Service Assistant</h2>
-            <p className="mb-6 text-bright-cyan">For {selectedCompany?.name || 'Partner'} Properties</p>
+        <div className={`${THEME.colors.surface} p-6 rounded-lg shadow-2xl`}>
+            <h2 className={`text-3xl font-bold ${THEME.colors.textMain} mb-2`}>{BRANDING.assistantName}</h2>
+            <p className={`mb-6 ${THEME.colors.textHighlight}`}>For {selectedCompany?.name || 'Partner'} Properties</p>
 
             <div className="mb-8">
-                <label htmlFor="company-select" className="block text-sm font-medium text-light-slate mb-2">Select Target Company:</label>
+                <label htmlFor="company-select" className={`block text-sm font-medium ${THEME.colors.textMain} mb-2`}>Select Target Company:</label>
                 <select 
                     id="company-select" 
                     value={selectedCompany?.id || ''} 
                     onChange={handleCompanyChange} 
-                    className={`w-full bg-navy text-lightest-slate p-3 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                    className={`w-full ${THEME.colors.inputBg} ${THEME.colors.textMain} p-3 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                 >
                     {companyData.map(company => (
                         <option key={company.id} value={company.id}>{company.name}</option>
@@ -868,11 +886,11 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
                 </select>
             </div>
             
-            <div className="bg-navy p-8 rounded-lg flex flex-col items-center gap-4">
+            <div className={`${THEME.colors.background} p-8 rounded-lg flex flex-col items-center gap-4`}>
                  <a 
                     href={surveyUrl} 
                     onClick={handleNav} 
-                    className={`block w-full max-w-md bg-navy text-platinum font-bold py-4 px-6 rounded-md text-lg text-center hover:-translate-y-1 ${GLOW_CLASSES}`}
+                    className={`block w-full max-w-md ${THEME.colors.background} text-platinum font-bold py-4 px-6 rounded-md text-lg text-center hover:-translate-y-1 ${THEME.effects.glow}`}
                 >
                     Service/ Repair/ Renovation Assistant
                 </a>
@@ -881,7 +899,7 @@ const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: st
                  <a 
                     href="#dashboard"
                     onClick={handleNav} 
-                    className="text-sm text-slate hover:text-bright-cyan flex items-center gap-2 mt-4"
+                    className={`text-sm ${THEME.colors.textSecondary} hover:${THEME.colors.textHighlight} flex items-center gap-2 mt-4`}
                 >
                     <LockClosedIcon className="h-4 w-4" /> Client Portal Login
                 </a>
@@ -994,7 +1012,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
         
-        const files = Array.from(e.target.files);
+        const files = Array.from(e.target.files) as File[];
         const newAttachments: {name: string, type: string, data: string}[] = [];
 
         // Simple size validation (2MB limit per file)
@@ -1013,8 +1031,6 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                     reader.onload = () => resolve(reader.result as string);
                     reader.onerror = error => reject(error);
                 });
-                // Remove data:image/png;base64, prefix for cleaner storage if needed, 
-                // but for now keeping it makes it easier to display/use.
                 newAttachments.push({
                     name: file.name,
                     type: file.type,
@@ -1085,14 +1101,14 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
 
     if (submissionStatus === 'success') {
         return (
-            <div className={`bg-light-navy p-8 rounded-lg text-center ${!embedded ? GLOW_CLASSES : ''}`}>
-                <h2 className="text-3xl font-bold text-bright-cyan mb-4">{t.submitSuccessTitle}</h2>
-                <p className="text-lightest-slate text-lg">{t.submitSuccessMessage1}</p>
-                <p className="text-slate mt-2">{t.submitSuccessMessage2}</p>
+            <div className={`${THEME.colors.surface} p-8 rounded-lg text-center ${!embedded ? THEME.effects.glow : ''}`}>
+                <h2 className={`text-3xl font-bold ${THEME.colors.textHighlight} mb-4`}>{t.submitSuccessTitle}</h2>
+                <p className={`${THEME.colors.textMain} text-lg`}>{t.submitSuccessMessage1}</p>
+                <p className={`${THEME.colors.textSecondary} mt-2`}>{t.submitSuccessMessage2}</p>
                 
                  {/* NEW BADGE */}
                 {formData.attachments && formData.attachments.length > 0 && (
-                    <div className="mt-4 inline-flex items-center gap-2 bg-navy border border-bright-cyan/50 text-bright-cyan px-4 py-2 rounded-full text-sm">
+                    <div className={`mt-4 inline-flex items-center gap-2 ${THEME.colors.background} border ${THEME.colors.borderHighlight}/50 ${THEME.colors.textHighlight} px-4 py-2 rounded-full text-sm`}>
                         <CloudArrowUpIcon className="h-4 w-4" />
                         <span>{t.photosUploadedBadge}</span>
                     </div>
@@ -1100,17 +1116,17 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
                     {onSuccess ? (
-                        <button onClick={() => { handleReset(); onSuccess(); }} className="inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all">
+                        <button onClick={() => { handleReset(); onSuccess(); }} className={`inline-block ${THEME.colors.buttonPrimary} font-bold py-3 px-6 rounded-md transition-all`}>
                              Return to Overview
                         </button>
                     ) : (
-                        <button onClick={handleReset} className={`inline-block bg-navy border border-bright-cyan text-bright-cyan font-bold py-3 px-6 rounded-md hover:bg-bright-cyan/10 transition-all ${GLOW_CLASSES}`}>
+                        <button onClick={handleReset} className={`inline-block ${THEME.colors.buttonSecondary} font-bold py-3 px-6 rounded-md transition-all ${THEME.effects.glow}`}>
                             {t.submitAnotherButton}
                         </button>
                     )}
 
                     {!embedded && (
-                        <a href="#dashboard" onClick={handleNav} className={`inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all ${GLOW_CLASSES}`}>
+                        <a href="#dashboard" onClick={handleNav} className={`inline-block ${THEME.colors.buttonPrimary} font-bold py-3 px-6 rounded-md transition-all ${THEME.effects.glow}`}>
                             {t.enterDashboardButton}
                         </a>
                     )}
@@ -1121,11 +1137,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
     
     if (submissionStatus === 'error') {
          return (
-            <div className={`bg-light-navy p-8 rounded-lg text-center ${!embedded ? GLOW_CLASSES : ''}`}>
+            <div className={`${THEME.colors.surface} p-8 rounded-lg text-center ${!embedded ? THEME.effects.glow : ''}`}>
                 <h2 className="text-3xl font-bold text-red-400 mb-4">{t.submitErrorTitle}</h2>
-                <p className="text-lightest-slate text-lg">{t.submitErrorMessage1}</p>
-                <p className="text-slate mt-2">{t.submitErrorMessage2}</p>
-                <button onClick={() => setSubmissionStatus('idle')} className={`mt-8 inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all ${GLOW_CLASSES}`}>
+                <p className={`${THEME.colors.textMain} text-lg`}>{t.submitErrorMessage1}</p>
+                <p className={`${THEME.colors.textSecondary} mt-2`}>{t.submitErrorMessage2}</p>
+                <button onClick={() => setSubmissionStatus('idle')} className={`mt-8 inline-block ${THEME.colors.buttonPrimary} font-bold py-3 px-6 rounded-md transition-all ${THEME.effects.glow}`}>
                     {t.tryAgainButton}
                 </button>
             </div>
@@ -1133,49 +1149,49 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
     }
   
     return (
-      <div className={`bg-light-navy rounded-lg ${!embedded ? `p-6 ${GLOW_CLASSES}` : ''}`}>
+      <div className={`${THEME.colors.surface} rounded-lg ${!embedded ? `p-6 ${THEME.effects.glow}` : ''}`}>
         <div className="flex justify-between items-center mb-6">
             <div>
-                {!embedded && <h2 className="text-2xl font-bold text-lightest-slate mb-1">{t.surveyTitle}</h2>}
-                <p className="text-slate">{t.surveySubtitle} <span className="font-bold text-bright-cyan">{company.name}</span> {t.surveySubtitleProperties}</p>
+                {!embedded && <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-1`}>{t.surveyTitle}</h2>}
+                <p className={THEME.colors.textSecondary}>{t.surveySubtitle} <span className={`font-bold ${THEME.colors.textHighlight}`}>{company.name}</span> {t.surveySubtitleProperties}</p>
             </div>
-            <button onClick={() => setLang(lang === 'en' ? 'es' : 'en')} className="text-sm font-medium text-bright-cyan hover:text-opacity-80 px-3 py-1 rounded-md border border-bright-cyan/50">
+            <button onClick={() => setLang(lang === 'en' ? 'es' : 'en')} className={`text-sm font-medium ${THEME.colors.textHighlight} hover:text-opacity-80 px-3 py-1 rounded-md border ${THEME.colors.borderHighlight}/50`}>
                 {t.languageToggle}
             </button>
         </div>
   
         <form onSubmit={handleSubmit} className="space-y-6">
-            <fieldset className="p-4 border border-lightest-navy rounded-md">
-                <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.propertyIdLegend}</legend>
+            <fieldset className={`p-4 border ${THEME.colors.borderSubtle} rounded-md`}>
+                <legend className={`px-2 text-lg font-semibold ${THEME.colors.textHighlight}`}>{t.propertyIdLegend}</legend>
                 <div className="grid md:grid-cols-2 gap-4 mt-2">
                     <div>
-                        <label htmlFor="propertyId" className="block text-sm font-medium text-light-slate mb-1">{t.propertyNameLabel}</label>
+                        <label htmlFor="propertyId" className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.propertyNameLabel}</label>
                         <select 
                             id="propertyId" 
                             name="propertyId" 
                             value={formData.propertyId} 
                             onChange={handleInputChange} 
                             required 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         >
                             <option value="">{t.propertySelectPlaceholder}</option>
                             {company.properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-light-slate mb-1">{t.propertyAddressLabel}</label>
-                        <div className={`w-full bg-navy p-2 border border-lightest-navy rounded-md flex items-start text-slate min-h-[40px] ${GLOW_CLASSES}`}>
+                        <label className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.propertyAddressLabel}</label>
+                        <div className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md flex items-start text-slate min-h-[40px] ${THEME.effects.glow}`}>
                             {selectedProperty ? selectedProperty.address : t.addressPlaceholder}
                         </div>
                     </div>
                 </div>
             </fieldset>
 
-            <fieldset className="p-4 border border-lightest-navy rounded-md">
-                <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.contactInfoLegend}</legend>
+            <fieldset className={`p-4 border ${THEME.colors.borderSubtle} rounded-md`}>
+                <legend className={`px-2 text-lg font-semibold ${THEME.colors.textHighlight}`}>{t.contactInfoLegend}</legend>
                 <div className="grid md:grid-cols-2 gap-4 mt-2">
                     <div>
-                        <label htmlFor="firstName" className="block text-sm font-medium text-light-slate mb-1">{t.firstNameLabel}</label>
+                        <label htmlFor="firstName" className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.firstNameLabel}</label>
                         <input 
                             type="text" 
                             id="firstName" 
@@ -1183,11 +1199,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                             value={formData.firstName} 
                             onChange={handleInputChange} 
                             required 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         />
                     </div>
                     <div>
-                        <label htmlFor="lastName" className="block text-sm font-medium text-light-slate mb-1">{t.lastNameLabel}</label>
+                        <label htmlFor="lastName" className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.lastNameLabel}</label>
                         <input 
                             type="text" 
                             id="lastName" 
@@ -1195,18 +1211,18 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                             value={formData.lastName} 
                             onChange={handleInputChange} 
                             required 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         />
                     </div>
                     <div>
-                        <label htmlFor="title" className="block text-sm font-medium text-light-slate mb-1">{t.titleRoleLabel}</label>
+                        <label htmlFor="title" className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.titleRoleLabel}</label>
                         <select 
                             id="title" 
                             name="title" 
                             value={formData.title} 
                             onChange={handleInputChange} 
                             required 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         >
                             <option value="">{t.roleSelectPlaceholder}</option>
                             {t.TITLES.map(title => <option key={title} value={title}>{title}</option>)}
@@ -1214,9 +1230,9 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-light-slate mb-1">
+                        <label htmlFor="phone" className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>
                             {t.phoneLabel} 
-                            {isPhoneRequired && <span className="text-bright-pink ml-1">*</span>}
+                            {isPhoneRequired && <span className={`${THEME.colors.textWarning} ml-1`}>*</span>}
                         </label>
                         <input 
                             type="tel" 
@@ -1225,11 +1241,11 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                             value={formData.phone} 
                             onChange={handleInputChange} 
                             required={isPhoneRequired} 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         />
                     </div>
                     <div className="md:col-span-2">
-                        <label htmlFor="email" className="block text-sm font-medium text-light-slate mb-1">{t.emailLabel}</label>
+                        <label htmlFor="email" className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.emailLabel}</label>
                         <input 
                             type="email" 
                             id="email" 
@@ -1237,17 +1253,17 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                             value={formData.email} 
                             onChange={handleInputChange} 
                             required 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         />
                     </div>
                 </div>
             </fieldset>
 
-            <fieldset className="p-4 border border-lightest-navy rounded-md">
-                <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.scopeTimelineLegend}</legend>
+            <fieldset className={`p-4 border ${THEME.colors.borderSubtle} rounded-md`}>
+                <legend className={`px-2 text-lg font-semibold ${THEME.colors.textHighlight}`}>{t.scopeTimelineLegend}</legend>
                 <div className="space-y-4 mt-2">
                     <div>
-                        <label htmlFor="unitInfo" className="block text-sm font-medium text-light-slate mb-1">{t.unitInfoLabel}</label>
+                        <label htmlFor="unitInfo" className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.unitInfoLabel}</label>
                         <input 
                             type="text" 
                             id="unitInfo" 
@@ -1256,33 +1272,33 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                             onChange={handleInputChange} 
                             placeholder={t.unitInfoPlaceholder} 
                             required 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-light-slate mb-2">{t.serviceNeededLabel}</label>
+                        <label className={`block text-sm font-medium ${THEME.colors.textMain} mb-2`}>{t.serviceNeededLabel}</label>
                         <div className="grid sm:grid-cols-2 gap-2">
                             {t.SERVICES.map(service => (
-                                <label key={service} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.services.includes(service) ? 'bg-bright-cyan/20 ring-2 ring-bright-cyan' : 'bg-navy hover:bg-lightest-navy'} ${GLOW_CLASSES}`}>
+                                <label key={service} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.services.includes(service) ? `bg-bright-cyan/20 ring-2 ${THEME.colors.inputFocus}` : `${THEME.colors.inputBg} hover:${THEME.colors.surfaceHighlight}`} ${THEME.effects.glow}`}>
                                     <input type="checkbox" checked={formData.services.includes(service)} onChange={() => handleCheckboxChange('services', service)} className="hidden"/>
-                                    <div className={`w-5 h-5 border-2 ${formData.services.includes(service) ? 'border-bright-cyan bg-bright-cyan' : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
+                                    <div className={`w-5 h-5 border-2 ${formData.services.includes(service) ? `${THEME.colors.borderHighlight} ${THEME.colors.textHighlight.replace('text-', 'bg-')}` : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
                                         {formData.services.includes(service) && <svg className="w-3 h-3 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
                                     </div>
                                     <span>{service}</span>
                                 </label>
                             ))}
                         </div>
-                        {formData.services.some(s => s.startsWith('Other') || s.startsWith('Otro')) && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder={t.otherServicePlaceholder} className={`mt-2 w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}/>}
+                        {formData.services.some(s => s.startsWith('Other') || s.startsWith('Otro')) && <input type="text" name="otherService" value={formData.otherService} onChange={handleInputChange} placeholder={t.otherServicePlaceholder} className={`mt-2 w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}/>}
                     </div>
                     <div>
-                        <label htmlFor="timeline" className="block text-sm font-medium text-light-slate mb-1">{t.timelineLabel}</label>
+                        <label htmlFor="timeline" className={`block text-sm font-medium ${THEME.colors.textMain} mb-1`}>{t.timelineLabel}</label>
                         <select 
                             id="timeline" 
                             name="timeline" 
                             value={formData.timeline} 
                             onChange={handleInputChange} 
                             required 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         >
                             <option value="">{t.timelineSelectPlaceholder}</option>
                             {t.TIMELINES.map(timeline => <option key={timeline} value={timeline}>{timeline}</option>)}
@@ -1291,9 +1307,9 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
 
                     {/* PHOTO UPLOAD SECTION */}
                     <div>
-                         <label className="block text-sm font-medium text-light-slate mb-2">{t.photosLabel}</label>
+                         <label className={`block text-sm font-medium ${THEME.colors.textMain} mb-2`}>{t.photosLabel}</label>
                          <div 
-                            className={`border-2 border-dashed border-lightest-navy hover:border-bright-cyan bg-navy rounded-md p-6 flex flex-col items-center justify-center cursor-pointer transition-colors group ${GLOW_CLASSES}`}
+                            className={`border-2 border-dashed ${THEME.colors.borderSubtle} hover:${THEME.colors.borderHighlight} ${THEME.colors.inputBg} rounded-md p-6 flex flex-col items-center justify-center cursor-pointer transition-colors group ${THEME.effects.glow}`}
                             onClick={() => fileInputRef.current?.click()}
                         >
                             <input 
@@ -1304,24 +1320,24 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                                 multiple 
                                 onChange={handlePhotoUpload} 
                             />
-                            <CloudArrowUpIcon className="h-10 w-10 text-slate group-hover:text-bright-cyan mb-2" />
-                            <p className="text-sm text-slate group-hover:text-lightest-slate">{t.dragDropText}</p>
-                            <button type="button" className="mt-2 bg-light-navy text-bright-cyan text-xs font-bold py-1 px-3 rounded hover:bg-bright-cyan/20">
+                            <CloudArrowUpIcon className={`h-10 w-10 ${THEME.colors.textSecondary} group-hover:${THEME.colors.textHighlight} mb-2`} />
+                            <p className={`text-sm ${THEME.colors.textSecondary} group-hover:${THEME.colors.textMain}`}>{t.dragDropText}</p>
+                            <button type="button" className={`mt-2 ${THEME.colors.surfaceHighlight} ${THEME.colors.textHighlight} text-xs font-bold py-1 px-3 rounded hover:bg-bright-cyan/20`}>
                                 {t.uploadButton}
                             </button>
                          </div>
-                         <p className="text-xs text-slate mt-2 text-center opacity-75">{t.photosPermissionHint}</p>
+                         <p className={`text-xs ${THEME.colors.textSecondary} mt-2 text-center opacity-75`}>{t.photosPermissionHint}</p>
                          
                          {/* Photo Preview List */}
                          {formData.attachments && formData.attachments.length > 0 && (
                              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {formData.attachments.map((file, index) => (
-                                    <div key={index} className="relative aspect-square bg-light-navy rounded overflow-hidden border border-lightest-navy group">
+                                    <div key={index} className={`relative aspect-square ${THEME.colors.surfaceHighlight} rounded overflow-hidden border ${THEME.colors.borderSubtle} group`}>
                                         <img src={file.data} alt="Preview" className="w-full h-full object-cover" />
                                         <button 
                                             type="button" 
                                             onClick={() => handleRemovePhoto(index)}
-                                            className="absolute top-1 right-1 bg-navy/80 text-bright-pink p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className={`absolute top-1 right-1 bg-navy/80 ${THEME.colors.textWarning} p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity`}
                                             title={t.removePhoto}
                                         >
                                             <TrashIcon className="h-4 w-4" />
@@ -1334,8 +1350,8 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
 
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label htmlFor="notes" className="block text-sm font-medium text-light-slate">{t.notesLabel}</label>
-                            <button type="button" onClick={handleGenerateNotes} disabled={isGenerating} className="flex items-center gap-1 text-xs text-bright-pink hover:text-opacity-80 disabled:text-slate">
+                            <label htmlFor="notes" className={`block text-sm font-medium ${THEME.colors.textMain}`}>{t.notesLabel}</label>
+                            <button type="button" onClick={handleGenerateNotes} disabled={isGenerating} className={`flex items-center gap-1 text-xs ${THEME.colors.textWarning} hover:text-opacity-80 disabled:text-slate`}>
                                 {isGenerating ? <><LoadingSpinner />{t.generatingButton}</> : <><SparklesIcon className="h-4 w-4" /> {t.generateAIDraftButton}</>}
                             </button>
                         </div>
@@ -1346,19 +1362,19 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                             value={formData.notes} 
                             onChange={handleInputChange} 
                             placeholder={t.notesPlaceholder} 
-                            className={`w-full bg-navy p-2 border border-lightest-navy rounded-md focus:outline-none focus:ring-2 focus:ring-bright-cyan ${GLOW_CLASSES}`}
+                            className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}
                         ></textarea>
                     </div>
                 </div>
             </fieldset>
             
-            <fieldset className="p-4 border border-lightest-navy rounded-md">
-                <legend className="px-2 text-lg font-semibold text-bright-cyan">{t.contactMethodLegend}</legend>
+            <fieldset className={`p-4 border ${THEME.colors.borderSubtle} rounded-md`}>
+                <legend className={`px-2 text-lg font-semibold ${THEME.colors.textHighlight}`}>{t.contactMethodLegend}</legend>
                  <div className="grid sm:grid-cols-2 gap-2 mt-2">
                     {t.CONTACT_METHODS.map(method => (
-                        <label key={method} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.contactMethods.includes(method) ? 'bg-bright-cyan/20 ring-2 ring-bright-cyan' : 'bg-navy hover:bg-lightest-navy'} ${GLOW_CLASSES}`}>
+                        <label key={method} className={`flex items-center space-x-3 p-3 rounded-md cursor-pointer transition-colors ${formData.contactMethods.includes(method) ? `bg-bright-cyan/20 ring-2 ${THEME.colors.inputFocus}` : `${THEME.colors.inputBg} hover:${THEME.colors.surfaceHighlight}`} ${THEME.effects.glow}`}>
                             <input type="checkbox" checked={formData.contactMethods.includes(method)} onChange={() => handleCheckboxChange('contactMethods', method)} className="hidden"/>
-                            <div className={`w-5 h-5 border-2 ${formData.contactMethods.includes(method) ? 'border-bright-cyan bg-bright-cyan' : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
+                            <div className={`w-5 h-5 border-2 ${formData.contactMethods.includes(method) ? `${THEME.colors.borderHighlight} ${THEME.colors.textHighlight.replace('text-', 'bg-')}` : 'border-slate'} rounded-sm flex-shrink-0 flex items-center justify-center`}>
                                 {formData.contactMethods.includes(method) && <svg className="w-3 h-3 text-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7"/></svg>}
                                     </div>
                                     <span>{method}</span>
@@ -1367,10 +1383,10 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                 </div>
             </fieldset>
 
-            <button type="submit" disabled={submissionStatus === 'submitting'} className={`w-full flex items-center justify-center gap-2 bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all text-lg disabled:bg-slate disabled:cursor-not-allowed ${GLOW_CLASSES}`}>
+            <button type="submit" disabled={submissionStatus === 'submitting'} className={`w-full flex items-center justify-center gap-2 ${THEME.colors.buttonPrimary} font-bold py-3 px-6 rounded-md transition-all text-lg disabled:bg-slate disabled:cursor-not-allowed ${THEME.effects.glow}`}>
                 {submissionStatus === 'submitting' ? <><LoadingSpinner /> {t.submittingButton}</> : <>{t.submitButton} <PaperAirplaneIcon className="h-5 w-5" /></>}
             </button>
-            <p className="text-center text-xs text-slate">Data secured for Jes Stone internal use only.</p>
+            <p className={`text-center text-xs ${THEME.colors.textSecondary}`}>Data secured for {BRANDING.companyName} internal use only.</p>
         </form>
       </div>
     );
