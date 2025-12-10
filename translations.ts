@@ -27,6 +27,7 @@ export const translations = {
     timelineLabel: "Project Timeline",
     notesLabel: "Additional Notes and Dynamics",
     photosLabel: "Upload 'Before' Photos (Max 2MB per file)",
+    photosPermissionHint: "Setup Note: Ensure Google Script is authorized for Drive access if photos fail to appear.",
 
     // Placeholders & Default Text
     propertySelectPlaceholder: "Select Property...",
@@ -143,6 +144,7 @@ export const translations = {
     timelineLabel: "Cronograma del Proyecto",
     notesLabel: "Notas y Dinámicas Adicionales",
     photosLabel: "Subir fotos 'Antes' (Máx. 2MB por archivo)",
+    photosPermissionHint: "Nota: Asegúrese de que el Script de Google esté autorizado para acceder a Drive.",
 
     // Placeholders y Texto por Defecto
     propertySelectPlaceholder: "Seleccione una propiedad...",

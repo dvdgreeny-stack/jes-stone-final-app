@@ -1310,6 +1310,7 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                                 {t.uploadButton}
                             </button>
                          </div>
+                         <p className="text-xs text-slate mt-2 text-center opacity-75">{t.photosPermissionHint}</p>
                          
                          {/* Photo Preview List */}
                          {formData.attachments && formData.attachments.length > 0 && (
