@@ -139,7 +139,9 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle, lang, setLang }) => {
     const t = translations[lang];
-    // Logic: If customTitle is provided (from Property selection), use it. Otherwise default to Branding.
+    // Logic: 
+    // If customTitle is present (Property Selected OR Logged In), use it.
+    // If NOT present, use default JES STONE branding.
     const title = customTitle || BRANDING.companyName;
     const subtitle = customSubtitle || BRANDING.companySubtitle;
 
@@ -217,10 +219,15 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     
-    // Initialize form data
+    // Initialize form data - USE PROFILE DIRECTLY to prevent flash of empty state
     const [formData, setFormData] = useState<SurveyData>({
         propertyId: '', 
-        firstName: '', lastName: '', title: '', phone: '', email: '',
+        // Initial Autofill Logic:
+        firstName: userProfile?.firstName || '', 
+        lastName: userProfile?.lastName || '', 
+        title: userProfile?.title || '', 
+        phone: userProfile?.phone || '', 
+        email: userProfile?.email || '',
         unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
     });
 
@@ -237,7 +244,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         }
     }, [companies]);
 
-    // 2. Autofill Profile Data (Force update whenever userProfile changes)
+    // 2. Re-apply profile data if userProfile prop changes significantly
     useEffect(() => {
         if (userProfile) {
             setFormData(prev => ({
@@ -392,9 +399,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     <button onClick={handleReset} className={`${THEME.colors.buttonSecondary} px-8 py-3 rounded-lg font-bold transition-all`}>
                         {t.submitAnotherButton}
                     </button>
-                    {!embedded && (
-                         <button onClick={() => window.location.hash = '#dashboard'} className={`${THEME.colors.buttonPrimary} px-8 py-3 rounded-lg font-bold shadow-lg hover:shadow-bright-cyan/20 transition-all`}>
+                    {!embedded ? (
+                        <button onClick={() => window.location.hash = '#dashboard'} className={`${THEME.colors.buttonPrimary} px-8 py-3 rounded-lg font-bold shadow-lg hover:shadow-bright-cyan/20 transition-all`}>
                             {t.enterDashboardButton}
+                        </button>
+                    ) : (
+                         <button onClick={handleReset} className={`${THEME.colors.buttonPrimary} px-8 py-3 rounded-lg font-bold shadow-lg hover:shadow-bright-cyan/20 transition-all`}>
+                            New Request
                         </button>
                     )}
                 </div>
@@ -416,13 +427,16 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     }
 
     // Dynamic Header Text logic (If logged in, show Company Name)
-    const headerTitle = selectedCompany?.name ? `For ${selectedCompany.name} Properties` : t.surveyTitle;
+    // If user is selected (logged in), selectedCompany is available. 
+    // BUT we want to be more specific. If property is selected in dropdown, show Property.
+    // This is handled by headerTitle passed down from parent if needed, but for the form itself:
+    const formHeader = selectedCompany?.name ? `For ${selectedCompany.name} Properties` : t.surveyTitle;
 
     return (
         <form onSubmit={handleSubmit} className={`w-full max-w-4xl mx-auto ${embedded ? '' : 'mt-8 p-6 md:p-10'} ${THEME.colors.surface} rounded-xl ${THEME.effects.glow} border ${THEME.colors.borderSubtle}`}>
             {/* Header */}
             <div className="mb-8 border-b border-white/5 pb-4">
-                <h2 className={`text-2xl font-bold ${THEME.colors.textMain}`}>{headerTitle}</h2>
+                <h2 className={`text-2xl font-bold ${THEME.colors.textMain}`}>{formHeader}</h2>
                 {selectedCompany?.name && (
                      <p className={`${THEME.colors.textSecondary} text-sm mt-1`}>
                         Please fill out the details below for your service request.
