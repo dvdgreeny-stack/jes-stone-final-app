@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
-import { fetchCompanyData, submitSurveyData, sendTestChat } from './services/apiService';
+import { fetchCompanyData, submitSurveyData, sendTestChat, fetchSurveyHistory } from './services/apiService';
 import { translations } from './translations';
 import { BRANDING } from './branding';
 import { THEME } from './theme';
-import type { Company, SurveyData, UserSession, UserRole, UserProfile } from './types';
+import type { Company, SurveyData, UserSession, UserRole, UserProfile, HistoryEntry } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon, GlobeAltIcon } from './components/icons';
 import { EstimatingModule } from './components/EstimatingModule';
@@ -580,6 +580,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang: 'en' | 'es'; setLang: (l: 'en' | 'es') => void }> = ({ user, onLogout, lang, setLang }) => {
     const t = translations[lang];
     const [activeTab, setActiveTab] = useState('overview');
+    const [history, setHistory] = useState<HistoryEntry[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
     
     // Header State lifted for dashboard
     const [headerTitle, setHeaderTitle] = useState('');
@@ -603,7 +605,24 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
         }
     };
 
+    // Fetch History when tab changes
+    useEffect(() => {
+        if (activeTab === 'history' || activeTab === 'gallery') {
+            const propertyName = user.company.properties[0]?.name;
+            if (propertyName) {
+                setLoadingHistory(true);
+                fetchSurveyHistory(BRANDING.defaultApiUrl, propertyName)
+                    .then(data => setHistory(data))
+                    .catch(err => console.error(err))
+                    .finally(() => setLoadingHistory(false));
+            }
+        }
+    }, [activeTab, user]);
+
     if (!user.company) return <div className="p-10 text-center text-white">Loading Portal Data...</div>;
+
+    // Collect all photos from history for Gallery View
+    const allPhotos = history.flatMap(entry => entry.photos);
 
     return (
         <div className={`min-h-screen ${THEME.colors.background} flex flex-col`}>
@@ -688,17 +707,75 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                     )}
 
                     {activeTab === 'gallery' && (
-                        <div className="animate-in fade-in duration-300 text-center py-20">
-                            <PhotoIcon className="h-20 w-20 text-slate mx-auto mb-4 opacity-20" />
-                            <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>Photo Gallery</h2>
-                            <p className="text-slate">Your project photos will appear here after sync.</p>
+                        <div className="animate-in fade-in duration-300">
+                            <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.galleryTitle}</h2>
+                            <p className={`${THEME.colors.textSecondary} mb-8`}>{t.gallerySubtitle}</p>
+                            
+                            {loadingHistory ? (
+                                <div className="flex justify-center p-20"><LoadingSpinner /></div>
+                            ) : allPhotos.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {allPhotos.map((url, i) => (
+                                        <a key={i} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-white/10 hover:border-bright-cyan transition-colors group relative aspect-square">
+                                            <img src={url} alt={`Project Photo ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <span className="text-white text-xs font-bold uppercase tracking-wider border border-white px-2 py-1 rounded">View</span>
+                                            </div>
+                                        </a>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 bg-navy/30 rounded border border-white/5">
+                                    <PhotoIcon className="h-16 w-16 text-slate mx-auto mb-4 opacity-20" />
+                                    <p className="text-slate">No photos found in your history.</p>
+                                </div>
+                            )}
                         </div>
                     )}
+
                     {activeTab === 'history' && (
-                        <div className="animate-in fade-in duration-300 text-center py-20">
-                            <ClockIcon className="h-20 w-20 text-slate mx-auto mb-4 opacity-20" />
-                            <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>History</h2>
-                            <p className="text-slate">Past requests log.</p>
+                        <div className="animate-in fade-in duration-300">
+                            <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>{t.tabHistory}</h2>
+                            {loadingHistory ? (
+                                <div className="flex justify-center p-20"><LoadingSpinner /></div>
+                            ) : history.length > 0 ? (
+                                <div className="space-y-4">
+                                    {history.map((entry, idx) => (
+                                        <div key={idx} className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:border-white/20 transition-colors`}>
+                                            <div className="flex flex-col md:flex-row justify-between md:items-center mb-4">
+                                                <div>
+                                                    <span className={`text-xs font-bold ${THEME.colors.textHighlight} uppercase tracking-wider`}>
+                                                        {new Date(entry.timestamp).toLocaleDateString()}
+                                                    </span>
+                                                    <h3 className={`text-lg font-bold ${THEME.colors.textMain} mt-1`}>
+                                                        {entry.unitInfo || 'Service Request'}
+                                                    </h3>
+                                                </div>
+                                                <span className="bg-navy px-3 py-1 rounded text-xs text-slate border border-white/10 mt-2 md:mt-0 w-fit">
+                                                    Submitted
+                                                </span>
+                                            </div>
+                                            <div className="text-sm text-slate mb-4">
+                                                <span className="font-bold">Services:</span> {entry.services}
+                                            </div>
+                                            {entry.photos.length > 0 && (
+                                                <div className="flex gap-2">
+                                                    {entry.photos.map((url, i) => (
+                                                        <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-12 h-12 rounded overflow-hidden border border-white/10 hover:border-bright-cyan">
+                                                            <img src={url} alt="Thumbnail" className="w-full h-full object-cover" />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 bg-navy/30 rounded border border-white/5">
+                                    <ClockIcon className="h-16 w-16 text-slate mx-auto mb-4 opacity-20" />
+                                    <p className="text-slate">No history found.</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </main>

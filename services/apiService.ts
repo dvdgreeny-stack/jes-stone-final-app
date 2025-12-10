@@ -1,111 +1,58 @@
-import type { Company, SurveyData } from '../types';
 
-/**
- * Fetches the list of companies and their properties from the deployed Google Apps Script.
- * @param apiUrl The URL of the deployed Google Apps Script web app.
- * @returns A promise that resolves to an array of Company objects.
- */
-export async function fetchCompanyData(apiUrl: string): Promise<Company[]> {
-  // Add cache buster to prevent cached responses
-  const urlWithCacheBuster = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
-
-  const response = await fetch(urlWithCacheBuster, {
-    method: 'POST',
-    // Using text/plain is a robust workaround for Google Apps Script CORS issues.
-    // The script on the other end is designed to handle this.
-    headers: {
-      'Content-Type': 'text/plain', 
-    },
-    body: JSON.stringify({ action: 'getCompanyData' }),
-    redirect: 'follow', // Follow Google's 302 redirects
-    credentials: 'omit', // Prevent sending cookies to avoid auth popup issues
-    referrerPolicy: 'no-referrer', // CRITICAL: Prevents strict-origin-when-cross-origin blocks
-  });
-
-  if (!response.ok) {
-    throw new Error(`Network Error: ${response.status} ${response.statusText}`);
-  }
-
-  const text = await response.text();
-  let result;
-  
-  try {
-    result = JSON.parse(text);
-  } catch (e) {
-    // If the script crashes, it often returns an HTML error page instead of JSON.
-    if (text.includes("<!DOCTYPE html>")) {
-       throw new Error('Google Apps Script crashed. Check the script logs or syntax.');
-    }
-    throw new Error('Invalid JSON response from server.');
-  }
-
-  if (!result.success) {
-    throw new Error(result.error || 'The API script returned an error while fetching data.');
-  }
-  return result.data;
+export interface Property {
+  id: string;
+  name: string;
+  address: string;
 }
 
-/**
- * Submits the survey form data to the deployed Google Apps Script.
- * @param apiUrl The URL of the deployed Google Apps Script web app.
- * @param data The survey data to submit.
- * @returns A promise that resolves when the submission is successful.
- */
-export async function submitSurveyData(apiUrl: string, data: SurveyData): Promise<void> {
-  // Add cache buster to prevent cached responses
-  const urlWithCacheBuster = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
-
-  const response = await fetch(urlWithCacheBuster, {
-    method: 'POST',
-     // Using text/plain is a robust workaround for Google Apps Script CORS issues.
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-    body: JSON.stringify({ action: 'submitSurveyData', payload: data }),
-    redirect: 'follow',
-    credentials: 'omit',
-    referrerPolicy: 'no-referrer', // CRITICAL: Prevents strict-origin-when-cross-origin blocks
-  });
-
-  if (!response.ok) {
-     throw new Error(`Network Error: ${response.status} ${response.statusText}`);
-  }
-
-  const text = await response.text();
-  let result;
-  
-  try {
-    result = JSON.parse(text);
-  } catch (e) {
-    if (text.includes("<!DOCTYPE html>")) {
-       throw new Error('Google Apps Script crashed during submission.');
-    }
-    throw new Error('Invalid JSON response from server during submission.');
-  }
-
-  if (!result.success) {
-    throw new Error(result.error || 'The API script returned an error during submission.');
-  }
+export interface Company {
+  id: string;
+  name: string;
+  properties: Property[];
 }
 
-/**
- * Sends a test ping to the Google Chat via Apps Script.
- * @param apiUrl The URL of the deployed Google Apps Script web app.
- */
-export async function sendTestChat(apiUrl: string): Promise<void> {
-    const urlWithCacheBuster = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
-    const response = await fetch(urlWithCacheBuster, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'testChat' }),
-        redirect: 'follow',
-        credentials: 'omit',
-        referrerPolicy: 'no-referrer',
-    });
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  title: string;
+  email: string;
+  phone: string;
+}
 
-    if (!response.ok) throw new Error("Network Error");
-    
-    const text = await response.text();
-    const result = JSON.parse(text);
-    if (!result.success) throw new Error(result.error);
+export interface SurveyData {
+  propertyId: string;
+  propertyName?: string;
+  propertyAddress?: string;
+  firstName: string;
+  lastName: string;
+  title: string;
+  phone: string;
+  email: string;
+  unitInfo: string;
+  services: string[];
+  otherService: string;
+  timeline: string;
+  notes: string;
+  contactMethods: string[];
+  attachments?: {
+    name: string;
+    type: string;
+    data: string; // Base64 string
+  }[];
+}
+
+export interface HistoryEntry {
+    timestamp: string;
+    unitInfo: string;
+    services: string;
+    photos: string[]; // Array of URLs
+}
+
+export type UserRole = 'site_manager' | 'regional_manager' | 'executive' | 'internal_admin';
+
+export interface UserSession {
+  company: Company;
+  role: UserRole;
+  allowedPropertyIds: string[]; // If empty, user has access to ALL properties (Executive)
+  profile?: UserProfile;
 }

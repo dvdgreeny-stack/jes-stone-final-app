@@ -41,6 +41,13 @@ export interface SurveyData {
   }[];
 }
 
+export interface HistoryEntry {
+    timestamp: string;
+    unitInfo: string;
+    services: string;
+    photos: string[]; // Array of URLs
+}
+
 export type UserRole = 'site_manager' | 'regional_manager' | 'executive' | 'internal_admin';
 
 export interface UserSession {
