@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
@@ -11,7 +12,7 @@ import { EstimatingModule } from './components/EstimatingModule';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
 // --- MOCK ACCESS DATABASE ---
-// Simplified for Single Property Focus + Regional Demo
+// Simplified for Single Property Focus + Regional Demo + Admin
 const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowedPropertyIds: string[] }> = {
     // Single Property Access (Site Manager)
     'PARKPLACE': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] },
@@ -19,6 +20,9 @@ const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowe
 
     // Regional Manager Demo (Access to both properties)
     'REGION1': { role: 'regional_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1', 'kv-2'] },
+    
+    // Internal Admin (Company Portal)
+    'ADMIN': { role: 'internal_admin', companyId: 'internal', allowedPropertyIds: [] },
 
     // Fallback Demo
     'DEMO': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] }, 
@@ -443,7 +447,7 @@ const App: React.FC = () => {
 
 const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ companyData, scriptUrl }) => {
     const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
-    const [activeTab, setActiveTab] = useState<'overview' | 'newRequest' | 'gallery' | 'history' | 'estimating' | 'projects'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'newRequest' | 'gallery' | 'history' | 'estimating' | 'projects' | 'datasources'>('overview');
     const t = translations['en']; 
 
     const handleLogin = (session: UserSession) => {
@@ -454,10 +458,18 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
         setCurrentUser(null);
     };
 
-    // MOVED UP: Must call hooks unconditionally (before any return statements)
     // Filter properties based on role
     const visibleCompany = useMemo(() => {
         if (!currentUser) return null;
+        if (currentUser.role === 'internal_admin') {
+            // Admin sees everything (dummy object for context if needed, or null)
+            // We'll create a synthetic 'All Access' company context for safe rendering
+            return {
+                id: 'admin_view',
+                name: 'Jes Stone Operations',
+                properties: companyData.flatMap(c => c.properties)
+            } as Company;
+        }
 
         const baseCompany = currentUser.company;
         
@@ -477,36 +489,35 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
             ...baseCompany,
             properties: filteredProperties
         };
-    }, [currentUser]);
+    }, [currentUser, companyData]);
 
-    // Now it is safe to return early if not logged in
     if (!currentUser) {
         return <DashboardLogin companyData={companyData} onLogin={handleLogin} />;
     }
 
-    // Safety check if rendering failed to produce a company
+    // Safety check
     if (!visibleCompany) {
          return (
              <div className={`min-h-screen ${THEME.colors.background} flex items-center justify-center`}>
                 <div className="text-center">
                     <p className={`${THEME.colors.textWarning} mb-4`}>Error: Company Profile Not Found</p>
-                    <p className={`text-xs ${THEME.colors.textSecondary} mb-4`}>It seems the property data for your access code is not currently available.</p>
                     <button onClick={handleLogout} className={`${THEME.colors.textHighlight} underline`}>Return to Login</button>
                 </div>
              </div>
          );
     }
 
+    const isInternal = currentUser.role === 'internal_admin';
     const roleLabel = {
         'site_manager': t.roleSiteManager,
         'regional_manager': t.roleRegionalManager,
         'executive': t.roleExecutive,
+        'internal_admin': t.roleInternalAdmin,
     }[currentUser.role];
 
-    // Safely get property name with optional chaining to prevent crashes
-    const displayName = visibleCompany.properties.length === 1 
+    const displayName = isInternal ? 'Headquarters' : (visibleCompany.properties.length === 1 
         ? visibleCompany.properties[0]?.name 
-        : visibleCompany.name;
+        : visibleCompany.name);
 
     return (
         <div className={`min-h-screen flex ${THEME.colors.background}`}>
@@ -517,7 +528,7 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                         <JesStoneLogo className="h-8 w-auto" />
                         <span className={`font-bold ${THEME.colors.textMain}`}>{BRANDING.companyName}</span>
                     </a>
-                    <div className={`${THEME.colors.background} px-3 py-1 rounded-full text-xs font-bold ${THEME.colors.textHighlight} border ${THEME.colors.borderHighlight}/30 text-center max-w-full truncate`}>
+                    <div className={`${THEME.colors.background} px-3 py-1 rounded-full text-xs font-bold ${isInternal ? 'text-bright-pink border-bright-pink/30' : `${THEME.colors.textHighlight} border ${THEME.colors.borderHighlight}/30`} border text-center max-w-full truncate`}>
                         {displayName || 'Loading...'}
                     </div>
                     <div className={`mt-2 text-xs ${THEME.colors.textSecondary} uppercase tracking-wider font-semibold`}>
@@ -525,44 +536,42 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
                     </div>
                 </div>
                 <nav className="flex-1 p-4 space-y-2">
-                    <button 
-                        onClick={() => setActiveTab('overview')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'overview' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
-                    >
+                    <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'overview' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}>
                         <DashboardIcon className="h-5 w-5" /> {t.tabOverview}
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('newRequest')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'newRequest' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
-                    >
-                         <ClipboardListIcon className="h-5 w-5" /> {t.tabNewRequest}
-                    </button>
-                    {/* NEW SAAS MODULES */}
-                    <button 
-                        onClick={() => setActiveTab('estimating')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'estimating' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
-                    >
-                        <CalculatorIcon className="h-5 w-5" /> {t.tabEstimating}
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('projects')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'projects' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
-                    >
+                    
+                    {!isInternal && (
+                        <button onClick={() => setActiveTab('newRequest')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'newRequest' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}>
+                             <ClipboardListIcon className="h-5 w-5" /> {t.tabNewRequest}
+                        </button>
+                    )}
+
+                    {isInternal && (
+                        <>
+                             <button onClick={() => setActiveTab('datasources')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'datasources' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}>
+                                <BuildingBlocksIcon className="h-5 w-5" /> {t.tabDataSources}
+                            </button>
+                            <button onClick={() => setActiveTab('estimating')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'estimating' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}>
+                                <CalculatorIcon className="h-5 w-5" /> {t.tabEstimating}
+                            </button>
+                        </>
+                    )}
+
+                    <button onClick={() => setActiveTab('projects')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'projects' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}>
                         <ChartBarIcon className="h-5 w-5" /> {t.tabProjects}
                     </button>
-                    <div className={`h-px ${THEME.colors.borderSubtle} my-2`}></div>
-                    <button 
-                        onClick={() => setActiveTab('gallery')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'gallery' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
-                    >
-                        <PhotoIcon className="h-5 w-5" /> {t.tabGallery}
-                    </button>
-                    <button 
-                         onClick={() => setActiveTab('history')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'history' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}
-                    >
-                        <ClockIcon className="h-5 w-5" /> {t.tabHistory}
-                    </button>
+                    
+                    {!isInternal && (
+                        <>
+                        <div className={`h-px ${THEME.colors.borderSubtle} my-2`}></div>
+                        <button onClick={() => setActiveTab('gallery')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'gallery' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}>
+                            <PhotoIcon className="h-5 w-5" /> {t.tabGallery}
+                        </button>
+                        <button onClick={() => setActiveTab('history')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${activeTab === 'history' ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}>
+                            <ClockIcon className="h-5 w-5" /> {t.tabHistory}
+                        </button>
+                        </>
+                    )}
                 </nav>
                 <div className={`p-4 border-t ${THEME.colors.borderSubtle}`}>
                     <button onClick={handleLogout} className={`w-full flex items-center gap-3 px-4 py-2 ${THEME.colors.textSecondary} hover:text-bright-pink transition-colors`}>
@@ -573,46 +582,54 @@ const Dashboard: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ co
 
             {/* Main Content */}
             <div className="flex-1 overflow-auto">
-                {/* Mobile Header */}
                 <header className={`md:hidden ${THEME.colors.surface} p-4 flex justify-between items-center border-b ${THEME.colors.borderSubtle} sticky top-0 z-10`}>
                     <div className="flex flex-col">
-                        <span className={`font-bold ${THEME.colors.textMain}`}>{t.dashboardLoginTitle}</span>
+                        <span className={`font-bold ${THEME.colors.textMain}`}>{isInternal ? t.companyPortalTitle : t.dashboardLoginTitle}</span>
                         <div className="flex gap-2 text-xs">
-                             <span className={THEME.colors.textHighlight}>
-                                {visibleCompany.properties.length === 1 
-                                    ? (visibleCompany.properties[0]?.name?.substring(0, 15) || '') + '...' 
-                                    : visibleCompany.name}
-                             </span>
+                             <span className={THEME.colors.textHighlight}>{displayName}</span>
                         </div>
                     </div>
                     <button onClick={handleLogout}><LogoutIcon className={`h-6 w-6 ${THEME.colors.textSecondary}`} /></button>
                 </header>
                 
-                {/* Mobile Nav */}
-                <div className={`md:hidden ${THEME.colors.background} flex justify-around p-2 border-b ${THEME.colors.borderSubtle}`}>
+                 {/* Mobile Nav */}
+                 <div className={`md:hidden ${THEME.colors.background} flex justify-around p-2 border-b ${THEME.colors.borderSubtle}`}>
                      <button onClick={() => setActiveTab('overview')} className={`p-2 ${activeTab === 'overview' ? THEME.colors.textHighlight : THEME.colors.textSecondary}`}><DashboardIcon className="h-6 w-6" /></button>
-                     <button onClick={() => setActiveTab('newRequest')} className={`p-2 ${activeTab === 'newRequest' ? THEME.colors.textHighlight : THEME.colors.textSecondary}`}><ClipboardListIcon className="h-6 w-6" /></button>
-                     <button onClick={() => setActiveTab('estimating')} className={`p-2 ${activeTab === 'estimating' ? THEME.colors.textHighlight : THEME.colors.textSecondary}`}><CalculatorIcon className="h-6 w-6" /></button>
+                     {!isInternal && <button onClick={() => setActiveTab('newRequest')} className={`p-2 ${activeTab === 'newRequest' ? THEME.colors.textHighlight : THEME.colors.textSecondary}`}><ClipboardListIcon className="h-6 w-6" /></button>}
+                     {isInternal && <button onClick={() => setActiveTab('estimating')} className={`p-2 ${activeTab === 'estimating' ? THEME.colors.textHighlight : THEME.colors.textSecondary}`}><CalculatorIcon className="h-6 w-6" /></button>}
                 </div>
 
                 <div className="p-4 md:p-8 max-w-6xl mx-auto">
-                    {activeTab === 'overview' && <DashboardOverview companyData={[visibleCompany]} onNewRequest={() => setActiveTab('newRequest')} />}
-                    {activeTab === 'newRequest' && (
+                    {/* OVERVIEW: Client vs Company */}
+                    {activeTab === 'overview' && (isInternal 
+                        ? <CompanyDashboardOverview companyData={companyData} /> 
+                        : <DashboardOverview companyData={[visibleCompany]} onNewRequest={() => setActiveTab('newRequest')} />
+                    )}
+
+                    {/* NEW REQUEST: Client Only */}
+                    {!isInternal && activeTab === 'newRequest' && (
                         <div className="animate-in fade-in duration-300">
                              <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>New Service Request</h2>
                              <Survey 
                                 companyId={visibleCompany.id} 
-                                companyData={[visibleCompany]} // Pass the filtered company so dropdown is correct
+                                companyData={[visibleCompany]} 
                                 scriptUrl={scriptUrl} 
                                 embedded={true}
                                 onSuccess={() => setActiveTab('overview')}
                             />
                         </div>
                     )}
-                    {activeTab === 'estimating' && <EstimatingModule />}
-                    {activeTab === 'projects' && <ProjectManagementModule />}
-                    {activeTab === 'gallery' && <DashboardGallery />}
-                    {activeTab === 'history' && <DashboardHistory />}
+
+                    {/* INTERNAL MODULES: Admin Only */}
+                    {isInternal && activeTab === 'datasources' && <CompanyDataSources />}
+                    {isInternal && activeTab === 'estimating' && <EstimatingModule />}
+
+                    {/* PM MODULE: Shared but different modes */}
+                    {activeTab === 'projects' && <ProjectManagementModule mode={isInternal ? 'company' : 'client'} />}
+                    
+                    {/* CLIENT MODULES: Client Only */}
+                    {!isInternal && activeTab === 'gallery' && <DashboardGallery />}
+                    {!isInternal && activeTab === 'history' && <DashboardHistory />}
                 </div>
             </div>
         </div>
@@ -630,22 +647,28 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
         setError('');
         setIsVerifying(true);
 
-        // Simulated network delay - slightly reduced for snappier feel
         setTimeout(() => {
             const normalizedCode = code.toUpperCase().trim();
             const accessRecord = MOCK_ACCESS_DB[normalizedCode];
 
             if (accessRecord) {
-                // Find company - SAFER FIND LOGIC
-                // Check if companyData exists before searching
+                // If ADMIN, skip company check.
+                if (accessRecord.role === 'internal_admin') {
+                    onLogin({
+                        company: { id: 'admin', name: 'Admin', properties: [] }, // Dummy
+                        role: 'internal_admin',
+                        allowedPropertyIds: []
+                    });
+                    setIsVerifying(false);
+                    return;
+                }
+
                 if (!companyData || companyData.length === 0) {
                      setError("System data not loaded. Please refresh the page.");
                      setIsVerifying(false);
                      return;
                 }
 
-                // If DEMO, just pick the first company available. 
-                // If specific code, match the companyId.
                 const company = companyData.find(c => c.id === accessRecord.companyId) || 
                               (normalizedCode === 'DEMO' ? companyData[0] : null);
 
@@ -701,7 +724,7 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
                  <div className={`mt-6 text-xs ${THEME.colors.textSecondary} space-y-1`}>
                      <p>Demo Codes:</p>
                      <p><span className={`${THEME.colors.textHighlight} font-mono`}>PARKPLACE</span> (Site Manager)</p>
-                     <p><span className={`${THEME.colors.textHighlight} font-mono`}>REGION1</span> (Regional)</p>
+                     <p><span className={`${THEME.colors.textHighlight} font-mono`}>ADMIN</span> (Company Portal)</p>
                 </div>
                 <div className={`mt-4 text-xs ${THEME.colors.textSecondary}`}>
                     <a href="#/" className="hover:text-bright-cyan">Return to Public Site</a>
@@ -711,13 +734,11 @@ const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: User
     );
 };
 
+// --- CLIENT Components ---
+
 const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => void }> = ({ companyData, onNewRequest }) => {
     const t = translations['en'];
-    
-    // Safety reduce with optional chaining AND check if array exists
     const totalProperties = (companyData || []).reduce((acc, c) => acc + (c?.properties?.length || 0), 0) || 0;
-    
-    // If single property view, get its name for display
     const singlePropertyName = totalProperties === 1 && companyData[0]?.properties[0]?.name;
 
     return (
@@ -850,6 +871,135 @@ const DashboardHistory: React.FC = () => (
         </div>
     </div>
 );
+
+// --- COMPANY PORTAL Components ---
+
+const CompanyDashboardOverview: React.FC<{ companyData: Company[] }> = ({ companyData }) => {
+    const t = translations['en'];
+    const totalClients = companyData.length;
+    const totalProps = companyData.reduce((acc, c) => acc + c.properties.length, 0);
+
+    return (
+         <div className="space-y-8 animate-in fade-in duration-300">
+             <div>
+                <h1 className={`text-3xl font-bold ${THEME.colors.textMain}`}>{t.companyPortalTitle}</h1>
+                <p className={THEME.colors.textSecondary}>{t.companyPortalSubtitle}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                 <div className={`${THEME.colors.surface} p-6 rounded-lg border-t-4 border-bright-pink shadow-lg`}>
+                    <p className={`${THEME.colors.textSecondary} text-xs font-bold uppercase`}>Total Clients</p>
+                    <p className={`text-4xl font-bold ${THEME.colors.textMain} mt-2`}>{totalClients}</p>
+                </div>
+                <div className={`${THEME.colors.surface} p-6 rounded-lg border-t-4 ${THEME.colors.borderHighlight} shadow-lg`}>
+                    <p className={`${THEME.colors.textSecondary} text-xs font-bold uppercase`}>Total Properties</p>
+                    <p className={`text-4xl font-bold ${THEME.colors.textMain} mt-2`}>{totalProps}</p>
+                </div>
+                 <div className={`${THEME.colors.surface} p-6 rounded-lg border-t-4 border-orange-400 shadow-lg`}>
+                    <p className={`${THEME.colors.textSecondary} text-xs font-bold uppercase`}>Active Estimates</p>
+                    <p className={`text-4xl font-bold ${THEME.colors.textMain} mt-2`}>8</p>
+                </div>
+                <div className={`${THEME.colors.surface} p-6 rounded-lg border-t-4 border-blue-400 shadow-lg`}>
+                    <p className={`${THEME.colors.textSecondary} text-xs font-bold uppercase`}>Jobs In Production</p>
+                    <p className={`text-4xl font-bold ${THEME.colors.textMain} mt-2`}>12</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div className={`${THEME.colors.surface} rounded-lg p-6 shadow-lg border ${THEME.colors.borderSubtle}`}>
+                    <h3 className={`text-lg font-bold ${THEME.colors.textMain} mb-4`}>Recent Requests (Global)</h3>
+                    <div className="space-y-3">
+                         {[
+                            { client: 'Knightvest', prop: 'Park Place', title: 'Unit 104 Remodel', date: '2h ago' },
+                            { client: 'CushWake', prop: 'Example A', title: 'Lobby Tile', date: '5h ago' },
+                            { client: 'Knightvest', prop: 'Canyon Creek', title: 'Leak Repair', date: '1d ago' },
+                        ].map((item, i) => (
+                            <div key={i} className={`flex justify-between items-center border-b ${THEME.colors.borderSubtle} pb-2 last:border-0`}>
+                                <div>
+                                    <p className={`text-sm font-bold ${THEME.colors.textMain}`}>{item.title}</p>
+                                    <p className={`text-xs ${THEME.colors.textSecondary}`}>{item.client} - {item.prop}</p>
+                                </div>
+                                <span className={`text-xs ${THEME.colors.textHighlight}`}>{item.date}</span>
+                            </div>
+                        ))}
+                    </div>
+                 </div>
+
+                 <div className={`${THEME.colors.surface} rounded-lg p-6 shadow-lg border ${THEME.colors.borderSubtle}`}>
+                    <h3 className={`text-lg font-bold ${THEME.colors.textMain} mb-4`}>Quick Actions</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button className={`${THEME.colors.background} hover:${THEME.colors.surfaceHighlight} border ${THEME.colors.borderSubtle} p-4 rounded text-center transition-colors`}>
+                            <p className={`text-2xl mb-1`}>📄</p>
+                            <p className={`text-sm font-bold ${THEME.colors.textMain}`}>Create Invoice</p>
+                        </button>
+                        <button className={`${THEME.colors.background} hover:${THEME.colors.surfaceHighlight} border ${THEME.colors.borderSubtle} p-4 rounded text-center transition-colors`}>
+                            <p className={`text-2xl mb-1`}>👷</p>
+                            <p className={`text-sm font-bold ${THEME.colors.textMain}`}>Assign Tech</p>
+                        </button>
+                    </div>
+                 </div>
+            </div>
+         </div>
+    );
+};
+
+const CompanyDataSources: React.FC = () => {
+    const t = translations['en'];
+    // In a real SaaS, these links would come from the config or DB
+    const SHEET_ID = '1Qx...'; // Placeholder
+    const FOLDER_ID = '1fG...'; // Placeholder
+
+    return (
+        <div className="animate-in fade-in duration-300">
+             <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.dataSourcesTitle}</h2>
+             <p className={`${THEME.colors.textSecondary} mb-6`}>{t.dataSourcesSubtitle}</p>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Google Sheet Card */}
+                <div className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:border-green-500 transition-colors group`}>
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="bg-green-900/30 p-3 rounded-lg text-green-400">
+                            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                        </div>
+                        <div>
+                            <h3 className={`text-lg font-bold ${THEME.colors.textMain}`}>{t.googleSheetLabel}</h3>
+                            <p className={`text-xs ${THEME.colors.textSecondary}`}>Stores all survey responses</p>
+                        </div>
+                    </div>
+                    <a 
+                        href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className={`block w-full text-center ${THEME.colors.background} text-green-400 border border-green-500/30 font-bold py-2 rounded hover:bg-green-500/10 transition-colors`}
+                    >
+                        {t.openSheetButton}
+                    </a>
+                </div>
+
+                {/* Google Drive Card */}
+                <div className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:border-blue-500 transition-colors group`}>
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="bg-blue-900/30 p-3 rounded-lg text-blue-400">
+                             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+                        </div>
+                        <div>
+                            <h3 className={`text-lg font-bold ${THEME.colors.textMain}`}>{t.googleDriveLabel}</h3>
+                            <p className={`text-xs ${THEME.colors.textSecondary}`}>Stores uploaded project photos</p>
+                        </div>
+                    </div>
+                    <a 
+                        href={`https://drive.google.com/drive/u/0/folders/${FOLDER_ID}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className={`block w-full text-center ${THEME.colors.background} text-blue-400 border border-blue-500/30 font-bold py-2 rounded hover:bg-blue-500/10 transition-colors`}
+                    >
+                        {t.openDriveButton}
+                    </a>
+                </div>
+             </div>
+        </div>
+    );
+};
 
 const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: string) => void, initialCompanyId: string }> = ({ companyData, onCompanyChange, initialCompanyId }) => {
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(companyData.find(c => c.id === initialCompanyId) || companyData[0] || null);

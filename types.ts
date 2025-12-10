@@ -33,7 +33,7 @@ export interface SurveyData {
   }[];
 }
 
-export type UserRole = 'site_manager' | 'regional_manager' | 'executive';
+export type UserRole = 'site_manager' | 'regional_manager' | 'executive' | 'internal_admin';
 
 export interface UserSession {
   company: Company;

@@ -1,4 +1,5 @@
 
+
 export const translations = {
   en: {
     // Survey Headers
@@ -77,6 +78,7 @@ export const translations = {
     // NEW TABS
     tabEstimating: "Quick Estimates",
     tabProjects: "Project Tracking",
+    tabDataSources: "Data Sources", // NEW
     
     statsActive: "Active Jobs",
     statsCompleted: "Completed",
@@ -90,6 +92,17 @@ export const translations = {
     roleSiteManager: "Site Manager",
     roleRegionalManager: "Regional Manager",
     roleExecutive: "Executive",
+    roleInternalAdmin: "Jes Stone Admin",
+
+    // Company Portal
+    companyPortalTitle: "Command Center",
+    companyPortalSubtitle: "Internal Administration",
+    dataSourcesTitle: "Connected Data Sources",
+    dataSourcesSubtitle: "Direct access to backend files.",
+    googleSheetLabel: "Responses Database",
+    googleDriveLabel: "Photo Repository",
+    openSheetButton: "Open Google Sheet",
+    openDriveButton: "Open Drive Folder",
 
     // Options (Arrays)
     SERVICES: [
@@ -198,6 +211,7 @@ export const translations = {
     // NEW TABS
     tabEstimating: "Estimaciones Rápidas",
     tabProjects: "Seguimiento de Proyectos",
+    tabDataSources: "Fuentes de Datos",
 
     statsActive: "Trabajos Activos",
     statsCompleted: "Completados",
@@ -211,6 +225,17 @@ export const translations = {
     roleSiteManager: "Gerente de Sitio",
     roleRegionalManager: "Gerente Regional",
     roleExecutive: "Ejecutivo",
+    roleInternalAdmin: "Admin Jes Stone",
+
+    // Company Portal
+    companyPortalTitle: "Centro de Comando",
+    companyPortalSubtitle: "Administración Interna",
+    dataSourcesTitle: "Fuentes de Datos Conectadas",
+    dataSourcesSubtitle: "Acceso directo a archivos backend.",
+    googleSheetLabel: "Base de Datos de Respuestas",
+    googleDriveLabel: "Repositorio de Fotos",
+    openSheetButton: "Abrir Hoja de Google",
+    openDriveButton: "Abrir Carpeta Drive",
 
     // Opciones (Arrays)
     SERVICES: [
