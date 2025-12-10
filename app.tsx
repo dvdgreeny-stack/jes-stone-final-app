@@ -1090,6 +1090,14 @@ const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: s
                 <p className="text-lightest-slate text-lg">{t.submitSuccessMessage1}</p>
                 <p className="text-slate mt-2">{t.submitSuccessMessage2}</p>
                 
+                 {/* NEW BADGE */}
+                {formData.attachments && formData.attachments.length > 0 && (
+                    <div className="mt-4 inline-flex items-center gap-2 bg-navy border border-bright-cyan/50 text-bright-cyan px-4 py-2 rounded-full text-sm">
+                        <CloudArrowUpIcon className="h-4 w-4" />
+                        <span>{t.photosUploadedBadge}</span>
+                    </div>
+                )}
+
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
                     {onSuccess ? (
                         <button onClick={() => { handleReset(); onSuccess(); }} className="inline-block bg-bright-cyan text-navy font-bold py-3 px-6 rounded-md hover:bg-opacity-90 transition-all">
