@@ -6,7 +6,7 @@ import { BRANDING } from './branding';
 import { THEME } from './theme';
 import type { Company, SurveyData, UserSession, UserRole, UserProfile } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon } from './components/icons';
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon, GlobeAltIcon } from './components/icons';
 import { EstimatingModule } from './components/EstimatingModule';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
@@ -120,24 +120,44 @@ const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
 // --- Layout Components ---
 interface HeaderProps {
     surveyUrl?: string;
+    customTitle?: string;
+    customSubtitle?: string;
+    lang: 'en' | 'es';
+    setLang: (lang: 'en' | 'es') => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ surveyUrl }) => (
-    <header className={`${THEME.colors.surface}/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg`}>
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-center items-center">
-            <a href={surveyUrl || "#/"} onClick={handleNav} className="flex items-center gap-3">
-                {BRANDING.logoUrl ? (
-                    <img src={BRANDING.logoUrl} alt={`${BRANDING.companyName} Logo`} className="h-12 w-auto object-contain" />
-                ) : (
-                    <JesStoneLogo className="h-10 w-auto" />
-                )}
-                <span className={`text-lg font-bold ${THEME.colors.textMain} tracking-wider text-center`}>
-                    {BRANDING.companyName} <span className={`${THEME.colors.textSecondary} font-normal`}>{BRANDING.companySubtitle}</span>
-                </span>
-            </a>
-        </nav>
-    </header>
-);
+const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle, lang, setLang }) => {
+    const t = translations[lang];
+    return (
+        <header className={`${THEME.colors.surface}/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg`}>
+            <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <a href={surveyUrl || "#/"} onClick={handleNav} className="flex items-center gap-3">
+                    {BRANDING.logoUrl ? (
+                        <img src={BRANDING.logoUrl} alt={`${BRANDING.companyName} Logo`} className="h-12 w-auto object-contain" />
+                    ) : (
+                        <JesStoneLogo className="h-10 w-auto" />
+                    )}
+                    <div className="flex flex-col">
+                        <span className={`text-lg font-bold ${THEME.colors.textMain} tracking-wider leading-tight`}>
+                            {customTitle || BRANDING.companyName}
+                        </span>
+                        <span className={`text-sm ${THEME.colors.textSecondary} font-normal`}>
+                            {customSubtitle || BRANDING.companySubtitle}
+                        </span>
+                    </div>
+                </a>
+                
+                <button
+                    onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-full border ${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight} hover:border-bright-cyan transition-colors`}
+                >
+                    <GlobeAltIcon className={`h-4 w-4 ${THEME.colors.textHighlight}`} />
+                    <span className={`text-xs font-bold ${THEME.colors.textMain}`}>{t.languageToggle}</span>
+                </button>
+            </nav>
+        </header>
+    );
+};
 
 const Footer: React.FC = () => (
     <footer className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t ${THEME.colors.borderSubtle} text-center`}>
@@ -174,10 +194,11 @@ interface SurveyProps {
     isInternal?: boolean;
     embedded?: boolean;
     userProfile?: UserProfile;
+    lang: 'en' | 'es';
 }
 
-const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile }) => {
-    const t = translations['en'];
+const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang }) => {
+    const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [formData, setFormData] = useState<SurveyData>({
         propertyId: '', firstName: '', lastName: '', title: '', phone: '', email: '',
@@ -198,7 +219,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     // Auto-fill user profile data if available
     useEffect(() => {
-        if (userProfile) {
+        if (userProfile && !formData.firstName) {
             setFormData(prev => ({
                 ...prev,
                 firstName: userProfile.firstName,
@@ -208,7 +229,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 phone: userProfile.phone
             }));
         }
-    }, [userProfile]);
+    }, [userProfile, formData.firstName]);
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
     
@@ -319,13 +340,17 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     };
 
     if (submissionStatus === 'success') {
+        const property = availableProperties.find(p => p.id === formData.propertyId);
         return (
             <div className={`max-w-3xl mx-auto p-8 text-center ${THEME.colors.surface} rounded-xl shadow-2xl border ${THEME.colors.borderHighlight} animate-in zoom-in duration-300 mt-10`}>
                 <div className="flex justify-center mb-6">
                     <SparklesIcon className="h-16 w-16 text-bright-cyan animate-pulse" />
                 </div>
                 <h2 className={`text-3xl font-bold ${THEME.colors.textHighlight} mb-4`}>{t.submitSuccessTitle}</h2>
-                <p className={`${THEME.colors.textMain} text-lg mb-2`}>{t.submitSuccessMessage1}</p>
+                <p className={`${THEME.colors.textMain} text-lg mb-2`}>
+                   {formData.firstName}, {t.submitSuccessMessage1}
+                </p>
+                {property && <p className="text-slate mb-2 font-bold">{property.name}</p>}
                 <p className={`${THEME.colors.textSecondary} mb-8`}>{t.submitSuccessMessage2}</p>
                 
                 {formData.attachments && formData.attachments.length > 0 && (
@@ -506,8 +531,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
 // --- Client Dashboard (For Property Managers) ---
 // STRICTLY NO ESTIMATING MODULE
-const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = ({ user, onLogout }) => {
-    const t = translations['en'];
+const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang: 'en' | 'es'; setLang: (l: 'en' | 'es') => void }> = ({ user, onLogout, lang, setLang }) => {
+    const t = translations[lang];
     const [activeTab, setActiveTab] = useState('overview');
     
     // Safety: Ensure we have a valid company object
@@ -515,102 +540,115 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = (
         return <div className="p-10 text-center text-white">Loading Portal Data...</div>;
     }
 
-    return (
-        <div className={`min-h-screen ${THEME.colors.background} flex`}>
-            {/* Sidebar */}
-            <aside className={`w-64 ${THEME.colors.surface} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
-                <div className="p-6 border-b border-white/5">
-                    <h2 className={`text-xl font-bold ${THEME.colors.textMain} tracking-wider`}>{t.dashboardLoginTitle}</h2>
-                    <p className={`text-xs ${THEME.colors.textHighlight} mt-1 truncate`}>{user.company.name}</p>
-                    <p className="text-[10px] text-slate uppercase tracking-widest mt-1">
-                        {user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : t.roleSiteManager}
-                    </p>
-                </div>
-                <nav className="flex-1 p-4 space-y-2">
-                    {[
-                        { id: 'overview', label: t.tabOverview, icon: DashboardIcon },
-                        { id: 'request', label: t.tabNewRequest, icon: ClipboardListIcon },
-                        { id: 'projects', label: t.tabProjects, icon: BuildingBlocksIcon }, // Client Mode PM
-                        { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
-                        { id: 'history', label: t.tabHistory, icon: ClockIcon },
-                    ].map(item => (
-                        <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonSecondary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
-                            <item.icon className="h-5 w-5" />
-                            {item.label}
-                        </button>
-                    ))}
-                </nav>
-                <div className="p-4 border-t border-white/5">
-                    <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-bright-pink hover:bg-bright-pink/10 rounded transition-colors`}>
-                        <LogoutIcon className="h-5 w-5" />
-                        {t.logout}
-                    </button>
-                </div>
-            </aside>
+    const firstProp = user.company.properties[0];
+    const dynamicTitle = firstProp ? firstProp.name : user.company.name;
+    const dynamicSubtitle = firstProp ? user.company.name : '';
 
-            {/* Content Area */}
-            <main className="flex-1 overflow-y-auto p-6 md:p-10">
-                {activeTab === 'overview' && (
-                    <div className="animate-in fade-in duration-300">
-                        <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-2`}>{t.tabOverview}</h1>
-                        <p className={`${THEME.colors.textSecondary} mb-8`}>
-                            Welcome back, <span className="text-white font-bold">{user.profile?.firstName || 'Manager'}</span>. Here is what is happening at <span className="text-white font-bold">{user.company.name}</span>.
+    return (
+        <div className={`min-h-screen ${THEME.colors.background} flex flex-col`}>
+             <Header 
+                lang={lang} 
+                setLang={setLang} 
+                customTitle={dynamicTitle}
+                customSubtitle={dynamicSubtitle}
+            />
+            <div className="flex flex-1">
+                {/* Sidebar */}
+                <aside className={`w-64 ${THEME.colors.surface} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
+                    <div className="p-6 border-b border-white/5">
+                        <h2 className={`text-xl font-bold ${THEME.colors.textMain} tracking-wider`}>{t.dashboardLoginTitle}</h2>
+                        <p className={`text-xs ${THEME.colors.textHighlight} mt-1 truncate`}>{user.company.name}</p>
+                        <p className="text-[10px] text-slate uppercase tracking-widest mt-1">
+                            {user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : t.roleSiteManager}
                         </p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsActive}</h3>
-                                <p className={`text-4xl font-bold ${THEME.colors.textHighlight}`}>3</p>
-                            </div>
-                            <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsCompleted}</h3>
-                                <p className={`text-4xl font-bold text-white`}>12</p>
-                            </div>
-                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsPending}</h3>
-                                <p className={`text-4xl font-bold ${THEME.colors.textWarning}`}>1</p>
+                    </div>
+                    <nav className="flex-1 p-4 space-y-2">
+                        {[
+                            { id: 'overview', label: t.tabOverview, icon: DashboardIcon },
+                            { id: 'request', label: t.tabNewRequest, icon: ClipboardListIcon },
+                            { id: 'projects', label: t.tabProjects, icon: BuildingBlocksIcon }, // Client Mode PM
+                            { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
+                            { id: 'history', label: t.tabHistory, icon: ClockIcon },
+                        ].map(item => (
+                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonSecondary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
+                                <item.icon className="h-5 w-5" />
+                                {item.label}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="p-4 border-t border-white/5">
+                        <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-bright-pink hover:bg-bright-pink/10 rounded transition-colors`}>
+                            <LogoutIcon className="h-5 w-5" />
+                            {t.logout}
+                        </button>
+                    </div>
+                </aside>
+
+                {/* Content Area */}
+                <main className="flex-1 overflow-y-auto p-6 md:p-10">
+                    {activeTab === 'overview' && (
+                        <div className="animate-in fade-in duration-300">
+                            <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-2`}>{t.tabOverview}</h1>
+                            <p className={`${THEME.colors.textSecondary} mb-8`}>
+                                Welcome back, <span className="text-white font-bold">{user.profile?.firstName || 'Manager'}</span>. Here is what is happening at <span className="text-white font-bold">{user.company.name}</span>.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                    <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsActive}</h3>
+                                    <p className={`text-4xl font-bold ${THEME.colors.textHighlight}`}>3</p>
+                                </div>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                    <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsCompleted}</h3>
+                                    <p className={`text-4xl font-bold text-white`}>12</p>
+                                </div>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                    <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsPending}</h3>
+                                    <p className={`text-4xl font-bold ${THEME.colors.textWarning}`}>1</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {activeTab === 'request' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <Survey 
-                            companies={[user.company]} 
-                            isInternal={false} 
-                            embedded 
-                            userProfile={user.profile} 
-                        />
-                    </div>
-                )}
+                    {activeTab === 'request' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <Survey 
+                                companies={[user.company]} 
+                                isInternal={false} 
+                                embedded 
+                                userProfile={user.profile} 
+                                lang={lang}
+                            />
+                        </div>
+                    )}
 
-                {activeTab === 'projects' && (
-                     <ProjectManagementModule mode="client" />
-                )}
+                    {activeTab === 'projects' && (
+                        <ProjectManagementModule mode="client" />
+                    )}
 
-                {activeTab === 'gallery' && (
-                    <div className="animate-in fade-in duration-300 text-center py-20">
-                         <PhotoIcon className="h-20 w-20 text-slate mx-auto mb-4 opacity-20" />
-                         <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>Photo Gallery</h2>
-                         <p className="text-slate">Your project photos will appear here after sync.</p>
-                    </div>
-                )}
-                 {activeTab === 'history' && (
-                    <div className="animate-in fade-in duration-300 text-center py-20">
-                         <ClockIcon className="h-20 w-20 text-slate mx-auto mb-4 opacity-20" />
-                         <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>History</h2>
-                         <p className="text-slate">Past requests log.</p>
-                    </div>
-                )}
-            </main>
+                    {activeTab === 'gallery' && (
+                        <div className="animate-in fade-in duration-300 text-center py-20">
+                            <PhotoIcon className="h-20 w-20 text-slate mx-auto mb-4 opacity-20" />
+                            <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>Photo Gallery</h2>
+                            <p className="text-slate">Your project photos will appear here after sync.</p>
+                        </div>
+                    )}
+                    {activeTab === 'history' && (
+                        <div className="animate-in fade-in duration-300 text-center py-20">
+                            <ClockIcon className="h-20 w-20 text-slate mx-auto mb-4 opacity-20" />
+                            <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>History</h2>
+                            <p className="text-slate">Past requests log.</p>
+                        </div>
+                    )}
+                </main>
+            </div>
         </div>
     );
 };
 
 // --- Company Dashboard (For Jes Stone Admins) ---
 // FULL ACCESS INCLUDING ESTIMATING & DATA SOURCES
-const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = ({ user, onLogout }) => {
-    const t = translations['en'];
+const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang: 'en' | 'es'; setLang: (l: 'en' | 'es') => void }> = ({ user, onLogout, lang, setLang }) => {
+    const t = translations[lang];
     const [activeTab, setActiveTab] = useState('overview');
     const [testStatus, setTestStatus] = useState<string>('');
 
@@ -626,100 +664,108 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = 
     };
 
     return (
-        <div className={`min-h-screen ${THEME.colors.background} flex`}>
-             <aside className={`w-64 bg-black/40 border-r ${THEME.colors.borderHighlight} hidden md:flex flex-col`}>
-                <div className="p-6 border-b border-white/10">
-                     <h2 className={`text-xl font-bold ${THEME.colors.textHighlight} tracking-wider`}>{t.companyPortalTitle}</h2>
-                     <p className={`text-xs ${THEME.colors.textSecondary} mt-1`}>{t.companyPortalSubtitle}</p>
-                </div>
-                <nav className="flex-1 p-4 space-y-2">
-                    {[
-                        { id: 'overview', label: 'Command Center', icon: DashboardIcon },
-                        { id: 'data', label: t.tabDataSources, icon: ChartBarIcon },
-                        { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon }, // ADMIN ONLY
-                        { id: 'projects', label: 'Global Projects', icon: BuildingBlocksIcon },
-                    ].map(item => (
-                        <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonPrimary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
-                            <item.icon className="h-5 w-5" />
-                            {item.label}
+        <div className={`min-h-screen ${THEME.colors.background} flex flex-col`}>
+             <Header 
+                lang={lang} 
+                setLang={setLang} 
+                customTitle={t.companyPortalTitle}
+                customSubtitle={t.companyPortalSubtitle}
+            />
+            <div className="flex flex-1">
+                <aside className={`w-64 bg-black/40 border-r ${THEME.colors.borderHighlight} hidden md:flex flex-col`}>
+                    <div className="p-6 border-b border-white/10">
+                        <h2 className={`text-xl font-bold ${THEME.colors.textHighlight} tracking-wider`}>{t.companyPortalTitle}</h2>
+                        <p className={`text-xs ${THEME.colors.textSecondary} mt-1`}>{t.companyPortalSubtitle}</p>
+                    </div>
+                    <nav className="flex-1 p-4 space-y-2">
+                        {[
+                            { id: 'overview', label: 'Command Center', icon: DashboardIcon },
+                            { id: 'data', label: t.tabDataSources, icon: ChartBarIcon },
+                            { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon }, // ADMIN ONLY
+                            { id: 'projects', label: 'Global Projects', icon: BuildingBlocksIcon },
+                        ].map(item => (
+                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonPrimary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
+                                <item.icon className="h-5 w-5" />
+                                {item.label}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="p-4 border-t border-white/10">
+                        <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-slate hover:text-white hover:bg-white/5 rounded transition-colors`}>
+                            <LogoutIcon className="h-5 w-5" />
+                            {t.logout}
                         </button>
-                    ))}
-                </nav>
-                <div className="p-4 border-t border-white/10">
-                    <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-slate hover:text-white hover:bg-white/5 rounded transition-colors`}>
-                        <LogoutIcon className="h-5 w-5" />
-                        {t.logout}
-                    </button>
-                </div>
-             </aside>
+                    </div>
+                </aside>
 
-             <main className="flex-1 overflow-y-auto p-6 md:p-10">
-                 {activeTab === 'overview' && (
-                     <div className="animate-in fade-in duration-300">
-                         <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-8`}>Global Overview</h1>
-                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                 <h3 className="text-bright-cyan font-bold mb-2">Total Active Projects</h3>
-                                 <p className="text-5xl font-bold text-white">15</p>
-                             </div>
-                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                 <h3 className="text-bright-pink font-bold mb-2">Pending Estimates</h3>
-                                 <p className="text-5xl font-bold text-white">4</p>
-                             </div>
-                             {/* SYSTEM STATUS CARD */}
-                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                 <h3 className="text-white font-bold mb-2">{t.systemStatusTitle}</h3>
-                                 <div className="flex items-center gap-2 mb-4">
-                                     <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
-                                     <span className="text-sm text-slate">API Online</span>
-                                 </div>
-                                 <button onClick={handleTestChat} className="text-xs bg-navy border border-bright-cyan text-bright-cyan px-3 py-2 rounded hover:bg-bright-cyan/10 transition-colors w-full">
-                                     {t.testChatButton}
-                                 </button>
-                                 {testStatus && <p className="text-xs mt-2 text-center text-bright-cyan">{testStatus}</p>}
-                             </div>
-                         </div>
-                     </div>
-                 )}
-                 {activeTab === 'data' && (
-                     <div className="animate-in fade-in duration-300">
-                         <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>{t.dataSourcesTitle}</h1>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <a href="https://docs.google.com/spreadsheets/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-green-400 group transition-all`}>
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className="bg-green-500/20 p-3 rounded-lg"><ClipboardListIcon className="h-8 w-8 text-green-400" /></div>
-                                    <div>
-                                        <h3 className="font-bold text-white text-lg">{t.googleSheetLabel}</h3>
-                                        <p className="text-slate text-sm">View all raw survey responses</p>
-                                    </div>
+                <main className="flex-1 overflow-y-auto p-6 md:p-10">
+                    {activeTab === 'overview' && (
+                        <div className="animate-in fade-in duration-300">
+                            <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-8`}>Global Overview</h1>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                    <h3 className="text-bright-cyan font-bold mb-2">Total Active Projects</h3>
+                                    <p className="text-5xl font-bold text-white">15</p>
                                 </div>
-                                <span className="text-green-400 font-bold text-sm group-hover:underline">{t.openSheetButton} &rarr;</span>
-                            </a>
-                             <a href="https://drive.google.com/drive/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-blue-400 group transition-all`}>
-                                <div className="flex items-center gap-4 mb-4">
-                                    <div className="bg-blue-500/20 p-3 rounded-lg"><PhotoIcon className="h-8 w-8 text-blue-400" /></div>
-                                    <div>
-                                        <h3 className="font-bold text-white text-lg">{t.googleDriveLabel}</h3>
-                                        <p className="text-slate text-sm">Access photo repository</p>
-                                    </div>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                    <h3 className="text-bright-pink font-bold mb-2">Pending Estimates</h3>
+                                    <p className="text-5xl font-bold text-white">4</p>
                                 </div>
-                                <span className="text-blue-400 font-bold text-sm group-hover:underline">{t.openDriveButton} &rarr;</span>
-                            </a>
-                         </div>
-                     </div>
-                 )}
-                 {activeTab === 'estimating' && <EstimatingModule />}
-                 {activeTab === 'projects' && <ProjectManagementModule mode="company" />}
-             </main>
+                                {/* SYSTEM STATUS CARD */}
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                    <h3 className="text-white font-bold mb-2">{t.systemStatusTitle}</h3>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
+                                        <span className="text-sm text-slate">API Online</span>
+                                    </div>
+                                    <button onClick={handleTestChat} className="text-xs bg-navy border border-bright-cyan text-bright-cyan px-3 py-2 rounded hover:bg-bright-cyan/10 transition-colors w-full">
+                                        {t.testChatButton}
+                                    </button>
+                                    {testStatus && <p className="text-xs mt-2 text-center text-bright-cyan">{testStatus}</p>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'data' && (
+                        <div className="animate-in fade-in duration-300">
+                            <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>{t.dataSourcesTitle}</h1>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <a href="https://docs.google.com/spreadsheets/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-green-400 group transition-all`}>
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="bg-green-500/20 p-3 rounded-lg"><ClipboardListIcon className="h-8 w-8 text-green-400" /></div>
+                                        <div>
+                                            <h3 className="font-bold text-white text-lg">{t.googleSheetLabel}</h3>
+                                            <p className="text-slate text-sm">View all raw survey responses</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-green-400 font-bold text-sm group-hover:underline">{t.openSheetButton} &rarr;</span>
+                                </a>
+                                <a href="https://drive.google.com/drive/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-blue-400 group transition-all`}>
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="bg-blue-500/20 p-3 rounded-lg"><PhotoIcon className="h-8 w-8 text-blue-400" /></div>
+                                        <div>
+                                            <h3 className="font-bold text-white text-lg">{t.googleDriveLabel}</h3>
+                                            <p className="text-slate text-sm">Access photo repository</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-blue-400 font-bold text-sm group-hover:underline">{t.openDriveButton} &rarr;</span>
+                                </a>
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'estimating' && <EstimatingModule />}
+                    {activeTab === 'projects' && <ProjectManagementModule mode="company" />}
+                </main>
+            </div>
         </div>
     );
 };
 
 
 // --- LOGIN COMPONENT ---
-const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string }> = ({ onLogin, error }) => {
+const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string, lang: 'en' | 'es' }> = ({ onLogin, error, lang }) => {
     const [code, setCode] = useState('');
-    const t = translations['en'];
+    const t = translations[lang];
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -763,7 +809,7 @@ const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string
                     <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('REGION1')}>REGION1</span> (Regional)</p>
                     
                     <button onClick={() => window.location.hash = ''} className="mt-6 text-white hover:underline opacity-50">
-                        Return to Public Site
+                        {t.returnHomeButton}
                     </button>
                 </div>
             </div>
@@ -772,8 +818,8 @@ const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string
 };
 
 // --- CHAT WIDGET ---
-const ChatWidget: React.FC = () => {
-    const t = translations['en'];
+const ChatWidget: React.FC<{ lang: 'en' | 'es' }> = ({ lang }) => {
+    const t = translations[lang];
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
     const [input, setInput] = useState('');
@@ -858,7 +904,8 @@ const ChatWidget: React.FC = () => {
 
 // --- MAIN APP ---
 function App() {
-  const t = translations['en'];
+  const [lang, setLang] = useState<'en' | 'es'>('en');
+  const t = translations[lang];
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
   const [loginError, setLoginError] = useState('');
   
@@ -884,7 +931,12 @@ function App() {
                   id: access.companyId,
                   // Simulate fetching company name based on ID (In real app this comes from API)
                   name: access.companyId === 'knightvest' ? 'Knightvest' : access.companyId === 'internal' ? 'Jes Stone' : 'Unknown',
-                  properties: [] // Populated later or on dashboard load
+                  // Pre-fill properties for demo codes so dashboard works immediately
+                  properties: access.allowedPropertyIds.map(id => {
+                      if (id === 'kv-1') return { id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd' };
+                      if (id === 'kv-2') return { id: 'kv-2', name: 'Canyon Creek', address: '5000 W Plano Pkwy' };
+                      return { id, name: 'Unknown Property', address: '' };
+                  })
               }
           };
           setCurrentUser(session);
@@ -904,14 +956,14 @@ function App() {
   // 1. Dashboard Route
   if (route === '#dashboard') {
       if (!currentUser) {
-          return <DashboardLogin onLogin={handleLogin} error={loginError} />;
+          return <DashboardLogin onLogin={handleLogin} error={loginError} lang={lang} />;
       }
       
       // Strict Separation: Admin vs Client
       if (currentUser.role === 'internal_admin') {
-          return <CompanyDashboard user={currentUser} onLogout={handleLogout} />;
+          return <CompanyDashboard user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} />;
       } else {
-          return <ClientDashboard user={currentUser} onLogout={handleLogout} />;
+          return <ClientDashboard user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} />;
       }
   }
 
@@ -919,7 +971,7 @@ function App() {
   return (
     <ErrorBoundary>
         <div className={`min-h-screen ${THEME.colors.background} font-sans selection:bg-bright-cyan selection:text-navy`}>
-          <Header surveyUrl="#/" />
+          <Header surveyUrl="#/" lang={lang} setLang={setLang} />
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             {/* Hero Section */}
@@ -938,6 +990,7 @@ function App() {
                     <Survey 
                         companies={[{id: 'knightvest', name: 'Knightvest', properties: [{id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd'}]}]} 
                         isInternal={false}
+                        lang={lang}
                     />
                 </div>
                 
@@ -973,7 +1026,7 @@ function App() {
           </main>
 
           <Footer />
-          <ChatWidget />
+          <ChatWidget lang={lang} />
         </div>
     </ErrorBoundary>
   );
