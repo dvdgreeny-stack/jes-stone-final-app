@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
@@ -57,6 +56,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         <div className={`min-h-screen ${THEME.colors.background} flex items-center justify-center p-4`}>
           <div className={`${THEME.colors.surface} p-8 rounded-lg border ${THEME.colors.borderWarning} text-center max-w-lg shadow-2xl`}>
             <h1 className={`text-2xl font-bold ${THEME.colors.textWarning} mb-4`}>Something went wrong.</h1>
+            <p className="mb-4 text-slate">The application encountered an unexpected error.</p>
             <button 
                 onClick={() => {
                     window.location.hash = ''; // Reset route
@@ -85,10 +85,14 @@ const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
 };
 
 // --- Layout Components ---
-const Header: React.FC<{ surveyUrl: string }> = ({ surveyUrl }) => (
+interface HeaderProps {
+    surveyUrl?: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ surveyUrl }) => (
     <header className={`${THEME.colors.surface}/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg`}>
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-center items-center">
-            <a href="#/" onClick={handleNav} className="flex items-center gap-3">
+            <a href={surveyUrl || "#/"} onClick={handleNav} className="flex items-center gap-3">
                 {BRANDING.logoUrl ? (
                     <img src={BRANDING.logoUrl} alt={`${BRANDING.companyName} Logo`} className="h-12 w-auto object-contain" />
                 ) : (
@@ -116,135 +120,648 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-            <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <a href={BRANDING.websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:text-bright-cyan">{BRANDING.websiteUrl}</a></p>
-            <div className="flex items-center gap-2">
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
-                    <img src={BRANDING.footerLogoUrl} alt="Partner Logo" className="h-8 w-auto object-contain" />
+                    <img src={BRANDING.footerLogoUrl} alt="Powered By" className="h-6 opacity-70 hover:opacity-100 transition-opacity" />
                 ) : (
-                    <span className={`bg-slate text-navy font-bold text-xs px-2 py-1 rounded-sm`}>{BRANDING.poweredByText}</span>
+                    <span className={`${THEME.colors.surface} px-2 py-1 rounded font-bold text-xs border ${THEME.colors.borderSubtle}`}>
+                        {BRANDING.poweredByText}
+                    </span>
                 )}
-            </div>
+             </div>
         </div>
     </footer>
 );
 
-// --- Chat Widget Component ---
+// --- Survey Component (Restored Full Functionality) ---
+interface SurveyProps {
+    companies: Company[];
+    isInternal?: boolean;
+    embedded?: boolean;
+}
+
+const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded }) => {
+    const t = translations['en'];
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+    const [formData, setFormData] = useState<SurveyData>({
+        propertyId: '', firstName: '', lastName: '', title: '', phone: '', email: '',
+        unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+    const [dragActive, setDragActive] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-select company if only one (e.g., from Access Code)
+    useEffect(() => {
+        if (companies.length === 1) {
+            setSelectedCompanyId(companies[0].id);
+        }
+    }, [companies]);
+
+    const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+    
+    // Safety check for properties
+    const availableProperties = selectedCompany?.properties || [];
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleCheckboxChange = (field: 'services' | 'contactMethods', value: string) => {
+        setFormData(prev => {
+            const current = prev[field];
+            const updated = current.includes(value)
+                ? current.filter(item => item !== value)
+                : [...current, value];
+            return { ...prev, [field]: updated };
+        });
+    };
+
+    const handleAIDraft = async () => {
+        if (!selectedCompany) return;
+        setIsGeneratingDraft(true);
+        try {
+            const draft = await generateNotesDraft(formData, [selectedCompany], BRANDING.companyName);
+            setFormData(prev => ({ ...prev, notes: draft }));
+        } catch (error) {
+            console.error("AI Draft Error", error);
+        } finally {
+            setIsGeneratingDraft(false);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFiles(e.target.files);
+        }
+    };
+
+    const handleFiles = (files: FileList) => {
+         const newAttachments: {name: string, type: string, data: string}[] = [];
+         
+         Array.from(files).forEach(file => {
+             if (file.size > 2 * 1024 * 1024) {
+                 alert(`File ${file.name} is too large (Max 2MB)`);
+                 return;
+             }
+             const reader = new FileReader();
+             reader.onload = (e) => {
+                 if (e.target?.result) {
+                     newAttachments.push({
+                         name: file.name,
+                         type: file.type,
+                         data: e.target.result as string
+                     });
+                     // Update state only after reading (simple batch handling)
+                     if (newAttachments.length === files.length) {
+                         setFormData(prev => ({ 
+                             ...prev, 
+                             attachments: [...(prev.attachments || []), ...newAttachments] 
+                         }));
+                     }
+                 }
+             };
+             reader.readAsDataURL(file);
+         });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        
+        // Find property details
+        const property = availableProperties.find(p => p.id === formData.propertyId);
+        
+        const payload: SurveyData = {
+            ...formData,
+            propertyName: property?.name || 'Unknown Property',
+            propertyAddress: property?.address || 'Unknown Address'
+        };
+
+        try {
+            await submitSurveyData(BRANDING.defaultApiUrl, payload);
+            setSubmissionStatus('success');
+            // Cache form data for safety/recovery if needed
+            localStorage.setItem('lastSurvey', JSON.stringify(payload));
+        } catch (error) {
+            console.error(error);
+            setSubmissionStatus('error');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleReset = () => {
+        setSubmissionStatus('idle');
+        setFormData(prev => ({
+            ...prev,
+            unitInfo: '', services: [], otherService: '', timeline: '', notes: '', attachments: []
+        }));
+    };
+
+    if (submissionStatus === 'success') {
+        return (
+            <div className={`max-w-3xl mx-auto p-8 text-center ${THEME.colors.surface} rounded-xl shadow-2xl border ${THEME.colors.borderHighlight} animate-in zoom-in duration-300 mt-10`}>
+                <div className="flex justify-center mb-6">
+                    <SparklesIcon className="h-16 w-16 text-bright-cyan animate-pulse" />
+                </div>
+                <h2 className={`text-3xl font-bold ${THEME.colors.textHighlight} mb-4`}>{t.submitSuccessTitle}</h2>
+                <p className={`${THEME.colors.textMain} text-lg mb-2`}>{t.submitSuccessMessage1}</p>
+                <p className={`${THEME.colors.textSecondary} mb-8`}>{t.submitSuccessMessage2}</p>
+                
+                {formData.attachments && formData.attachments.length > 0 && (
+                     <div className="flex justify-center items-center gap-2 mb-8 bg-navy/50 py-2 rounded-full w-fit mx-auto px-6 border border-bright-cyan/30">
+                        <CloudArrowUpIcon className="h-5 w-5 text-bright-cyan" />
+                        <span className="text-bright-cyan text-sm font-bold">{t.photosUploadedBadge}</span>
+                     </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button onClick={handleReset} className={`${THEME.colors.buttonSecondary} px-8 py-3 rounded-lg font-bold transition-all`}>
+                        {t.submitAnotherButton}
+                    </button>
+                    {!embedded && (
+                         <button onClick={() => window.location.hash = '#dashboard'} className={`${THEME.colors.buttonPrimary} px-8 py-3 rounded-lg font-bold shadow-lg hover:shadow-bright-cyan/20 transition-all`}>
+                            {t.enterDashboardButton}
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    if (submissionStatus === 'error') {
+        return (
+             <div className={`max-w-2xl mx-auto p-8 text-center ${THEME.colors.surface} rounded-xl border ${THEME.colors.borderWarning} mt-10`}>
+                 <XMarkIcon className="h-16 w-16 text-bright-pink mx-auto mb-4" />
+                <h2 className={`text-2xl font-bold ${THEME.colors.textWarning} mb-2`}>{t.submitErrorTitle}</h2>
+                <p className={`${THEME.colors.textSecondary} mb-6`}>{t.submitErrorMessage1}</p>
+                <button onClick={() => setSubmissionStatus('idle')} className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded font-bold`}>
+                    {t.tryAgainButton}
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <form onSubmit={handleSubmit} className={`w-full max-w-4xl mx-auto ${embedded ? '' : 'mt-8 p-6 md:p-10'} ${THEME.colors.surface} rounded-xl ${THEME.effects.glow} border ${THEME.colors.borderSubtle}`}>
+            {/* Header */}
+            <div className="mb-8 border-b border-white/5 pb-4">
+                <h2 className={`text-2xl font-bold ${THEME.colors.textMain}`}>{t.surveyTitle}</h2>
+                <p className={`${THEME.colors.textSecondary}`}>
+                     {t.surveySubtitle} <span className={`${THEME.colors.textHighlight} font-bold`}>{selectedCompany?.name || '...'}</span> {t.surveySubtitleProperties}
+                </p>
+            </div>
+
+            {/* Property Selector */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="col-span-2">
+                    <label className={`block text-xs font-bold ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.propertyNameLabel}</label>
+                     <select 
+                        name="propertyId"
+                        value={formData.propertyId}
+                        onChange={handleChange}
+                        required
+                        className={`w-full p-3 rounded-lg border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:outline-none focus:ring-2 ${THEME.colors.inputFocus}`}
+                    >
+                        <option value="">{t.propertySelectPlaceholder}</option>
+                        {availableProperties.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 bg-navy/30 rounded-lg border border-white/5">
+                <h3 className={`col-span-2 text-sm font-bold ${THEME.colors.textHighlight} uppercase border-b border-white/5 pb-2`}>{t.contactInfoLegend}</h3>
+                <input type="text" name="firstName" placeholder={t.firstNameLabel} value={formData.firstName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                <input type="text" name="lastName" placeholder={t.lastNameLabel} value={formData.lastName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                <input type="tel" name="phone" placeholder={t.phoneLabel} value={formData.phone} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                <input type="email" name="email" placeholder={t.emailLabel} value={formData.email} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                <div className="col-span-2">
+                     <p className={`text-xs ${THEME.colors.textSecondary} mb-2 uppercase font-bold`}>{t.contactMethodLegend}</p>
+                     <div className="flex flex-wrap gap-4">
+                        {t.CONTACT_METHODS.map(method => (
+                            <label key={method} className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                                <input 
+                                    type="checkbox"
+                                    checked={formData.contactMethods.includes(method)}
+                                    onChange={() => handleCheckboxChange('contactMethods', method)}
+                                    className="rounded border-slate bg-navy text-bright-cyan focus:ring-0" 
+                                />
+                                <span className={`text-sm ${THEME.colors.textSecondary}`}>{method}</span>
+                            </label>
+                        ))}
+                     </div>
+                </div>
+            </div>
+
+            {/* Scope & Details */}
+            <div className="mb-8 space-y-6">
+                <h3 className={`text-sm font-bold ${THEME.colors.textHighlight} uppercase border-b border-white/5 pb-2`}>{t.scopeTimelineLegend}</h3>
+                
+                {/* Unit Info */}
+                <div>
+                     <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel}</label>
+                     <input type="text" name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                </div>
+
+                {/* Services Checkboxes */}
+                <div>
+                    <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-3`}>{t.serviceNeededLabel}</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {t.SERVICES.map(service => (
+                            <label key={service} className={`flex items-center gap-3 p-3 rounded border ${formData.services.includes(service) ? `${THEME.colors.borderHighlight} bg-bright-cyan/5` : 'border-white/5 bg-navy/50'} cursor-pointer hover:bg-navy transition-colors`}>
+                                <input 
+                                    type="checkbox"
+                                    checked={formData.services.includes(service)}
+                                    onChange={() => handleCheckboxChange('services', service)}
+                                    className="rounded border-slate bg-navy text-bright-cyan w-5 h-5 focus:ring-0"
+                                />
+                                <span className={`${THEME.colors.textMain}`}>{service}</span>
+                            </label>
+                        ))}
+                    </div>
+                    {formData.services.some(s => s.includes('Other')) && (
+                        <input type="text" name="otherService" placeholder={t.otherServicePlaceholder} value={formData.otherService} onChange={handleChange} className={`mt-3 w-full p-2 rounded text-sm ${THEME.colors.inputBg} ${THEME.colors.textMain} border ${THEME.colors.borderSubtle}`} />
+                    )}
+                </div>
+
+                {/* Timeline Dropdown */}
+                <div>
+                     <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-2`}>{t.timelineLabel}</label>
+                     <select name="timeline" value={formData.timeline} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`}>
+                         <option value="">{t.timelineSelectPlaceholder}</option>
+                         {t.TIMELINES.map(tl => <option key={tl} value={tl}>{tl}</option>)}
+                     </select>
+                </div>
+
+                {/* Photo Upload */}
+                <div className="border border-dashed border-slate/30 rounded-lg p-6 text-center transition-colors hover:border-bright-cyan/50 hover:bg-navy/30"
+                     onDragEnter={() => setDragActive(true)}
+                     onDragLeave={() => setDragActive(false)}
+                     onDragOver={(e) => e.preventDefault()}
+                     onDrop={(e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
+                >
+                    <div className="flex flex-col items-center gap-2 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                        <CloudArrowUpIcon className="h-10 w-10 text-slate" />
+                        <span className={`text-sm ${THEME.colors.textMain} font-bold`}>{t.photosLabel}</span>
+                        <span className="text-xs text-slate">{t.dragDropText}</span>
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*" className="hidden" />
+                    </div>
+                    {formData.attachments && formData.attachments.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                            {formData.attachments.map((file, idx) => (
+                                <div key={idx} className="flex items-center gap-2 bg-navy px-3 py-1 rounded border border-white/10 text-xs">
+                                    <span className="text-bright-cyan max-w-[150px] truncate">{file.name}</span>
+                                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, attachments: prev.attachments?.filter((_, i) => i !== idx) }))} className="text-bright-pink hover:text-white">
+                                        <XMarkIcon className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <p className="mt-2 text-[10px] text-slate opacity-50">{t.photosPermissionHint}</p>
+                </div>
+
+                {/* Notes & AI Draft */}
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className={`text-xs font-bold ${THEME.colors.textSecondary}`}>{t.notesLabel}</label>
+                        <button type="button" onClick={handleAIDraft} disabled={isGeneratingDraft} className={`text-xs flex items-center gap-1 ${THEME.colors.textHighlight} hover:text-white transition-colors`}>
+                            {isGeneratingDraft ? <LoadingSpinner /> : <SparklesIcon className="h-4 w-4" />}
+                            {isGeneratingDraft ? t.generatingButton : t.generateAIDraftButton}
+                        </button>
+                    </div>
+                    <textarea name="notes" rows={4} placeholder={t.notesPlaceholder} value={formData.notes} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                </div>
+            </div>
+
+            <button type="submit" disabled={isSubmitting} className={`w-full py-4 rounded-lg font-bold text-lg shadow-lg tracking-wide transition-all ${isSubmitting ? 'opacity-70 cursor-wait' : `${THEME.colors.buttonPrimary} hover:scale-[1.01] hover:shadow-bright-cyan/25`}`}>
+                {isSubmitting ? t.submittingButton : t.submitButton}
+            </button>
+        </form>
+    );
+};
+
+// --- Client Dashboard (For Property Managers) ---
+// STRICTLY NO ESTIMATING MODULE
+const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = ({ user, onLogout }) => {
+    const t = translations['en'];
+    const [activeTab, setActiveTab] = useState('overview');
+    
+    // Safety: Ensure we have a valid company object
+    if (!user.company) {
+        return <div className="p-10 text-center text-white">Loading Portal Data...</div>;
+    }
+
+    return (
+        <div className={`min-h-screen ${THEME.colors.background} flex`}>
+            {/* Sidebar */}
+            <aside className={`w-64 ${THEME.colors.surface} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
+                <div className="p-6 border-b border-white/5">
+                    <h2 className={`text-xl font-bold ${THEME.colors.textMain} tracking-wider`}>{t.dashboardLoginTitle}</h2>
+                    <p className={`text-xs ${THEME.colors.textHighlight} mt-1 truncate`}>{user.company.name}</p>
+                    <p className="text-[10px] text-slate uppercase tracking-widest mt-1">{t.roleSiteManager}</p>
+                </div>
+                <nav className="flex-1 p-4 space-y-2">
+                    {[
+                        { id: 'overview', label: t.tabOverview, icon: DashboardIcon },
+                        { id: 'request', label: t.tabNewRequest, icon: ClipboardListIcon },
+                        { id: 'projects', label: t.tabProjects, icon: BuildingBlocksIcon }, // Client Mode PM
+                        { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
+                        { id: 'history', label: t.tabHistory, icon: ClockIcon },
+                    ].map(item => (
+                        <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonSecondary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
+                            <item.icon className="h-5 w-5" />
+                            {item.label}
+                        </button>
+                    ))}
+                </nav>
+                <div className="p-4 border-t border-white/5">
+                    <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-bright-pink hover:bg-bright-pink/10 rounded transition-colors`}>
+                        <LogoutIcon className="h-5 w-5" />
+                        {t.logout}
+                    </button>
+                </div>
+            </aside>
+
+            {/* Content Area */}
+            <main className="flex-1 overflow-y-auto p-6 md:p-10">
+                {activeTab === 'overview' && (
+                    <div className="animate-in fade-in duration-300">
+                        <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-2`}>{t.tabOverview}</h1>
+                        <p className={`${THEME.colors.textSecondary} mb-8`}>Welcome back. Here is what is happening at <span className="text-white font-bold">{user.company.name}</span>.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsActive}</h3>
+                                <p className={`text-4xl font-bold ${THEME.colors.textHighlight}`}>3</p>
+                            </div>
+                            <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsCompleted}</h3>
+                                <p className={`text-4xl font-bold text-white`}>12</p>
+                            </div>
+                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsPending}</h3>
+                                <p className={`text-4xl font-bold ${THEME.colors.textWarning}`}>1</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'request' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <Survey companies={[user.company]} isInternal={false} embedded />
+                    </div>
+                )}
+
+                {activeTab === 'projects' && (
+                     <ProjectManagementModule mode="client" />
+                )}
+
+                {activeTab === 'gallery' && (
+                    <div className="animate-in fade-in duration-300 text-center py-20">
+                         <PhotoIcon className="h-20 w-20 text-slate mx-auto mb-4 opacity-20" />
+                         <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>Photo Gallery</h2>
+                         <p className="text-slate">Your project photos will appear here after sync.</p>
+                    </div>
+                )}
+                 {activeTab === 'history' && (
+                    <div className="animate-in fade-in duration-300 text-center py-20">
+                         <ClockIcon className="h-20 w-20 text-slate mx-auto mb-4 opacity-20" />
+                         <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>History</h2>
+                         <p className="text-slate">Past requests log.</p>
+                    </div>
+                )}
+            </main>
+        </div>
+    );
+};
+
+// --- Company Dashboard (For Jes Stone Admins) ---
+// FULL ACCESS INCLUDING ESTIMATING & DATA SOURCES
+const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = ({ user, onLogout }) => {
+    const t = translations['en'];
+    const [activeTab, setActiveTab] = useState('overview');
+
+    return (
+        <div className={`min-h-screen ${THEME.colors.background} flex`}>
+             <aside className={`w-64 bg-black/40 border-r ${THEME.colors.borderHighlight} hidden md:flex flex-col`}>
+                <div className="p-6 border-b border-white/10">
+                     <h2 className={`text-xl font-bold ${THEME.colors.textHighlight} tracking-wider`}>{t.companyPortalTitle}</h2>
+                     <p className={`text-xs ${THEME.colors.textSecondary} mt-1`}>{t.companyPortalSubtitle}</p>
+                </div>
+                <nav className="flex-1 p-4 space-y-2">
+                    {[
+                        { id: 'overview', label: 'Command Center', icon: DashboardIcon },
+                        { id: 'data', label: t.tabDataSources, icon: ChartBarIcon },
+                        { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon }, // ADMIN ONLY
+                        { id: 'projects', label: 'Global Projects', icon: BuildingBlocksIcon },
+                    ].map(item => (
+                        <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonPrimary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
+                            <item.icon className="h-5 w-5" />
+                            {item.label}
+                        </button>
+                    ))}
+                </nav>
+                <div className="p-4 border-t border-white/10">
+                    <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-slate hover:text-white hover:bg-white/5 rounded transition-colors`}>
+                        <LogoutIcon className="h-5 w-5" />
+                        {t.logout}
+                    </button>
+                </div>
+             </aside>
+
+             <main className="flex-1 overflow-y-auto p-6 md:p-10">
+                 {activeTab === 'overview' && (
+                     <div className="animate-in fade-in duration-300">
+                         <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-8`}>Global Overview</h1>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                 <h3 className="text-bright-cyan font-bold mb-2">Total Active Projects</h3>
+                                 <p className="text-5xl font-bold text-white">15</p>
+                             </div>
+                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                 <h3 className="text-bright-pink font-bold mb-2">Pending Estimates</h3>
+                                 <p className="text-5xl font-bold text-white">4</p>
+                             </div>
+                         </div>
+                     </div>
+                 )}
+                 {activeTab === 'data' && (
+                     <div className="animate-in fade-in duration-300">
+                         <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>{t.dataSourcesTitle}</h1>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <a href="https://docs.google.com/spreadsheets/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-green-400 group transition-all`}>
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="bg-green-500/20 p-3 rounded-lg"><ClipboardListIcon className="h-8 w-8 text-green-400" /></div>
+                                    <div>
+                                        <h3 className="font-bold text-white text-lg">{t.googleSheetLabel}</h3>
+                                        <p className="text-slate text-sm">View all raw survey responses</p>
+                                    </div>
+                                </div>
+                                <span className="text-green-400 font-bold text-sm group-hover:underline">{t.openSheetButton} &rarr;</span>
+                            </a>
+                             <a href="https://drive.google.com/drive/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-blue-400 group transition-all`}>
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="bg-blue-500/20 p-3 rounded-lg"><PhotoIcon className="h-8 w-8 text-blue-400" /></div>
+                                    <div>
+                                        <h3 className="font-bold text-white text-lg">{t.googleDriveLabel}</h3>
+                                        <p className="text-slate text-sm">Access photo repository</p>
+                                    </div>
+                                </div>
+                                <span className="text-blue-400 font-bold text-sm group-hover:underline">{t.openDriveButton} &rarr;</span>
+                            </a>
+                         </div>
+                     </div>
+                 )}
+                 {activeTab === 'estimating' && <EstimatingModule />}
+                 {activeTab === 'projects' && <ProjectManagementModule mode="company" />}
+             </main>
+        </div>
+    );
+};
+
+
+// --- LOGIN COMPONENT ---
+const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string }> = ({ onLogin, error }) => {
+    const [code, setCode] = useState('');
+    const t = translations['en'];
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onLogin(code.toUpperCase());
+    };
+
+    return (
+        <div className={`min-h-screen ${THEME.colors.background} flex flex-col items-center justify-center p-4`}>
+            <div className={`w-full max-w-md ${THEME.colors.surface} p-8 rounded-2xl border ${THEME.colors.borderHighlight} ${THEME.effects.glow} text-center`}>
+                <div className="bg-navy/50 p-4 rounded-full w-fit mx-auto mb-6 border border-bright-cyan">
+                    <LockClosedIcon className="h-8 w-8 text-bright-cyan" />
+                </div>
+                <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.dashboardLoginTitle}</h1>
+                <p className={`${THEME.colors.textSecondary} mb-8`}>{t.dashboardLoginSubtitle}</p>
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="text-left">
+                        <label className={`block text-xs font-bold ${THEME.colors.textSecondary} uppercase tracking-wider mb-2 ml-1`}>{t.accessCodeLabel}</label>
+                        <input 
+                            type="text" 
+                            value={code} 
+                            onChange={(e) => setCode(e.target.value)} 
+                            placeholder="Enter Code..."
+                            className={`w-full p-4 rounded-lg bg-navy border ${THEME.colors.inputBorder} ${THEME.colors.textHighlight} text-center text-xl font-bold tracking-[0.2em] focus:ring-2 ${THEME.colors.inputFocus} outline-none placeholder:text-slate/20`}
+                        />
+                    </div>
+                    {error && <p className="text-bright-pink text-sm font-bold animate-pulse">{error}</p>}
+                    <button 
+                        type="submit" 
+                        disabled={!code}
+                        className={`w-full py-4 rounded-lg font-bold text-lg transition-all ${!code ? `${THEME.colors.buttonSecondary} opacity-50 cursor-not-allowed` : `${THEME.colors.buttonPrimary} shadow-lg hover:shadow-bright-cyan/25`}`}
+                    >
+                        {t.loginButton}
+                    </button>
+                </form>
+
+                <div className="mt-8 pt-8 border-t border-white/5 text-xs text-slate">
+                    <p className="mb-2 font-bold opacity-50">Demo Codes:</p>
+                    <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('ADMIN')}>ADMIN</span> (Internal)</p>
+                    <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('PARKPLACE')}>PARKPLACE</span> (Property)</p>
+                    <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('REGION1')}>REGION1</span> (Regional)</p>
+                    
+                    <button onClick={() => window.location.hash = ''} className="mt-6 text-white hover:underline opacity-50">
+                        Return to Public Site
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- CHAT WIDGET ---
 const ChatWidget: React.FC = () => {
+    const t = translations['en'];
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
     const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const chatSessionRef = useRef<Chat | null>(null);
+    const [isThinking, setIsThinking] = useState(false);
+    const chatSession = useRef<Chat | null>(null);
 
-    // Initialize chat session on mount
+    // Initialize Chat
     useEffect(() => {
-        chatSessionRef.current = createChatSession();
+        if (!chatSession.current) {
+            chatSession.current = createChatSession();
+        }
     }, []);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, isOpen]);
-
-    const handleSend = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!input.trim() || !chatSessionRef.current) return;
-
-        const userMessage = input;
+    const handleSend = async () => {
+        if (!input.trim() || !chatSession.current) return;
+        const userMsg = input;
         setInput('');
-        setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
-        setIsLoading(true);
+        setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+        setIsThinking(true);
 
         try {
-            const result = await chatSessionRef.current.sendMessageStream({ message: userMessage });
-            
-            let fullText = '';
-            setMessages(prev => [...prev, { role: 'model', text: '' }]);
-
-            for await (const chunk of result) {
-                const c = chunk as GenerateContentResponse;
-                const text = c.text || '';
-                fullText += text;
-                
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    const lastMsg = newMessages[newMessages.length - 1];
-                    if (lastMsg && lastMsg.role === 'model') {
-                        lastMsg.text = fullText;
-                    }
-                    return newMessages;
-                });
-            }
+            const result: GenerateContentResponse = await chatSession.current.sendMessage({ message: userMsg });
+            const text = result.text || "";
+            setMessages(prev => [...prev, { role: 'model', text }]);
         } catch (error) {
-            console.error("Chat Error", error);
-            setMessages(prev => [...prev, { role: 'model', text: "Sorry, I'm having trouble connecting right now." }]);
+            setMessages(prev => [...prev, { role: 'model', text: "I'm having trouble connecting right now." }]);
         } finally {
-            setIsLoading(false);
+            setIsThinking(false);
         }
     };
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {isOpen && (
-                <div className={`${THEME.colors.surface} border ${THEME.colors.borderSubtle} rounded-lg shadow-2xl w-80 sm:w-96 mb-4 flex flex-col max-h-[500px] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200`}>
-                    <div className={`${THEME.colors.surfaceHighlight}/50 p-4 border-b ${THEME.colors.borderSubtle} flex justify-between items-center`}>
-                        <h3 className={`font-bold ${THEME.colors.textMain}`}>{BRANDING.assistantName}</h3>
-                        <button onClick={() => setIsOpen(false)} className={`${THEME.colors.textSecondary} hover:text-bright-cyan`}>
-                            <XMarkIcon className="h-5 w-5" />
-                        </button>
+                <div className={`mb-4 w-80 h-96 ${THEME.colors.surface} border ${THEME.colors.borderHighlight} rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300`}>
+                    <div className="bg-navy p-4 border-b border-white/10 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                             <SparklesIcon className="h-4 w-4 text-bright-cyan" />
+                             <h3 className={`font-bold ${THEME.colors.textMain}`}>{t.chatTitle}</h3>
+                        </div>
+                        <button onClick={() => setIsOpen(false)} className="text-slate hover:text-white"><XMarkIcon className="h-5 w-5" /></button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[300px]">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         {messages.length === 0 && (
-                            <p className={`${THEME.colors.textSecondary} text-center text-sm mt-8`}>
-                                Hello! I can help you understand our remodeling services or fill out the survey. How can I help?
-                            </p>
+                            <div className="text-center text-slate text-sm mt-10">
+                                <p>Hello! I am the {BRANDING.assistantName}.</p>
+                                <p className="text-xs mt-2">How can I help you today?</p>
+                            </div>
                         )}
-                        {messages.map((msg, idx) => (
-                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] p-3 rounded-lg text-sm ${
-                                    msg.role === 'user' 
-                                    ? 'bg-bright-cyan/20 text-lightest-slate rounded-br-none' 
-                                    : `${THEME.colors.background} border ${THEME.colors.borderSubtle} text-slate rounded-bl-none`
-                                }`}>
+                        {messages.map((msg, i) => (
+                            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[80%] p-3 rounded-lg text-sm ${msg.role === 'user' ? 'bg-bright-cyan text-navy rounded-br-none' : 'bg-navy text-slate rounded-bl-none'}`}>
                                     {msg.text}
                                 </div>
                             </div>
                         ))}
-                        {isLoading && (
-                            <div className="flex justify-start">
-                                <div className={`${THEME.colors.background} border ${THEME.colors.borderSubtle} p-3 rounded-lg rounded-bl-none`}>
-                                    <LoadingSpinner />
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
+                        {isThinking && <div className="text-xs text-slate animate-pulse ml-2">Thinking...</div>}
                     </div>
-                    <form onSubmit={handleSend} className={`p-3 border-t ${THEME.colors.borderSubtle} bg-navy/50 flex gap-2`}>
-                        <input
-                            type="text"
+                    <div className="p-3 bg-navy border-t border-white/10 flex gap-2">
+                        <input 
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Type a message..."
-                            className={`flex-1 ${THEME.colors.inputBg} ${THEME.colors.textMain} text-sm p-2 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-1 ${THEME.colors.inputFocus}`}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                            placeholder={t.chatPlaceholder}
+                            className={`flex-1 bg-black/20 border border-white/10 rounded px-3 py-2 text-sm ${THEME.colors.textMain} focus:outline-none focus:border-bright-cyan`}
                         />
-                        <button 
-                            type="submit" 
-                            disabled={isLoading || !input.trim()}
-                            className="bg-bright-cyan/20 text-bright-cyan p-2 rounded-md hover:bg-bright-cyan/30 disabled:opacity-50 transition-colors"
-                        >
-                            <PaperAirplaneIcon className="h-5 w-5" />
+                        <button onClick={handleSend} disabled={!input || isThinking} className="text-bright-cyan disabled:opacity-50 hover:scale-110 transition-transform">
+                            <PaperAirplaneIcon className="h-5 w-5 rotate-90" />
                         </button>
-                    </form>
+                    </div>
                 </div>
             )}
-            <button
+            <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className={`${THEME.colors.buttonPrimary} p-4 rounded-full shadow-lg hover:bg-bright-cyan/90 transition-all hover:scale-105 active:scale-95`}
+                className={`${THEME.colors.buttonPrimary} p-4 rounded-full shadow-[0_0_20px_rgba(100,255,218,0.3)] hover:scale-110 transition-transform`}
             >
                 {isOpen ? <XMarkIcon className="h-6 w-6" /> : <ChatBubbleIcon className="h-6 w-6" />}
             </button>
@@ -252,622 +769,126 @@ const ChatWidget: React.FC = () => {
     );
 };
 
-// --- Main App Component ---
-const App: React.FC = () => {
-    const [companyData, setCompanyData] = useState<Company[]>([]);
-    const [status, setStatus] = useState<'loading' | 'error' | 'success'>('loading');
-    const [errorMessage, setErrorMessage] = useState<string>('');
-    const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
-    const [route, setRoute] = useState({ page: 'campaign', companyId: null as string | null });
-    
-    // URL Override State
-    const [overrideUrl, setOverrideUrl] = useState<string>(() => {
-        return localStorage.getItem('jes_stone_script_url') || '';
-    });
+// --- MAIN APP ---
+function App() {
+  const t = translations['en'];
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
+  const [loginError, setLoginError] = useState('');
+  
+  // Routes: '' (Public Survey), '#dashboard' (Client Portal)
+  const [route, setRoute] = useState(window.location.hash);
 
-    const getRouteFromHash = useCallback((data: Company[]) => {
-        const hash = window.location.hash;
-        if (hash === '#dashboard') {
-            return { page: 'dashboard' as const, companyId: null };
-        }
-        const surveyMatch = hash.match(/^#\/survey\/([a-zA-Z0-9_-]+)/);
-        if (surveyMatch && data.find(c => c.id === surveyMatch[1])) {
-            return { page: 'survey' as const, companyId: surveyMatch[1] };
-        }
-        return { page: 'campaign' as const, companyId: null };
-    }, []);
+  useEffect(() => {
+      const handleHashChange = () => setRoute(window.location.hash);
+      window.addEventListener('hashchange', handleHashChange);
+      return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
-    const loadData = useCallback(async (urlOverride?: string) => {
-        setStatus('loading');
-        setErrorMessage('');
-        const targetUrl = urlOverride || overrideUrl || BRANDING.defaultApiUrl;
-        
-        if (!targetUrl) {
-            setErrorMessage("No API URL configured.");
-            setStatus('error');
-            return;
-        }
+  // Handle Login Logic
+  const handleLogin = (code: string) => {
+      const access = MOCK_ACCESS_DB[code];
+      if (access) {
+          // Construct User Session based on Access Code
+          const session: UserSession = {
+              role: access.role,
+              allowedPropertyIds: access.allowedPropertyIds,
+              company: {
+                  id: access.companyId,
+                  // Simulate fetching company name based on ID (In real app this comes from API)
+                  name: access.companyId === 'knightvest' ? 'Knightvest' : access.companyId === 'internal' ? 'Jes Stone' : 'Unknown',
+                  properties: [] // Populated later or on dashboard load
+              }
+          };
+          setCurrentUser(session);
+          setLoginError('');
+      } else {
+          setLoginError('Invalid Access Code');
+      }
+  };
 
-        try {
-            const data = await fetchCompanyData(targetUrl);
-            setCompanyData(data);
-            if (data.length > 0) {
-                setSelectedCompanyId(data[0].id);
-            }
-            setStatus('success');
-            setRoute(getRouteFromHash(data));
+  const handleLogout = () => {
+      setCurrentUser(null);
+      window.location.hash = '';
+  };
 
-            if (urlOverride) {
-                localStorage.setItem('jes_stone_script_url', urlOverride);
-                setOverrideUrl(urlOverride); 
-            }
+  // --- ROUTING LOGIC ---
+  
+  // 1. Dashboard Route
+  if (route === '#dashboard') {
+      if (!currentUser) {
+          return <DashboardLogin onLogin={handleLogin} error={loginError} />;
+      }
+      
+      // Strict Separation: Admin vs Client
+      if (currentUser.role === 'internal_admin') {
+          return <CompanyDashboard user={currentUser} onLogout={handleLogout} />;
+      } else {
+          return <ClientDashboard user={currentUser} onLogout={handleLogout} />;
+      }
+  }
 
-        } catch (error: any) {
-            console.error("Failed to load company data:", error);
-            setErrorMessage(error.message || "Unknown error occurred.");
-            setStatus('error');
-        }
-    }, [getRouteFromHash, overrideUrl]);
+  // 2. Default Route (Public Landing / Survey)
+  return (
+    <ErrorBoundary>
+        <div className={`min-h-screen ${THEME.colors.background} font-sans selection:bg-bright-cyan selection:text-navy`}>
+          <Header surveyUrl="#/" />
 
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
-    
-    useEffect(() => {
-        const handleHashChange = () => {
-            if (companyData.length > 0) {
-                setRoute(getRouteFromHash(companyData));
-            }
-        };
-        window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
-    }, [companyData, getRouteFromHash]);
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            {/* Hero Section */}
+            <div className="text-center mb-12 animate-in slide-in-from-bottom-8 duration-700">
+                <h1 className={`text-4xl md:text-6xl font-extrabold ${THEME.colors.textMain} mb-4 tracking-tight ${THEME.effects.glowText}`}>
+                    {BRANDING.companyName}
+                </h1>
+                <p className={`text-xl ${THEME.colors.textHighlight} font-medium tracking-widest uppercase`}>
+                    {BRANDING.companySubtitle}
+                </p>
+            </div>
 
-    const surveyUrlForHeader = `#/survey/${selectedCompanyId}`;
-
-    const renderContent = () => {
-        if (status === 'loading') {
-            return <div className="text-center py-20"><LoadingSpinner /> <p className="mt-4">Loading Property Data...</p></div>;
-        }
-        if (status === 'error') {
-            return (
-                <div className="text-center py-20 text-red-400 max-w-2xl mx-auto">
-                    <h2 className="text-2xl font-bold mb-4">Failed to Load Data</h2>
-                    <p className={`mb-6 ${THEME.colors.textSecondary}`}>Please check your connection or Script URL.</p>
-                    <div className="flex flex-col gap-4 max-w-md mx-auto">
-                        <input 
-                            type="text" 
-                            placeholder="Paste new Web App URL here"
-                            defaultValue={overrideUrl}
-                            id="urlInput"
-                            className={`${THEME.colors.background} border ${THEME.colors.borderSubtle} p-2 rounded text-sm ${THEME.colors.textMain}`}
-                        />
+            {/* Campaign Selector / Landing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div className="order-2 md:order-1 animate-in slide-in-from-left duration-700 delay-100">
+                    <Survey 
+                        companies={[{id: 'knightvest', name: 'Knightvest', properties: [{id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd'}]}]} 
+                        isInternal={false}
+                    />
+                </div>
+                
+                <div className="order-1 md:order-2 flex flex-col justify-center h-full space-y-8 animate-in slide-in-from-right duration-700 delay-200">
+                    <div className={`${THEME.colors.surface} p-8 rounded-2xl border ${THEME.colors.borderHighlight} ${THEME.effects.glow}`}>
+                        <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-4`}>Property Manager Portal</h2>
+                        <p className={`${THEME.colors.textSecondary} mb-6`}>
+                            Track your requests, view project photos, and manage approvals in one secure place.
+                        </p>
                         <button 
-                            onClick={() => {
-                                const input = document.getElementById('urlInput') as HTMLInputElement;
-                                if(input) loadData(input.value.trim());
-                            }} 
-                            className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded-md font-bold`}
+                            onClick={() => window.location.hash = '#dashboard'}
+                            className={`w-full flex items-center justify-center gap-3 ${THEME.colors.buttonSecondary} py-4 rounded-lg font-bold text-lg transition-all`}
                         >
-                            Retry Connection
+                            <LockClosedIcon className="h-6 w-6" />
+                            {t.enterDashboardButton}
                         </button>
                     </div>
-                </div>
-            );
-        }
-        
-        if (route.page === 'dashboard') {
-            return <DashboardRoot companyData={companyData} scriptUrl={overrideUrl || BRANDING.defaultApiUrl} />;
-        }
 
-        if (route.page === 'campaign') {
-            return (
-                <>
-                <Header surveyUrl={surveyUrlForHeader} />
-                <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <CampaignSuite companyData={companyData} onCompanyChange={setSelectedCompanyId} initialCompanyId={selectedCompanyId || (companyData.length > 0 ? companyData[0].id : '')} />
-                </main>
-                <Footer />
-                </>
-            );
-        }
-        if (route.page === 'survey' && route.companyId) {
-            return (
-                <>
-                <Header surveyUrl={surveyUrlForHeader} />
-                <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <Survey companyId={route.companyId} companyData={companyData} scriptUrl={overrideUrl || BRANDING.defaultApiUrl} />
-                </main>
-                <Footer />
-                </>
-            );
-        }
-        return null;
-    };
-
-    return (
-        <ErrorBoundary>
-            <div className={`dark min-h-screen ${THEME.colors.background} ${THEME.colors.textSecondary} font-sans relative`}>
-                {renderContent()}
-                <ChatWidget />
-            </div>
-        </ErrorBoundary>
-    );
-};
-
-// --- DASHBOARD ROOT (Login Handler) ---
-
-const DashboardRoot: React.FC<{ companyData: Company[], scriptUrl: string }> = ({ companyData, scriptUrl }) => {
-    const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
-
-    // If logged out, show Login Screen
-    if (!currentUser) {
-        return <DashboardLogin companyData={companyData} onLogin={setCurrentUser} />;
-    }
-
-    // --- STRICT SEPARATION OF CONCERNS ---
-    
-    // If Admin -> Show Company Portal (Full Features)
-    if (currentUser.role === 'internal_admin') {
-        return <CompanyDashboard currentUser={currentUser} companyData={companyData} onLogout={() => setCurrentUser(null)} />;
-    }
-
-    // If Client -> Show Client Portal (Restricted Features - NO Estimating)
-    return <ClientDashboard currentUser={currentUser} onLogout={() => setCurrentUser(null)} scriptUrl={scriptUrl} />;
-};
-
-// --- 1. CLIENT DASHBOARD (Restricted) ---
-
-const ClientDashboard: React.FC<{ currentUser: UserSession, onLogout: () => void, scriptUrl: string }> = ({ currentUser, onLogout, scriptUrl }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'newRequest' | 'gallery' | 'history' | 'projects'>('overview');
-    const t = translations['en'];
-
-    // Determine Visible Property
-    const visibleCompany = useMemo(() => {
-        const baseCompany = currentUser.company;
-        if (!baseCompany) return null;
-        
-        // Filter properties based on permission
-        const props = baseCompany.properties || [];
-        const filteredProperties = currentUser.allowedPropertyIds.length === 0 
-            ? props 
-            : props.filter(p => currentUser.allowedPropertyIds.includes(p.id));
-
-        return { ...baseCompany, properties: filteredProperties };
-    }, [currentUser]);
-
-    if (!visibleCompany) return <div className="p-8 text-center text-red-500">Error loading profile.</div>;
-
-    const displayName = visibleCompany.properties.length === 1 ? visibleCompany.properties[0].name : visibleCompany.name;
-    const roleLabel = { 'site_manager': t.roleSiteManager, 'regional_manager': t.roleRegionalManager, 'executive': t.roleExecutive }[currentUser.role] || 'Client';
-
-    return (
-        <div className={`min-h-screen flex ${THEME.colors.background}`}>
-            {/* Client Sidebar */}
-            <aside className={`w-64 ${THEME.colors.surface} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
-                <div className={`p-6 border-b ${THEME.colors.borderSubtle} flex flex-col items-center`}>
-                    <JesStoneLogo className="h-8 w-auto mb-2" />
-                    <span className={`font-bold ${THEME.colors.textMain}`}>{BRANDING.companyName}</span>
-                    <div className={`${THEME.colors.background} px-3 py-1 rounded-full text-xs font-bold ${THEME.colors.textHighlight} border ${THEME.colors.borderHighlight}/30 mt-2 text-center max-w-full truncate`}>
-                        {displayName}
-                    </div>
-                    <div className={`mt-1 text-xs ${THEME.colors.textSecondary} uppercase tracking-wider`}>{roleLabel}</div>
-                </div>
-                <nav className="flex-1 p-4 space-y-2">
-                    <NavButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<DashboardIcon className="h-5 w-5" />} label={t.tabOverview} />
-                    <NavButton active={activeTab === 'newRequest'} onClick={() => setActiveTab('newRequest')} icon={<ClipboardListIcon className="h-5 w-5" />} label={t.tabNewRequest} />
-                    <NavButton active={activeTab === 'projects'} onClick={() => setActiveTab('projects')} icon={<ChartBarIcon className="h-5 w-5" />} label={t.tabProjects} />
-                    <div className={`h-px ${THEME.colors.borderSubtle} my-2`}></div>
-                    <NavButton active={activeTab === 'gallery'} onClick={() => setActiveTab('gallery')} icon={<PhotoIcon className="h-5 w-5" />} label={t.tabGallery} />
-                    <NavButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<ClockIcon className="h-5 w-5" />} label={t.tabHistory} />
-                </nav>
-                <div className={`p-4 border-t ${THEME.colors.borderSubtle}`}>
-                    <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-2 ${THEME.colors.textSecondary} hover:text-bright-pink transition-colors`}>
-                        <LogoutIcon className="h-5 w-5" /> {t.logout}
-                    </button>
-                </div>
-            </aside>
-
-            {/* Client Main Content */}
-            <div className="flex-1 overflow-auto">
-                 {/* Mobile Header */}
-                 <header className={`md:hidden ${THEME.colors.surface} p-4 flex justify-between items-center border-b ${THEME.colors.borderSubtle}`}>
-                    <div>
-                        <span className={`font-bold ${THEME.colors.textMain}`}>{t.dashboardLoginTitle}</span>
-                        <div className={`text-xs ${THEME.colors.textHighlight}`}>{displayName}</div>
-                    </div>
-                    <button onClick={onLogout}><LogoutIcon className={`h-6 w-6 ${THEME.colors.textSecondary}`} /></button>
-                </header>
-
-                <div className="p-4 md:p-8 max-w-6xl mx-auto">
-                    {activeTab === 'overview' && <DashboardOverview companyData={[visibleCompany]} onNewRequest={() => setActiveTab('newRequest')} />}
-                    
-                    {activeTab === 'newRequest' && (
-                        <div className="animate-in fade-in duration-300">
-                             <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>New Service Request</h2>
-                             <Survey companyId={visibleCompany.id} companyData={[visibleCompany]} scriptUrl={scriptUrl} embedded={true} onSuccess={() => setActiveTab('overview')} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className={`${THEME.colors.surface} p-4 rounded-lg border ${THEME.colors.borderSubtle} text-center`}>
+                            <ClockIcon className="h-8 w-8 text-bright-blue mx-auto mb-2" />
+                            <h3 className={`font-bold ${THEME.colors.textMain}`}>Fast Turnaround</h3>
+                            <p className="text-xs text-slate">24h Response Time</p>
                         </div>
-                    )}
-                    
-                    {activeTab === 'projects' && <ProjectManagementModule mode="client" />}
-                    {activeTab === 'gallery' && <DashboardGallery />}
-                    {activeTab === 'history' && <DashboardHistory />}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- 2. COMPANY DASHBOARD (Full Access) ---
-
-const CompanyDashboard: React.FC<{ currentUser: UserSession, companyData: Company[], onLogout: () => void }> = ({ companyData, onLogout }) => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'datasources' | 'estimating' | 'projects'>('overview');
-    const t = translations['en'];
-
-    return (
-        <div className={`min-h-screen flex ${THEME.colors.background}`}>
-             {/* Admin Sidebar */}
-             <aside className={`w-64 ${THEME.colors.surface} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
-                <div className={`p-6 border-b ${THEME.colors.borderSubtle} flex flex-col items-center`}>
-                    <JesStoneLogo className="h-8 w-auto mb-2" />
-                    <span className={`font-bold ${THEME.colors.textMain}`}>{BRANDING.companyName}</span>
-                    <div className={`${THEME.colors.background} px-3 py-1 rounded-full text-xs font-bold text-bright-pink border border-bright-pink/30 mt-2`}>
-                        COMMAND CENTER
-                    </div>
-                    <div className={`mt-1 text-xs ${THEME.colors.textSecondary} uppercase tracking-wider`}>Administrator</div>
-                </div>
-                <nav className="flex-1 p-4 space-y-2">
-                    <NavButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<DashboardIcon className="h-5 w-5" />} label="Command Center" />
-                    <NavButton active={activeTab === 'datasources'} onClick={() => setActiveTab('datasources')} icon={<BuildingBlocksIcon className="h-5 w-5" />} label={t.tabDataSources} />
-                    <NavButton active={activeTab === 'estimating'} onClick={() => setActiveTab('estimating')} icon={<CalculatorIcon className="h-5 w-5" />} label={t.tabEstimating} />
-                    <NavButton active={activeTab === 'projects'} onClick={() => setActiveTab('projects')} icon={<ChartBarIcon className="h-5 w-5" />} label="Global Projects" />
-                </nav>
-                <div className={`p-4 border-t ${THEME.colors.borderSubtle}`}>
-                    <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-2 ${THEME.colors.textSecondary} hover:text-bright-pink transition-colors`}>
-                        <LogoutIcon className="h-5 w-5" /> {t.logout}
-                    </button>
-                </div>
-            </aside>
-
-             {/* Admin Main Content */}
-             <div className="flex-1 overflow-auto">
-                 <header className={`md:hidden ${THEME.colors.surface} p-4 flex justify-between items-center border-b ${THEME.colors.borderSubtle}`}>
-                    <span className={`font-bold ${THEME.colors.textMain}`}>Admin Portal</span>
-                    <button onClick={onLogout}><LogoutIcon className={`h-6 w-6 ${THEME.colors.textSecondary}`} /></button>
-                </header>
-
-                <div className="p-4 md:p-8 max-w-6xl mx-auto">
-                    {activeTab === 'overview' && <CompanyDashboardOverview companyData={companyData} />}
-                    {activeTab === 'datasources' && <CompanyDataSources />}
-                    {activeTab === 'estimating' && <EstimatingModule />}
-                    {activeTab === 'projects' && <ProjectManagementModule mode="company" />}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- HELPER COMPONENTS ---
-
-const NavButton: React.FC<{ active: boolean, onClick: () => void, icon: React.ReactNode, label: string }> = ({ active, onClick, icon, label }) => (
-    <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${active ? `bg-bright-cyan/20 ${THEME.colors.textHighlight} border-l-2 ${THEME.colors.borderHighlight}` : `${THEME.colors.textSecondary} hover:text-lightest-slate hover:bg-navy`}`}>
-        {icon} {label}
-    </button>
-);
-
-const DashboardLogin: React.FC<{ companyData: Company[], onLogin: (session: UserSession) => void }> = ({ companyData, onLogin }) => {
-    const t = translations['en'];
-    const [code, setCode] = useState('');
-    const [isVerifying, setIsVerifying] = useState(false);
-    const [error, setError] = useState('');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setIsVerifying(true);
-
-        setTimeout(() => {
-            const normalizedCode = code.toUpperCase().trim();
-            const accessRecord = MOCK_ACCESS_DB[normalizedCode];
-
-            if (accessRecord) {
-                if (accessRecord.role === 'internal_admin') {
-                    onLogin({
-                        company: { id: 'admin', name: 'Admin', properties: [] },
-                        role: 'internal_admin',
-                        allowedPropertyIds: []
-                    });
-                    return;
-                }
-
-                const company = companyData?.find(c => c.id === accessRecord.companyId);
-                if (company) {
-                    onLogin({
-                        company: company,
-                        role: accessRecord.role,
-                        allowedPropertyIds: accessRecord.allowedPropertyIds
-                    });
-                } else {
-                    setError("Code matched, but associated company data is missing.");
-                    setIsVerifying(false);
-                }
-            } else {
-                setError("Invalid Access Code.");
-                setIsVerifying(false);
-            }
-        }, 800);
-    };
-
-    return (
-        <div className={`min-h-screen ${THEME.colors.background} flex items-center justify-center p-4`}>
-            <div className={`${THEME.colors.surface} p-8 rounded-lg max-w-md w-full text-center ${THEME.effects.glow}`}>
-                <div className="flex justify-center mb-6">
-                    <div className={`p-4 ${THEME.colors.background} rounded-full border ${THEME.colors.borderHighlight} shadow-[0_0_15px_rgba(100,255,218,0.3)]`}>
-                        <LockClosedIcon className={`h-8 w-8 ${THEME.colors.textHighlight}`} />
+                         <div className={`${THEME.colors.surface} p-4 rounded-lg border ${THEME.colors.borderSubtle} text-center`}>
+                            <SparklesIcon className="h-8 w-8 text-bright-pink mx-auto mb-2" />
+                            <h3 className={`font-bold ${THEME.colors.textMain}`}>Quality First</h3>
+                            <p className="text-xs text-slate">Top-Tier Materials</p>
+                        </div>
                     </div>
                 </div>
-                <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.dashboardLoginTitle}</h1>
-                <p className={`${THEME.colors.textSecondary} mb-8`}>{t.dashboardLoginSubtitle}</p>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <input 
-                        type="password" 
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        className={`w-full ${THEME.colors.inputBg} border ${error ? THEME.colors.borderWarning : THEME.colors.inputBorder} rounded-md p-3 text-center tracking-widest text-xl ${THEME.colors.textHighlight} focus:ring-2 focus:ring-bright-cyan focus:outline-none transition-all`}
-                        placeholder="••••"
-                        autoFocus
-                    />
-                    {error && <p className={`${THEME.colors.textWarning} text-xs mt-2 animate-bounce`}>{error}</p>}
-                    <button type="submit" disabled={!code || isVerifying} className={`w-full ${THEME.colors.buttonPrimary} font-bold py-3 rounded-md transition-all`}>
-                        {isVerifying ? <LoadingSpinner /> : t.loginButton}
-                    </button>
-                </form>
-                <div className={`mt-6 text-xs ${THEME.colors.textSecondary}`}>
-                     <p>Demo Codes: <span className="font-mono text-bright-cyan">PARKPLACE</span> (Client), <span className="font-mono text-bright-cyan">ADMIN</span> (Internal)</p>
-                     <a href="#/" className="hover:text-bright-cyan block mt-2">Return to Public Site</a>
-                </div>
             </div>
+          </main>
+
+          <Footer />
+          <ChatWidget />
         </div>
-    );
-};
-
-// --- DASHBOARD SUB-COMPONENTS ---
-
-const DashboardOverview: React.FC<{ companyData: Company[], onNewRequest: () => void }> = ({ companyData, onNewRequest }) => {
-    const t = translations['en'];
-    const totalProperties = (companyData || []).reduce((acc, c) => acc + (c?.properties?.length || 0), 0) || 0;
-
-    return (
-        <div className="space-y-8 animate-in fade-in duration-300">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className={`text-3xl font-bold ${THEME.colors.textMain}`}>Welcome Back</h1>
-                    <p className={THEME.colors.textSecondary}>Managing {totalProperties} property location(s).</p>
-                </div>
-                <button onClick={onNewRequest} className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded-md font-bold shadow-lg transition-all`}>
-                    + New Request
-                </button>
-            </div>
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard title={t.statsActive} value="3" subtitle="In progress" color="highlight" icon={<BuildingBlocksIcon className="h-5 w-5" />} />
-                <StatCard title={t.statsPending} value="1" subtitle="Awaiting Approval" color="warning" icon={<ClockIcon className="h-5 w-5" />} />
-                <StatCard title={t.statsCompleted} value="12" subtitle="This Month" color="slate" icon={<ClipboardListIcon className="h-5 w-5" />} />
-            </div>
-        </div>
-    );
-};
-
-const StatCard: React.FC<{title: string, value: string, subtitle: string, color: 'highlight' | 'warning' | 'slate', icon: React.ReactNode}> = ({ title, value, subtitle, color, icon }) => {
-    const borderColor = color === 'highlight' ? THEME.colors.borderHighlight : color === 'warning' ? THEME.colors.borderWarning : 'border-slate-500';
-    const textColor = color === 'highlight' ? THEME.colors.textHighlight : color === 'warning' ? THEME.colors.textWarning : 'text-slate-400';
-    
-    return (
-        <div className={`${THEME.colors.surface} p-6 rounded-lg border-l-4 ${borderColor} shadow-lg`}>
-            <div className="flex justify-between items-start">
-                <p className={`${THEME.colors.textSecondary} text-sm font-bold uppercase`}>{title}</p>
-                <div className={`${textColor} opacity-50`}>{icon}</div>
-            </div>
-            <p className={`text-4xl font-bold ${THEME.colors.textMain} mt-2`}>{value}</p>
-            <p className={`text-xs ${THEME.colors.textSecondary} mt-1`}>{subtitle}</p>
-        </div>
-    );
-};
-
-const DashboardGallery: React.FC = () => (
-    <div className="animate-in fade-in duration-300">
-        <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>Project Photos</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-                <div key={i} className={`aspect-video ${THEME.colors.surfaceHighlight} rounded-lg border ${THEME.colors.borderSubtle} flex items-center justify-center text-slate`}>
-                    Placeholder Photo {i}
-                </div>
-            ))}
-        </div>
-    </div>
-);
-
-const DashboardHistory: React.FC = () => (
-    <div className="animate-in fade-in duration-300">
-        <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>Request History</h2>
-        <div className={`${THEME.colors.surface} rounded-lg overflow-hidden border ${THEME.colors.borderSubtle}`}>
-            <table className="w-full text-left text-sm">
-                <thead className={`${THEME.colors.background} text-slate uppercase text-xs`}>
-                    <tr><th className="p-4">Date</th><th className="p-4">Service</th><th className="p-4">Status</th></tr>
-                </thead>
-                <tbody className={`divide-y ${THEME.colors.borderSubtle}`}>
-                    <tr><td className="p-4 text-slate">Feb 20</td><td className="p-4 text-slate">Countertops</td><td className="p-4 text-bright-cyan">Approved</td></tr>
-                    <tr><td className="p-4 text-slate">Feb 18</td><td className="p-4 text-slate">Make-Ready</td><td className="p-4 text-bright-pink">Pending</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-);
-
-// --- COMPANY ADMIN COMPONENTS ---
-
-const CompanyDashboardOverview: React.FC<{ companyData: Company[] }> = ({ companyData }) => {
-    const t = translations['en'];
-    const totalClients = companyData.length;
-    return (
-         <div className="space-y-8 animate-in fade-in duration-300">
-            <div>
-                <h1 className={`text-3xl font-bold ${THEME.colors.textMain}`}>{t.companyPortalTitle}</h1>
-                <p className={THEME.colors.textSecondary}>{t.companyPortalSubtitle}</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard title="Total Clients" value={totalClients.toString()} subtitle="Active Contracts" color="highlight" icon={<BuildingBlocksIcon className="h-5 w-5" />} />
-                <StatCard title="Jobs in Prod" value="12" subtitle="Across all sites" color="warning" icon={<ClockIcon className="h-5 w-5" />} />
-            </div>
-         </div>
-    );
-};
-
-const CompanyDataSources: React.FC = () => {
-    const t = translations['en'];
-    return (
-        <div className="animate-in fade-in duration-300">
-             <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.dataSourcesTitle}</h2>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <div className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:border-green-500 transition-colors`}>
-                    <h3 className={`text-lg font-bold ${THEME.colors.textMain} text-green-400`}>{t.googleSheetLabel}</h3>
-                    <p className={`text-xs ${THEME.colors.textSecondary} mb-4`}>Stores all survey responses</p>
-                    <button className={`${THEME.colors.buttonSecondary} w-full`}>{t.openSheetButton}</button>
-                </div>
-                <div className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:border-blue-500 transition-colors`}>
-                    <h3 className={`text-lg font-bold ${THEME.colors.textMain} text-blue-400`}>{t.googleDriveLabel}</h3>
-                    <p className={`text-xs ${THEME.colors.textSecondary} mb-4`}>Stores uploaded photos</p>
-                    <button className={`${THEME.colors.buttonSecondary} w-full`}>{t.openDriveButton}</button>
-                </div>
-             </div>
-        </div>
-    );
-};
-
-// --- REUSED COMPONENTS (CampaignSuite, Survey) from original file ---
-// (Included here for completeness of the file, assuming Survey and CampaignSuite logic remains same as previous iteration)
-const CampaignSuite: React.FC<{ companyData: Company[], onCompanyChange: (id: string) => void, initialCompanyId: string }> = ({ companyData, onCompanyChange, initialCompanyId }) => {
-    const [selectedCompany, setSelectedCompany] = useState<Company | null>(companyData.find(c => c.id === initialCompanyId) || companyData[0] || null);
-    const surveyUrl = useMemo(() => selectedCompany ? `#/survey/${selectedCompany.id}` : '#/', [selectedCompany]);
-
-    const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const company = companyData.find(c => c.id === e.target.value) || null;
-        setSelectedCompany(company);
-        if (company) onCompanyChange(company.id);
-    };
-    
-    return (
-        <div className={`${THEME.colors.surface} p-6 rounded-lg shadow-2xl`}>
-            <h2 className={`text-3xl font-bold ${THEME.colors.textMain} mb-2`}>{BRANDING.assistantName}</h2>
-            <div className="mb-8">
-                <label className={`block text-sm font-medium ${THEME.colors.textMain} mb-2`}>Select Target Company:</label>
-                <select value={selectedCompany?.id || ''} onChange={handleCompanyChange} className={`w-full ${THEME.colors.inputBg} ${THEME.colors.textMain} p-3 border ${THEME.colors.inputBorder} rounded-md focus:outline-none focus:ring-2 ${THEME.colors.inputFocus} ${THEME.effects.glow}`}>
-                    {companyData.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-            </div>
-            <div className={`${THEME.colors.background} p-8 rounded-lg flex flex-col items-center gap-4`}>
-                 <a href={surveyUrl} onClick={handleNav} className={`block w-full max-w-md ${THEME.colors.background} text-platinum font-bold py-4 px-6 rounded-md text-lg text-center hover:-translate-y-1 ${THEME.effects.glow}`}>
-                    Service/ Repair/ Renovation Assistant
-                </a>
-                 <a href="#dashboard" onClick={handleNav} className={`text-sm ${THEME.colors.textSecondary} hover:${THEME.colors.textHighlight} flex items-center gap-2 mt-4`}>
-                    <LockClosedIcon className="h-4 w-4" /> Client Portal Login
-                </a>
-            </div>
-        </div>
-    );
-};
-
-const Survey: React.FC<{ companyId: string, companyData: Company[], scriptUrl: string, embedded?: boolean, onSuccess?: () => void }> = ({ companyId, companyData, scriptUrl, embedded = false, onSuccess }) => {
-    // ... (Survey Component implementation remains identical to previous version, ensuring photos uploads work)
-    // For brevity in this XML block, I am keeping the logic consistent with the previous successful iteration.
-    const [lang, setLang] = useState<'en' | 'es'>('en');
-    const t = useMemo(() => translations[lang], [lang]);
-    const company = useMemo(() => companyData.find(c => c.id === companyId) || companyData[0], [companyId, companyData]);
-    const [formData, setFormData] = useState<SurveyData>({
-        propertyId: '', firstName: '', lastName: '', title: '', phone: '', email: '', unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
-    });
-    const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files?.length) return;
-        const files = Array.from(e.target.files);
-        const newAttachments = [];
-        for (const file of files) {
-            const base64 = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.readAsDataURL(file);
-            });
-            newAttachments.push({ name: file.name, type: file.type, data: base64 });
-        }
-        setFormData(prev => ({ ...prev, attachments: [...(prev.attachments || []), ...newAttachments] }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setStatus('submitting');
-        const selectedProperty = company.properties.find(p => p.id === formData.propertyId);
-        const payload = { ...formData, propertyName: selectedProperty?.name || 'Unknown', propertyAddress: selectedProperty?.address || 'Unknown' };
-        try {
-            await submitSurveyData(scriptUrl, payload);
-            setStatus('success');
-        } catch (error) {
-            setStatus('error');
-        }
-    };
-
-    if (status === 'success') {
-         return (
-            <div className={`${THEME.colors.surface} p-8 rounded-lg text-center`}>
-                <h2 className={`text-3xl font-bold ${THEME.colors.textHighlight} mb-4`}>{t.submitSuccessTitle}</h2>
-                {formData.attachments && formData.attachments.length > 0 && (
-                    <div className={`mt-4 inline-flex items-center gap-2 ${THEME.colors.background} border ${THEME.colors.borderHighlight} px-4 py-2 rounded-full text-sm`}>
-                        <CloudArrowUpIcon className="h-4 w-4" /> <span>{t.photosUploadedBadge}</span>
-                    </div>
-                )}
-                <div className="flex gap-4 justify-center mt-8">
-                    {onSuccess ? 
-                        <button onClick={() => { setStatus('idle'); onSuccess(); }} className={`${THEME.colors.buttonPrimary} py-3 px-6 rounded-md font-bold`}>Return to Overview</button> :
-                        <button onClick={() => setStatus('idle')} className={`${THEME.colors.buttonSecondary} py-3 px-6 rounded-md font-bold`}>Submit Another</button>
-                    }
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className={`${THEME.colors.surface} rounded-lg ${!embedded ? `p-6 ${THEME.effects.glow}` : ''}`}>
-             <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-4`}>{t.surveyTitle}</h2>
-             <form onSubmit={handleSubmit} className="space-y-6">
-                <select name="propertyId" value={formData.propertyId} onChange={e => setFormData({...formData, propertyId: e.target.value})} className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded`}>
-                    <option value="">{t.propertySelectPlaceholder}</option>
-                    {company.properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <div className="grid md:grid-cols-2 gap-4">
-                    <input type="text" placeholder={t.firstNameLabel} value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded`} required />
-                    <input type="text" placeholder={t.lastNameLabel} value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded`} required />
-                </div>
-                <input type="tel" placeholder={t.phoneLabel} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded`} required />
-                <input type="email" placeholder={t.emailLabel} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded`} required />
-                
-                {/* Simplified fields for brevity in this specific XML output, keeping core functionality */}
-                <input type="text" placeholder={t.unitInfoLabel} value={formData.unitInfo} onChange={e => setFormData({...formData, unitInfo: e.target.value})} className={`w-full ${THEME.colors.inputBg} p-2 border ${THEME.colors.inputBorder} rounded`} required />
-                
-                 {/* Photo Upload */}
-                 <div className={`border-2 border-dashed ${THEME.colors.borderSubtle} rounded p-4 text-center cursor-pointer`} onClick={() => fileInputRef.current?.click()}>
-                    <input type="file" ref={fileInputRef} hidden multiple accept="image/*" onChange={handlePhotoUpload} />
-                    <CloudArrowUpIcon className="h-8 w-8 mx-auto text-slate" />
-                    <p className="text-sm text-slate">{t.dragDropText}</p>
-                 </div>
-                 {formData.attachments && <div className="text-xs text-slate">{formData.attachments.length} photos selected</div>}
-
-                <button type="submit" disabled={status === 'submitting'} className={`w-full ${THEME.colors.buttonPrimary} py-3 rounded font-bold`}>
-                    {status === 'submitting' ? <LoadingSpinner /> : t.submitButton}
-                </button>
-             </form>
-        </div>
-    );
+    </ErrorBoundary>
+  );
 }
 
 export default App;
