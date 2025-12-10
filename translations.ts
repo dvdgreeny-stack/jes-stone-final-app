@@ -99,6 +99,8 @@ export const translations = {
     companyPortalSubtitle: "Internal Administration",
     dataSourcesTitle: "Connected Data Sources",
     dataSourcesSubtitle: "Direct access to backend files.",
+    systemStatusTitle: "System Status", // NEW
+    testChatButton: "Test Chat Connection", // NEW
     googleSheetLabel: "Responses Database",
     googleDriveLabel: "Photo Repository",
     openSheetButton: "Open Google Sheet",
@@ -232,6 +234,8 @@ export const translations = {
     companyPortalSubtitle: "Administración Interna",
     dataSourcesTitle: "Fuentes de Datos Conectadas",
     dataSourcesSubtitle: "Acceso directo a archivos backend.",
+    systemStatusTitle: "Estado del Sistema",
+    testChatButton: "Probar Conexión de Chat",
     googleSheetLabel: "Base de Datos de Respuestas",
     googleDriveLabel: "Repositorio de Fotos",
     openSheetButton: "Abrir Hoja de Google",

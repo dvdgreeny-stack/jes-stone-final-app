@@ -6,7 +6,10 @@ import type { Company, SurveyData } from '../types';
  * @returns A promise that resolves to an array of Company objects.
  */
 export async function fetchCompanyData(apiUrl: string): Promise<Company[]> {
-  const response = await fetch(apiUrl, {
+  // Add cache buster to prevent cached responses
+  const urlWithCacheBuster = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+
+  const response = await fetch(urlWithCacheBuster, {
     method: 'POST',
     // Using text/plain is a robust workaround for Google Apps Script CORS issues.
     // The script on the other end is designed to handle this.
@@ -16,6 +19,7 @@ export async function fetchCompanyData(apiUrl: string): Promise<Company[]> {
     body: JSON.stringify({ action: 'getCompanyData' }),
     redirect: 'follow', // Follow Google's 302 redirects
     credentials: 'omit', // Prevent sending cookies to avoid auth popup issues
+    referrerPolicy: 'no-referrer', // CRITICAL: Prevents strict-origin-when-cross-origin blocks
   });
 
   if (!response.ok) {
@@ -48,7 +52,10 @@ export async function fetchCompanyData(apiUrl: string): Promise<Company[]> {
  * @returns A promise that resolves when the submission is successful.
  */
 export async function submitSurveyData(apiUrl: string, data: SurveyData): Promise<void> {
-  const response = await fetch(apiUrl, {
+  // Add cache buster to prevent cached responses
+  const urlWithCacheBuster = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+
+  const response = await fetch(urlWithCacheBuster, {
     method: 'POST',
      // Using text/plain is a robust workaround for Google Apps Script CORS issues.
     headers: {
@@ -57,6 +64,7 @@ export async function submitSurveyData(apiUrl: string, data: SurveyData): Promis
     body: JSON.stringify({ action: 'submitSurveyData', payload: data }),
     redirect: 'follow',
     credentials: 'omit',
+    referrerPolicy: 'no-referrer', // CRITICAL: Prevents strict-origin-when-cross-origin blocks
   });
 
   if (!response.ok) {
@@ -78,4 +86,26 @@ export async function submitSurveyData(apiUrl: string, data: SurveyData): Promis
   if (!result.success) {
     throw new Error(result.error || 'The API script returned an error during submission.');
   }
+}
+
+/**
+ * Sends a test ping to the Google Chat via Apps Script.
+ * @param apiUrl The URL of the deployed Google Apps Script web app.
+ */
+export async function sendTestChat(apiUrl: string): Promise<void> {
+    const urlWithCacheBuster = `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+    const response = await fetch(urlWithCacheBuster, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'testChat' }),
+        redirect: 'follow',
+        credentials: 'omit',
+        referrerPolicy: 'no-referrer',
+    });
+
+    if (!response.ok) throw new Error("Network Error");
+    
+    const text = await response.text();
+    const result = JSON.parse(text);
+    if (!result.success) throw new Error(result.error);
 }

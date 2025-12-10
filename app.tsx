@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
-import { fetchCompanyData, submitSurveyData } from './services/apiService';
+import { fetchCompanyData, submitSurveyData, sendTestChat } from './services/apiService';
 import { translations } from './translations';
 import { BRANDING } from './branding';
 import { THEME } from './theme';
@@ -613,6 +612,18 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = (
 const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = ({ user, onLogout }) => {
     const t = translations['en'];
     const [activeTab, setActiveTab] = useState('overview');
+    const [testStatus, setTestStatus] = useState<string>('');
+
+    const handleTestChat = async () => {
+        setTestStatus('Sending ping...');
+        try {
+            await sendTestChat(BRANDING.defaultApiUrl);
+            setTestStatus('Success! Check Google Chat.');
+            setTimeout(() => setTestStatus(''), 5000);
+        } catch (e) {
+            setTestStatus('Failed. Check console.');
+        }
+    };
 
     return (
         <div className={`min-h-screen ${THEME.colors.background} flex`}>
@@ -646,7 +657,7 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = 
                  {activeTab === 'overview' && (
                      <div className="animate-in fade-in duration-300">
                          <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-8`}>Global Overview</h1>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                              <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
                                  <h3 className="text-bright-cyan font-bold mb-2">Total Active Projects</h3>
                                  <p className="text-5xl font-bold text-white">15</p>
@@ -654,6 +665,18 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = 
                              <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
                                  <h3 className="text-bright-pink font-bold mb-2">Pending Estimates</h3>
                                  <p className="text-5xl font-bold text-white">4</p>
+                             </div>
+                             {/* SYSTEM STATUS CARD */}
+                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                 <h3 className="text-white font-bold mb-2">{t.systemStatusTitle}</h3>
+                                 <div className="flex items-center gap-2 mb-4">
+                                     <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
+                                     <span className="text-sm text-slate">API Online</span>
+                                 </div>
+                                 <button onClick={handleTestChat} className="text-xs bg-navy border border-bright-cyan text-bright-cyan px-3 py-2 rounded hover:bg-bright-cyan/10 transition-colors w-full">
+                                     {t.testChatButton}
+                                 </button>
+                                 {testStatus && <p className="text-xs mt-2 text-center text-bright-cyan">{testStatus}</p>}
                              </div>
                          </div>
                      </div>
@@ -735,7 +758,7 @@ const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string
 
                 <div className="mt-8 pt-8 border-t border-white/5 text-xs text-slate">
                     <p className="mb-2 font-bold opacity-50">Demo Codes:</p>
-                    <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('ADMIN')}>ADMIN</span> (Internal)</p>
+                    <p className="mb-2"><span className="text-bright-cyan font-bold cursor-pointer hover:underline text-sm border border-bright-cyan/30 px-2 py-1 rounded bg-navy" onClick={() => setCode('ADMIN')}>ADMIN</span> <span className="ml-2">(Jes Stone Internal)</span></p>
                     <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('PARKPLACE')}>PARKPLACE</span> (Property)</p>
                     <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('REGION1')}>REGION1</span> (Regional)</p>
                     
