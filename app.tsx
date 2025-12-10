@@ -56,7 +56,18 @@ const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowe
     'ADMIN': { role: 'internal_admin', companyId: 'internal', allowedPropertyIds: [] },
 
     // Fallback Demo
-    'DEMO': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] }, 
+    'DEMO': { 
+        role: 'site_manager', 
+        companyId: 'knightvest', 
+        allowedPropertyIds: ['kv-1'],
+        profile: {
+            firstName: 'Demo',
+            lastName: 'User',
+            title: 'Site Manager',
+            email: 'demo@example.com',
+            phone: '555-0123'
+        }
+    }, 
 };
 
 // --- ERROR BOUNDARY COMPONENT ---
@@ -138,10 +149,10 @@ const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle,
                         <JesStoneLogo className="h-10 w-auto" />
                     )}
                     <div className="flex flex-col">
-                        <span className={`text-lg font-bold ${THEME.colors.textMain} tracking-wider leading-tight`}>
+                        <span className={`text-lg font-bold ${THEME.colors.textMain} tracking-wider leading-tight uppercase`}>
                             {customTitle || BRANDING.companyName}
                         </span>
-                        <span className={`text-sm ${THEME.colors.textSecondary} font-normal`}>
+                        <span className={`text-sm ${THEME.colors.textHighlight} font-medium`}>
                             {customSubtitle || BRANDING.companySubtitle}
                         </span>
                     </div>
@@ -200,10 +211,18 @@ interface SurveyProps {
 const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang }) => {
     const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
-    const [formData, setFormData] = useState<SurveyData>({
-        propertyId: '', firstName: '', lastName: '', title: '', phone: '', email: '',
+    
+    // Initialize form data with user profile if available, otherwise empty
+    const [formData, setFormData] = useState<SurveyData>(() => ({
+        propertyId: '', 
+        firstName: userProfile?.firstName || '', 
+        lastName: userProfile?.lastName || '', 
+        title: userProfile?.title || '', 
+        phone: userProfile?.phone || '', 
+        email: userProfile?.email || '',
         unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
-    });
+    }));
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
@@ -217,9 +236,9 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         }
     }, [companies]);
 
-    // Auto-fill user profile data if available
+    // Force update if userProfile changes (e.g. login after initial load)
     useEffect(() => {
-        if (userProfile && !formData.firstName) {
+        if (userProfile) {
             setFormData(prev => ({
                 ...prev,
                 firstName: userProfile.firstName,
@@ -229,7 +248,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 phone: userProfile.phone
             }));
         }
-    }, [userProfile, formData.firstName]);
+    }, [userProfile]);
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
     
