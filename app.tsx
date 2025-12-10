@@ -1,23 +1,57 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData } from './services/apiService';
 import { translations } from './translations';
 import { BRANDING } from './branding';
 import { THEME } from './theme';
-import type { Company, SurveyData, UserSession, UserRole } from './types';
+import type { Company, SurveyData, UserSession, UserRole, UserProfile } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon } from './components/icons';
 import { EstimatingModule } from './components/EstimatingModule';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
 // --- MOCK ACCESS DATABASE ---
-const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowedPropertyIds: string[] }> = {
+const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowedPropertyIds: string[], profile?: UserProfile }> = {
     // Single Property Access (Site Manager)
-    'PARKPLACE': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1'] },
-    'CANYON': { role: 'site_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-2'] },
+    'PARKPLACE': { 
+        role: 'site_manager', 
+        companyId: 'knightvest', 
+        allowedPropertyIds: ['kv-1'],
+        profile: {
+            firstName: 'Sarah',
+            lastName: 'Connor',
+            title: 'Property Manager',
+            email: 'manager@parkplace.com',
+            phone: '214-555-0199'
+        }
+    },
+    'CANYON': { 
+        role: 'site_manager', 
+        companyId: 'knightvest', 
+        allowedPropertyIds: ['kv-2'],
+        profile: {
+            firstName: 'Mike',
+            lastName: 'Ross',
+            title: 'Maintenance Lead',
+            email: 'maint@canyoncreek.com',
+            phone: '214-555-0200'
+        }
+    },
 
     // Regional Manager Demo (Access to both properties)
-    'REGION1': { role: 'regional_manager', companyId: 'knightvest', allowedPropertyIds: ['kv-1', 'kv-2'] },
+    'REGION1': { 
+        role: 'regional_manager', 
+        companyId: 'knightvest', 
+        allowedPropertyIds: ['kv-1', 'kv-2'],
+        profile: {
+            firstName: 'John',
+            lastName: 'Smith',
+            title: 'Regional Director',
+            email: 'jsmith@knightvest.com',
+            phone: '214-555-9999'
+        }
+    },
     
     // Internal Admin (Company Portal)
     'ADMIN': { role: 'internal_admin', companyId: 'internal', allowedPropertyIds: [] },
@@ -140,9 +174,10 @@ interface SurveyProps {
     companies: Company[];
     isInternal?: boolean;
     embedded?: boolean;
+    userProfile?: UserProfile;
 }
 
-const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded }) => {
+const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile }) => {
     const t = translations['en'];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [formData, setFormData] = useState<SurveyData>({
@@ -161,6 +196,20 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded }) => {
             setSelectedCompanyId(companies[0].id);
         }
     }, [companies]);
+
+    // Auto-fill user profile data if available
+    useEffect(() => {
+        if (userProfile) {
+            setFormData(prev => ({
+                ...prev,
+                firstName: userProfile.firstName,
+                lastName: userProfile.lastName,
+                title: userProfile.title,
+                email: userProfile.email,
+                phone: userProfile.phone
+            }));
+        }
+    }, [userProfile]);
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
     
@@ -260,6 +309,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded }) => {
         setSubmissionStatus('idle');
         setFormData(prev => ({
             ...prev,
+            // Keep contact info populated if userProfile exists, otherwise clear
+            firstName: userProfile?.firstName || '',
+            lastName: userProfile?.lastName || '',
+            title: userProfile?.title || '',
+            phone: userProfile?.phone || '',
+            email: userProfile?.email || '',
             unitInfo: '', services: [], otherService: '', timeline: '', notes: '', attachments: []
         }));
     };
@@ -468,7 +523,9 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = (
                 <div className="p-6 border-b border-white/5">
                     <h2 className={`text-xl font-bold ${THEME.colors.textMain} tracking-wider`}>{t.dashboardLoginTitle}</h2>
                     <p className={`text-xs ${THEME.colors.textHighlight} mt-1 truncate`}>{user.company.name}</p>
-                    <p className="text-[10px] text-slate uppercase tracking-widest mt-1">{t.roleSiteManager}</p>
+                    <p className="text-[10px] text-slate uppercase tracking-widest mt-1">
+                        {user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : t.roleSiteManager}
+                    </p>
                 </div>
                 <nav className="flex-1 p-4 space-y-2">
                     {[
@@ -497,7 +554,9 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = (
                 {activeTab === 'overview' && (
                     <div className="animate-in fade-in duration-300">
                         <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-2`}>{t.tabOverview}</h1>
-                        <p className={`${THEME.colors.textSecondary} mb-8`}>Welcome back. Here is what is happening at <span className="text-white font-bold">{user.company.name}</span>.</p>
+                        <p className={`${THEME.colors.textSecondary} mb-8`}>
+                            Welcome back, <span className="text-white font-bold">{user.profile?.firstName || 'Manager'}</span>. Here is what is happening at <span className="text-white font-bold">{user.company.name}</span>.
+                        </p>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
                                 <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsActive}</h3>
@@ -517,7 +576,12 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void }> = (
 
                 {activeTab === 'request' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <Survey companies={[user.company]} isInternal={false} embedded />
+                        <Survey 
+                            companies={[user.company]} 
+                            isInternal={false} 
+                            embedded 
+                            userProfile={user.profile} 
+                        />
                     </div>
                 )}
 
@@ -792,6 +856,7 @@ function App() {
           const session: UserSession = {
               role: access.role,
               allowedPropertyIds: access.allowedPropertyIds,
+              profile: access.profile,
               company: {
                   id: access.companyId,
                   // Simulate fetching company name based on ID (In real app this comes from API)

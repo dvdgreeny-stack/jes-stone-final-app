@@ -11,6 +11,14 @@ export interface Company {
   properties: Property[];
 }
 
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  title: string;
+  email: string;
+  phone: string;
+}
+
 export interface SurveyData {
   propertyId: string;
   propertyName?: string;
@@ -39,4 +47,5 @@ export interface UserSession {
   company: Company;
   role: UserRole;
   allowedPropertyIds: string[]; // If empty, user has access to ALL properties (Executive)
+  profile?: UserProfile;
 }
