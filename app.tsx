@@ -139,28 +139,32 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle, lang, setLang }) => {
     const t = translations[lang];
+    // Logic: If customTitle is provided (from Property selection), use it. Otherwise default to Branding.
+    const title = customTitle || BRANDING.companyName;
+    const subtitle = customSubtitle || BRANDING.companySubtitle;
+
     return (
-        <header className={`${THEME.colors.surface}/80 backdrop-blur-sm sticky top-0 z-20 shadow-lg`}>
+        <header className={`${THEME.colors.surface}/90 backdrop-blur-md sticky top-0 z-20 shadow-lg border-b ${THEME.colors.borderSubtle}`}>
             <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                <a href={surveyUrl || "#/"} onClick={handleNav} className="flex items-center gap-3">
+                <a href={surveyUrl || "#/"} onClick={handleNav} className="flex items-center gap-4 group">
                     {BRANDING.logoUrl ? (
                         <img src={BRANDING.logoUrl} alt={`${BRANDING.companyName} Logo`} className="h-12 w-auto object-contain" />
                     ) : (
-                        <JesStoneLogo className="h-10 w-auto" />
+                        <JesStoneLogo className="h-10 w-auto group-hover:scale-105 transition-transform" />
                     )}
                     <div className="flex flex-col">
-                        <span className={`text-lg font-bold ${THEME.colors.textMain} tracking-wider leading-tight uppercase`}>
-                            {customTitle || BRANDING.companyName}
+                        <span className={`text-xl font-extrabold ${THEME.colors.textMain} tracking-widest leading-none uppercase ${THEME.effects.glowText}`}>
+                            {title}
                         </span>
-                        <span className={`text-sm ${THEME.colors.textHighlight} font-medium`}>
-                            {customSubtitle || BRANDING.companySubtitle}
+                        <span className={`text-xs ${THEME.colors.textHighlight} font-bold tracking-widest uppercase mt-1`}>
+                            {subtitle}
                         </span>
                     </div>
                 </a>
                 
                 <button
                     onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
-                    className={`flex items-center gap-2 px-3 py-1 rounded-full border ${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight} hover:border-bright-cyan transition-colors`}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight} hover:border-bright-cyan transition-all`}
                 >
                     <GlobeAltIcon className={`h-4 w-4 ${THEME.colors.textHighlight}`} />
                     <span className={`text-xs font-bold ${THEME.colors.textMain}`}>{t.languageToggle}</span>
@@ -174,7 +178,7 @@ const Footer: React.FC = () => (
     <footer className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t ${THEME.colors.borderSubtle} text-center`}>
         <div className="mb-6">
             <h3 className={`text-sm font-bold ${THEME.colors.textSecondary} tracking-widest uppercase mb-4`}>Internal Team Contacts</h3>
-            <div className={`inline-block ${THEME.colors.surface} p-4 rounded-lg text-left`}>
+            <div className={`inline-block ${THEME.colors.surface} p-4 rounded-lg text-left shadow-lg border border-white/5`}>
                 {BRANDING.teamContacts.map((contact, idx) => (
                     <div key={idx}>
                         <p className={`font-bold ${THEME.colors.textMain}`}>{contact.name}</p>
@@ -199,29 +203,26 @@ const Footer: React.FC = () => (
     </footer>
 );
 
-// --- Survey Component (Restored Full Functionality) ---
+// --- Survey Component ---
 interface SurveyProps {
     companies: Company[];
     isInternal?: boolean;
     embedded?: boolean;
     userProfile?: UserProfile;
     lang: 'en' | 'es';
+    onSelectionChange?: (propertyName: string, companyName: string) => void;
 }
 
-const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang }) => {
+const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange }) => {
     const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     
-    // Initialize form data with user profile if available, otherwise empty
-    const [formData, setFormData] = useState<SurveyData>(() => ({
+    // Initialize form data
+    const [formData, setFormData] = useState<SurveyData>({
         propertyId: '', 
-        firstName: userProfile?.firstName || '', 
-        lastName: userProfile?.lastName || '', 
-        title: userProfile?.title || '', 
-        phone: userProfile?.phone || '', 
-        email: userProfile?.email || '',
+        firstName: '', lastName: '', title: '', phone: '', email: '',
         unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
-    }));
+    });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -229,14 +230,14 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const [dragActive, setDragActive] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Auto-select company if only one (e.g., from Access Code)
+    // 1. Auto-select company if only one
     useEffect(() => {
         if (companies.length === 1) {
             setSelectedCompanyId(companies[0].id);
         }
     }, [companies]);
 
-    // Force update if userProfile changes (e.g. login after initial load)
+    // 2. Autofill Profile Data (Force update whenever userProfile changes)
     useEffect(() => {
         if (userProfile) {
             setFormData(prev => ({
@@ -251,9 +252,18 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     }, [userProfile]);
 
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
-    
-    // Safety check for properties
     const availableProperties = selectedCompany?.properties || [];
+
+    // Notify parent when property is selected to update branding
+    useEffect(() => {
+        if (formData.propertyId && selectedCompany) {
+            const prop = availableProperties.find(p => p.id === formData.propertyId);
+            if (prop && onSelectionChange) {
+                onSelectionChange(prop.name, selectedCompany.name);
+            }
+        }
+    }, [formData.propertyId, selectedCompany, availableProperties, onSelectionChange]);
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -305,7 +315,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                          type: file.type,
                          data: e.target.result as string
                      });
-                     // Update state only after reading (simple batch handling)
                      if (newAttachments.length === files.length) {
                          setFormData(prev => ({ 
                              ...prev, 
@@ -322,7 +331,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         e.preventDefault();
         setIsSubmitting(true);
         
-        // Find property details
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
         const payload: SurveyData = {
@@ -334,7 +342,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         try {
             await submitSurveyData(BRANDING.defaultApiUrl, payload);
             setSubmissionStatus('success');
-            // Cache form data for safety/recovery if needed
             localStorage.setItem('lastSurvey', JSON.stringify(payload));
         } catch (error) {
             console.error(error);
@@ -346,16 +353,18 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     const handleReset = () => {
         setSubmissionStatus('idle');
-        setFormData(prev => ({
-            ...prev,
-            // Keep contact info populated if userProfile exists, otherwise clear
+        setFormData({
+            propertyId: '',
+            // Re-apply profile data on reset
             firstName: userProfile?.firstName || '',
             lastName: userProfile?.lastName || '',
             title: userProfile?.title || '',
             phone: userProfile?.phone || '',
             email: userProfile?.email || '',
-            unitInfo: '', services: [], otherService: '', timeline: '', notes: '', attachments: []
-        }));
+            unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
+        });
+        // Reset Header
+        if (onSelectionChange) onSelectionChange('', '');
     };
 
     if (submissionStatus === 'success') {
@@ -406,14 +415,19 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         );
     }
 
+    // Dynamic Header Text logic (If logged in, show Company Name)
+    const headerTitle = selectedCompany?.name ? `For ${selectedCompany.name} Properties` : t.surveyTitle;
+
     return (
         <form onSubmit={handleSubmit} className={`w-full max-w-4xl mx-auto ${embedded ? '' : 'mt-8 p-6 md:p-10'} ${THEME.colors.surface} rounded-xl ${THEME.effects.glow} border ${THEME.colors.borderSubtle}`}>
             {/* Header */}
             <div className="mb-8 border-b border-white/5 pb-4">
-                <h2 className={`text-2xl font-bold ${THEME.colors.textMain}`}>{t.surveyTitle}</h2>
-                <p className={`${THEME.colors.textSecondary}`}>
-                     {t.surveySubtitle} <span className={`${THEME.colors.textHighlight} font-bold`}>{selectedCompany?.name || '...'}</span> {t.surveySubtitleProperties}
-                </p>
+                <h2 className={`text-2xl font-bold ${THEME.colors.textMain}`}>{headerTitle}</h2>
+                {selectedCompany?.name && (
+                     <p className={`${THEME.colors.textSecondary} text-sm mt-1`}>
+                        Please fill out the details below for your service request.
+                     </p>
+                )}
             </div>
 
             {/* Property Selector */}
@@ -549,27 +563,41 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 };
 
 // --- Client Dashboard (For Property Managers) ---
-// STRICTLY NO ESTIMATING MODULE
 const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang: 'en' | 'es'; setLang: (l: 'en' | 'es') => void }> = ({ user, onLogout, lang, setLang }) => {
     const t = translations[lang];
     const [activeTab, setActiveTab] = useState('overview');
     
-    // Safety: Ensure we have a valid company object
-    if (!user.company) {
-        return <div className="p-10 text-center text-white">Loading Portal Data...</div>;
-    }
+    // Header State lifted for dashboard
+    const [headerTitle, setHeaderTitle] = useState('');
+    const [headerSubtitle, setHeaderSubtitle] = useState('');
 
-    const firstProp = user.company.properties[0];
-    const dynamicTitle = firstProp ? firstProp.name : user.company.name;
-    const dynamicSubtitle = firstProp ? user.company.name : '';
+    useEffect(() => {
+        if (user.company.properties.length > 0) {
+            setHeaderTitle(user.company.properties[0].name);
+            setHeaderSubtitle(user.company.name);
+        } else {
+            setHeaderTitle(user.company.name);
+            setHeaderSubtitle('Client Portal');
+        }
+    }, [user]);
+
+    // Update Header when Survey selects a property
+    const handleSurveySelection = (propName: string, compName: string) => {
+        if (propName) {
+            setHeaderTitle(propName);
+            setHeaderSubtitle(compName);
+        }
+    };
+
+    if (!user.company) return <div className="p-10 text-center text-white">Loading Portal Data...</div>;
 
     return (
         <div className={`min-h-screen ${THEME.colors.background} flex flex-col`}>
              <Header 
                 lang={lang} 
                 setLang={setLang} 
-                customTitle={dynamicTitle}
-                customSubtitle={dynamicSubtitle}
+                customTitle={headerTitle}
+                customSubtitle={headerSubtitle}
             />
             <div className="flex flex-1">
                 {/* Sidebar */}
@@ -585,7 +613,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                         {[
                             { id: 'overview', label: t.tabOverview, icon: DashboardIcon },
                             { id: 'request', label: t.tabNewRequest, icon: ClipboardListIcon },
-                            { id: 'projects', label: t.tabProjects, icon: BuildingBlocksIcon }, // Client Mode PM
+                            { id: 'projects', label: t.tabProjects, icon: BuildingBlocksIcon }, 
                             { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
                             { id: 'history', label: t.tabHistory, icon: ClockIcon },
                         ].map(item => (
@@ -636,6 +664,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                 embedded 
                                 userProfile={user.profile} 
                                 lang={lang}
+                                onSelectionChange={handleSurveySelection}
                             />
                         </div>
                     )}
@@ -665,7 +694,6 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
 };
 
 // --- Company Dashboard (For Jes Stone Admins) ---
-// FULL ACCESS INCLUDING ESTIMATING & DATA SOURCES
 const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang: 'en' | 'es'; setLang: (l: 'en' | 'es') => void }> = ({ user, onLogout, lang, setLang }) => {
     const t = translations[lang];
     const [activeTab, setActiveTab] = useState('overview');
@@ -700,7 +728,7 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                         {[
                             { id: 'overview', label: 'Command Center', icon: DashboardIcon },
                             { id: 'data', label: t.tabDataSources, icon: ChartBarIcon },
-                            { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon }, // ADMIN ONLY
+                            { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon }, 
                             { id: 'projects', label: 'Global Projects', icon: BuildingBlocksIcon },
                         ].map(item => (
                             <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonPrimary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
@@ -930,6 +958,10 @@ function App() {
   
   // Routes: '' (Public Survey), '#dashboard' (Client Portal)
   const [route, setRoute] = useState(window.location.hash);
+  
+  // Lifted state for dynamic header on public page
+  const [heroText, setHeroText] = useState('');
+  const [heroSubText, setHeroSubText] = useState('');
 
   useEffect(() => {
       const handleHashChange = () => setRoute(window.location.hash);
@@ -941,16 +973,13 @@ function App() {
   const handleLogin = (code: string) => {
       const access = MOCK_ACCESS_DB[code];
       if (access) {
-          // Construct User Session based on Access Code
           const session: UserSession = {
               role: access.role,
               allowedPropertyIds: access.allowedPropertyIds,
               profile: access.profile,
               company: {
                   id: access.companyId,
-                  // Simulate fetching company name based on ID (In real app this comes from API)
                   name: access.companyId === 'knightvest' ? 'Knightvest' : access.companyId === 'internal' ? 'Jes Stone' : 'Unknown',
-                  // Pre-fill properties for demo codes so dashboard works immediately
                   properties: access.allowedPropertyIds.map(id => {
                       if (id === 'kv-1') return { id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd' };
                       if (id === 'kv-2') return { id: 'kv-2', name: 'Canyon Creek', address: '5000 W Plano Pkwy' };
@@ -968,17 +997,21 @@ function App() {
   const handleLogout = () => {
       setCurrentUser(null);
       window.location.hash = '';
+      setHeroText('');
+      setHeroSubText('');
   };
+  
+  const handlePublicSurveySelection = (propName: string, compName: string) => {
+      setHeroText(propName);
+      setHeroSubText(compName);
+  }
 
   // --- ROUTING LOGIC ---
   
-  // 1. Dashboard Route
   if (route === '#dashboard') {
       if (!currentUser) {
           return <DashboardLogin onLogin={handleLogin} error={loginError} lang={lang} />;
       }
-      
-      // Strict Separation: Admin vs Client
       if (currentUser.role === 'internal_admin') {
           return <CompanyDashboard user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} />;
       } else {
@@ -986,20 +1019,26 @@ function App() {
       }
   }
 
-  // 2. Default Route (Public Landing / Survey)
+  // Public Landing / Survey
   return (
     <ErrorBoundary>
         <div className={`min-h-screen ${THEME.colors.background} font-sans selection:bg-bright-cyan selection:text-navy`}>
-          <Header surveyUrl="#/" lang={lang} setLang={setLang} />
+          <Header 
+            surveyUrl="#/" 
+            lang={lang} 
+            setLang={setLang} 
+            customTitle={heroText}
+            customSubtitle={heroSubText}
+          />
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             {/* Hero Section */}
             <div className="text-center mb-12 animate-in slide-in-from-bottom-8 duration-700">
-                <h1 className={`text-4xl md:text-6xl font-extrabold ${THEME.colors.textMain} mb-4 tracking-tight ${THEME.effects.glowText}`}>
-                    {BRANDING.companyName}
+                <h1 className={`text-4xl md:text-6xl font-extrabold ${THEME.colors.textMain} mb-4 tracking-tight ${THEME.effects.glowText} uppercase`}>
+                    {heroText || BRANDING.companyName}
                 </h1>
                 <p className={`text-xl ${THEME.colors.textHighlight} font-medium tracking-widest uppercase`}>
-                    {BRANDING.companySubtitle}
+                    {heroSubText || BRANDING.companySubtitle}
                 </p>
             </div>
 
@@ -1010,6 +1049,7 @@ function App() {
                         companies={[{id: 'knightvest', name: 'Knightvest', properties: [{id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd'}]}]} 
                         isInternal={false}
                         lang={lang}
+                        onSelectionChange={handlePublicSurveySelection}
                     />
                 </div>
                 

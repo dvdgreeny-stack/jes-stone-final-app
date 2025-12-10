@@ -6,7 +6,7 @@ export const BRANDING = {
     websiteUrl: "https://www.jesstone.net",
     
     // Images (Leave empty string "" to use default SVG placeholders)
-    logoUrl: "", 
+    logoUrl: "https://static.wixstatic.com/media/d78791_1119d8d2b7e54f93bcb2a3136b765488~mv2.png", 
     footerLogoUrl: "", 
 
     // API Configuration
