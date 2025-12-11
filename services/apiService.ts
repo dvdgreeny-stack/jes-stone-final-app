@@ -1,5 +1,5 @@
 
-import type { Company, SurveyData, HistoryEntry } from '../types';
+import type { Company, SurveyData, HistoryEntry, UserSession } from '../types';
 
 export async function fetchCompanyData(apiUrl: string): Promise<Company[]> {
     try {
@@ -16,9 +16,25 @@ export async function fetchCompanyData(apiUrl: string): Promise<Company[]> {
         return result.data;
     } catch (error) {
         console.error("API Error:", error);
-        // Fallback for demo/offline testing if script fails
         return [];
     }
+}
+
+export async function login(apiUrl: string, accessCode: string): Promise<UserSession> {
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        credentials: 'omit',
+        redirect: 'follow',
+        referrerPolicy: 'no-referrer',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ 
+            action: 'login', 
+            payload: { accessCode } 
+        })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Invalid Access Code');
+    return result.session;
 }
 
 export async function submitSurveyData(apiUrl: string, data: SurveyData): Promise<void> {

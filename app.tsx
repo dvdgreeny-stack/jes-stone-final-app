@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
-import { fetchCompanyData, submitSurveyData, sendTestChat, fetchSurveyHistory } from './services/apiService';
+import { fetchCompanyData, submitSurveyData, sendTestChat, fetchSurveyHistory, login } from './services/apiService';
 import { translations } from './translations';
 import { BRANDING } from './branding';
 import { THEME } from './theme';
@@ -10,65 +11,7 @@ import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubb
 import { EstimatingModule } from './components/EstimatingModule';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
-// --- MOCK ACCESS DATABASE ---
-const MOCK_ACCESS_DB: Record<string, { role: UserRole, companyId: string, allowedPropertyIds: string[], profile?: UserProfile }> = {
-    // Single Property Access (Site Manager)
-    'PARKPLACE': { 
-        role: 'site_manager', 
-        companyId: 'knightvest', 
-        allowedPropertyIds: ['kv-1'],
-        profile: {
-            firstName: 'Sarah',
-            lastName: 'Connor',
-            title: 'Property Manager',
-            email: 'manager@parkplace.com',
-            phone: '214-555-0199'
-        }
-    },
-    'CANYON': { 
-        role: 'site_manager', 
-        companyId: 'knightvest', 
-        allowedPropertyIds: ['kv-2'],
-        profile: {
-            firstName: 'Mike',
-            lastName: 'Ross',
-            title: 'Maintenance Lead',
-            email: 'maint@canyoncreek.com',
-            phone: '214-555-0200'
-        }
-    },
-
-    // Regional Manager Demo (Access to both properties)
-    'REGION1': { 
-        role: 'regional_manager', 
-        companyId: 'knightvest', 
-        allowedPropertyIds: ['kv-1', 'kv-2'],
-        profile: {
-            firstName: 'John',
-            lastName: 'Smith',
-            title: 'Regional Director',
-            email: 'jsmith@knightvest.com',
-            phone: '214-555-9999'
-        }
-    },
-    
-    // Internal Admin (Company Portal)
-    'ADMIN': { role: 'internal_admin', companyId: 'internal', allowedPropertyIds: [] },
-
-    // Fallback Demo
-    'DEMO': { 
-        role: 'site_manager', 
-        companyId: 'knightvest', 
-        allowedPropertyIds: ['kv-1'],
-        profile: {
-            firstName: 'Demo',
-            lastName: 'User',
-            title: 'Site Manager',
-            email: 'demo@example.com',
-            phone: '555-0123'
-        }
-    }, 
-};
+// --- MOCK DB REMOVED - NOW USING LIVE SHEET ---
 
 // --- ERROR BOUNDARY COMPONENT ---
 interface ErrorBoundaryProps {
@@ -130,12 +73,9 @@ const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
 
 // --- HELPER: Convert Drive Link to Image Src ---
 const getDirectImageUrl = (url: string) => {
-    // Converts Google Drive Viewer URL to a Direct Image URL for <img> tags
     try {
         if (url.includes('drive.google.com') && url.includes('/d/')) {
-            // Extract ID
             const id = url.split('/d/')[1].split('/')[0];
-            // Use Google's export=view endpoint which acts as an image source
             return `https://drive.google.com/uc?export=view&id=${id}`;
         }
         return url;
@@ -244,7 +184,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     }));
 
     // Effect to forcibly re-apply profile data when component mounts or userProfile changes
-    // This fixes the "Autofill failed" issue by ensuring state syncs even after resets
     useEffect(() => {
         if (userProfile) {
             setFormData(prev => ({
@@ -368,11 +307,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
+        // Sanitize data specifically to prevent Google Chat API from rejecting undefined/null
         const payload: SurveyData = {
             ...formData,
-            // Sanitize string fields to avoid undefined errors in backend
             unitInfo: formData.unitInfo || 'N/A',
             notes: formData.notes || 'N/A',
+            services: formData.services || [],
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address'
         };
@@ -793,11 +733,11 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                                 <span className="font-bold">Services:</span> {entry.services}
                                             </div>
                                             {entry.photos.length > 0 && (
-                                                <div className="flex gap-3">
+                                                <div className="flex gap-3 mt-4">
                                                     {entry.photos.map((url, i) => {
                                                         const directUrl = getDirectImageUrl(url);
                                                         return (
-                                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-16 h-16 rounded overflow-hidden border border-white/20 hover:border-bright-cyan transition-all relative group">
+                                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-white/20 hover:border-bright-cyan transition-all relative group shadow-lg">
                                                                 <img 
                                                                     src={directUrl} 
                                                                     alt="Thumbnail" 
@@ -946,11 +886,14 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
 // --- LOGIN COMPONENT ---
 const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string, lang: 'en' | 'es' }> = ({ onLogin, error, lang }) => {
     const [code, setCode] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const t = translations[lang];
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onLogin(code.toUpperCase());
+        setIsLoading(true);
+        await onLogin(code.toLowerCase()); // Normalize for email prefix check
+        setIsLoading(false);
     };
 
     return (
@@ -976,18 +919,16 @@ const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string
                     {error && <p className="text-bright-pink text-sm font-bold animate-pulse">{error}</p>}
                     <button 
                         type="submit" 
-                        disabled={!code}
-                        className={`w-full py-4 rounded-lg font-bold text-lg transition-all ${!code ? `${THEME.colors.buttonSecondary} opacity-50 cursor-not-allowed` : `${THEME.colors.buttonPrimary} shadow-lg hover:shadow-bright-cyan/25`}`}
+                        disabled={!code || isLoading}
+                        className={`w-full py-4 rounded-lg font-bold text-lg transition-all ${!code || isLoading ? `${THEME.colors.buttonSecondary} opacity-50 cursor-not-allowed` : `${THEME.colors.buttonPrimary} shadow-lg hover:shadow-bright-cyan/25`}`}
                     >
-                        {t.loginButton}
+                        {isLoading ? 'Verifying...' : t.loginButton}
                     </button>
                 </form>
 
                 <div className="mt-8 pt-8 border-t border-white/5 text-xs text-slate">
-                    <p className="mb-2 font-bold opacity-50">Demo Codes:</p>
-                    <p className="mb-2"><span className="text-bright-cyan font-bold cursor-pointer hover:underline text-sm border border-bright-cyan/30 px-2 py-1 rounded bg-navy" onClick={() => setCode('ADMIN')}>ADMIN</span> <span className="ml-2">(Jes Stone Internal)</span></p>
-                    <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('PARKPLACE')}>PARKPLACE</span> (Property)</p>
-                    <p><span className="text-bright-cyan cursor-pointer hover:underline" onClick={() => setCode('REGION1')}>REGION1</span> (Regional)</p>
+                    <p className="mb-2 font-bold opacity-50">Admin Access:</p>
+                    <p className="mb-2"><span className="text-bright-cyan font-bold cursor-pointer hover:underline text-sm border border-bright-cyan/30 px-2 py-1 rounded bg-navy" onClick={() => { setCode('ADMIN'); }}>ADMIN</span> <span className="ml-2">(Jes Stone Internal)</span></p>
                     
                     <button onClick={() => window.location.hash = ''} className="mt-6 text-white hover:underline opacity-50">
                         {t.returnHomeButton}
@@ -1104,26 +1045,20 @@ function App() {
   }, []);
 
   // Handle Login Logic
-  const handleLogin = (code: string) => {
-      const access = MOCK_ACCESS_DB[code];
-      if (access) {
-          const session: UserSession = {
-              role: access.role,
-              allowedPropertyIds: access.allowedPropertyIds,
-              profile: access.profile,
-              company: {
-                  id: access.companyId,
-                  name: access.companyId === 'knightvest' ? 'Knightvest' : access.companyId === 'internal' ? 'Jes Stone' : 'Unknown',
-                  properties: access.allowedPropertyIds.map(id => {
-                      if (id === 'kv-1') return { id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd' };
-                      if (id === 'kv-2') return { id: 'kv-2', name: 'Canyon Creek', address: '5000 W Plano Pkwy' };
-                      return { id, name: 'Unknown Property', address: '' };
-                  })
-              }
-          };
+  const handleLogin = async (code: string) => {
+      setLoginError('');
+      
+      // Special Admin Backdoor
+      if (code === 'ADMIN') {
+          setCurrentUser({ role: 'internal_admin', companyId: 'internal', allowedPropertyIds: [], company: {id: 'internal', name: 'Jes Stone', properties: []} } as any);
+          return;
+      }
+
+      try {
+          // Real API Authentication
+          const session = await login(BRANDING.defaultApiUrl, code);
           setCurrentUser(session);
-          setLoginError('');
-      } else {
+      } catch (e) {
           setLoginError('Invalid Access Code');
       }
   };
