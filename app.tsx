@@ -11,8 +11,6 @@ import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubb
 import { EstimatingModule } from './components/EstimatingModule';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
-// --- MOCK DB REMOVED - NOW USING LIVE SHEET ---
-
 // --- ERROR BOUNDARY COMPONENT ---
 interface ErrorBoundaryProps {
     children: React.ReactNode;
@@ -41,9 +39,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (this.state.hasError) {
       return (
         <div className={`min-h-screen ${THEME.colors.background} flex items-center justify-center p-4`}>
-          <div className={`${THEME.colors.surface} p-8 rounded-lg border ${THEME.colors.borderWarning} text-center max-w-lg shadow-2xl`}>
+          <div className={`${THEME.colors.surface} p-8 rounded-lg border ${THEME.colors.borderWarning} text-center max-w-lg ${THEME.effects.glow}`}>
             <h1 className={`text-2xl font-bold ${THEME.colors.textWarning} mb-4`}>Something went wrong.</h1>
-            <p className="mb-4 text-slate">The application encountered an unexpected error.</p>
+            <p className={`mb-4 ${THEME.colors.textSecondary}`}>The application encountered an unexpected error.</p>
             <button 
                 onClick={() => {
                     window.location.hash = ''; // Reset route
@@ -99,7 +97,7 @@ const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle,
     const subtitle = customSubtitle || BRANDING.companySubtitle;
 
     return (
-        <header className={`${THEME.colors.surface}/90 backdrop-blur-md sticky top-0 z-20 shadow-lg border-b ${THEME.colors.borderSubtle}`}>
+        <header className={`${THEME.colors.surface} bg-opacity-90 backdrop-blur-md sticky top-0 z-20 shadow-sm border-b ${THEME.colors.borderSubtle}`}>
             <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                 <a href={surveyUrl || "#/"} onClick={handleNav} className="flex items-center gap-4 group">
                     {BRANDING.logoUrl ? (
@@ -108,7 +106,7 @@ const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle,
                         <JesStoneLogo className="h-10 w-auto group-hover:scale-105 transition-transform" />
                     )}
                     <div className="flex flex-col">
-                        <span className={`text-xl font-extrabold ${THEME.colors.textMain} tracking-widest leading-none uppercase ${THEME.effects.glowText}`}>
+                        <span className={`text-xl font-extrabold ${THEME.colors.textMain} tracking-widest leading-none uppercase`}>
                             {title}
                         </span>
                         <span className={`text-xs ${THEME.colors.textHighlight} font-bold tracking-widest uppercase mt-1`}>
@@ -119,9 +117,9 @@ const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle,
                 
                 <button
                     onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight} hover:border-bright-cyan transition-all`}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight} hover:border-gold transition-all`}
                 >
-                    <GlobeAltIcon className={`h-4 w-4 ${THEME.colors.textHighlight}`} />
+                    <GlobeAltIcon className={`h-4 w-4 ${THEME.colors.textSecondary}`} />
                     <span className={`text-xs font-bold ${THEME.colors.textMain}`}>{t.languageToggle}</span>
                 </button>
             </nav>
@@ -133,7 +131,7 @@ const Footer: React.FC = () => (
     <footer className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t ${THEME.colors.borderSubtle} text-center`}>
         <div className="mb-6">
             <h3 className={`text-sm font-bold ${THEME.colors.textSecondary} tracking-widest uppercase mb-4`}>Internal Team Contacts</h3>
-            <div className={`inline-block ${THEME.colors.surface} p-4 rounded-lg text-left shadow-lg border border-white/5`}>
+            <div className={`inline-block ${THEME.colors.surface} p-4 rounded-lg text-left shadow-soft border ${THEME.colors.borderSubtle}`}>
                 {BRANDING.teamContacts.map((contact, idx) => (
                     <div key={idx}>
                         <p className={`font-bold ${THEME.colors.textMain}`}>{contact.name}</p>
@@ -143,7 +141,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -172,7 +170,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     
-    // Initialize form data - USE PROFILE DIRECTLY to prevent flash of empty state
+    // Initialize form data
     const [formData, setFormData] = useState<SurveyData>(() => ({
         propertyId: '', 
         firstName: userProfile?.firstName || '', 
@@ -183,7 +181,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
     }));
 
-    // Effect to forcibly re-apply profile data when component mounts or userProfile changes
     useEffect(() => {
         if (userProfile) {
             setFormData(prev => ({
@@ -203,7 +200,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const [dragActive, setDragActive] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 1. Auto-select company if only one
     useEffect(() => {
         if (companies.length === 1) {
             setSelectedCompanyId(companies[0].id);
@@ -213,22 +209,18 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
     const availableProperties = selectedCompany?.properties || [];
 
-    // 2. Auto-select property if only one available
     useEffect(() => {
         if (availableProperties.length === 1) {
              const prop = availableProperties[0];
-             // Only update if not already set to avoid loops
              if (formData.propertyId !== prop.id) {
                  setFormData(prev => ({ ...prev, propertyId: prop.id }));
              }
-             // Trigger header update immediately
              if (onSelectionChange && selectedCompany) {
                  onSelectionChange(prop.name, selectedCompany.name);
              }
         }
     }, [availableProperties, formData.propertyId, selectedCompany, onSelectionChange]);
 
-    // Notify parent when property is manually selected to update branding
     useEffect(() => {
         if (formData.propertyId && selectedCompany) {
             const prop = availableProperties.find(p => p.id === formData.propertyId);
@@ -307,7 +299,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
-        // Sanitize data specifically to prevent Google Chat API from rejecting undefined/null
         const payload: SurveyData = {
             ...formData,
             unitInfo: formData.unitInfo || 'N/A',
@@ -333,7 +324,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         setSubmissionStatus('idle');
         setFormData({
             propertyId: availableProperties.length === 1 ? availableProperties[0].id : '',
-            // Re-apply profile data immediately on reset
             firstName: userProfile?.firstName || '',
             lastName: userProfile?.lastName || '',
             title: userProfile?.title || '',
@@ -346,34 +336,34 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     if (submissionStatus === 'success') {
         const property = availableProperties.find(p => p.id === formData.propertyId);
         return (
-            <div className={`max-w-3xl mx-auto p-8 text-center ${THEME.colors.surface} rounded-xl shadow-2xl border ${THEME.colors.borderHighlight} animate-in zoom-in duration-300 mt-10`}>
+            <div className={`max-w-3xl mx-auto p-8 text-center ${THEME.colors.surface} rounded-xl ${THEME.effects.glow} border ${THEME.colors.borderHighlight} mt-10`}>
                 <div className="flex justify-center mb-6">
-                    <SparklesIcon className="h-16 w-16 text-bright-cyan animate-pulse" />
+                    <SparklesIcon className="h-16 w-16 text-gold animate-pulse" />
                 </div>
-                <h2 className={`text-3xl font-bold ${THEME.colors.textHighlight} mb-4`}>{t.submitSuccessTitle}</h2>
+                <h2 className={`text-3xl font-bold ${THEME.colors.textMain} mb-4`}>{t.submitSuccessTitle}</h2>
                 <p className={`${THEME.colors.textMain} text-lg mb-2`}>
                    {formData.firstName}, {t.submitSuccessMessage1}
                 </p>
-                {property && <p className="text-slate mb-2 font-bold">{property.name}</p>}
+                {property && <p className={`${THEME.colors.textSecondary} mb-2 font-bold`}>{property.name}</p>}
                 <p className={`${THEME.colors.textSecondary} mb-8`}>{t.submitSuccessMessage2}</p>
                 
                 {formData.attachments && formData.attachments.length > 0 && (
-                     <div className="flex justify-center items-center gap-2 mb-8 bg-navy/50 py-2 rounded-full w-fit mx-auto px-6 border border-bright-cyan/30">
-                        <CloudArrowUpIcon className="h-5 w-5 text-bright-cyan" />
-                        <span className="text-bright-cyan text-sm font-bold">{t.photosUploadedBadge}</span>
+                     <div className={`flex justify-center items-center gap-2 mb-8 ${THEME.colors.surfaceHighlight} py-2 rounded-full w-fit mx-auto px-6 border ${THEME.colors.borderSubtle}`}>
+                        <CloudArrowUpIcon className="h-5 w-5 text-gold" />
+                        <span className={`text-gold text-sm font-bold`}>{t.photosUploadedBadge}</span>
                      </div>
                 )}
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button onClick={handleReset} className={`${THEME.colors.buttonSecondary} px-8 py-3 rounded-lg font-bold transition-all`}>
+                    <button onClick={handleReset} className={`${THEME.colors.buttonSecondary} px-8 py-3 rounded-lg`}>
                         {t.submitAnotherButton}
                     </button>
                     {!embedded ? (
-                        <button onClick={() => window.location.hash = '#dashboard'} className={`${THEME.colors.buttonPrimary} px-8 py-3 rounded-lg font-bold shadow-lg hover:shadow-bright-cyan/20 transition-all`}>
+                        <button onClick={() => window.location.hash = '#dashboard'} className={`${THEME.colors.buttonPrimary} px-8 py-3 rounded-lg font-bold shadow-lg`}>
                             {t.enterDashboardButton}
                         </button>
                     ) : (
-                         <button onClick={handleReset} className={`${THEME.colors.buttonPrimary} px-8 py-3 rounded-lg font-bold shadow-lg hover:shadow-bright-cyan/20 transition-all`}>
+                         <button onClick={handleReset} className={`${THEME.colors.buttonPrimary} px-8 py-3 rounded-lg font-bold shadow-lg`}>
                             New Request
                         </button>
                     )}
@@ -385,7 +375,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     if (submissionStatus === 'error') {
         return (
              <div className={`max-w-2xl mx-auto p-8 text-center ${THEME.colors.surface} rounded-xl border ${THEME.colors.borderWarning} mt-10`}>
-                 <XMarkIcon className="h-16 w-16 text-bright-pink mx-auto mb-4" />
+                 <XMarkIcon className="h-16 w-16 text-rose mx-auto mb-4" />
                 <h2 className={`text-2xl font-bold ${THEME.colors.textWarning} mb-2`}>{t.submitErrorTitle}</h2>
                 <p className={`${THEME.colors.textSecondary} mb-6`}>{t.submitErrorMessage1}</p>
                 <button onClick={() => setSubmissionStatus('idle')} className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded font-bold`}>
@@ -395,13 +385,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         );
     }
 
-    // Dynamic Header Text logic (If logged in, show Company Name)
     const formHeader = selectedCompany?.name ? `For ${selectedCompany.name} Properties` : t.surveyTitle;
 
     return (
         <form onSubmit={handleSubmit} className={`w-full max-w-4xl mx-auto ${embedded ? '' : 'mt-8 p-6 md:p-10'} ${THEME.colors.surface} rounded-xl ${THEME.effects.glow} border ${THEME.colors.borderSubtle}`}>
             {/* Header */}
-            <div className="mb-8 border-b border-white/5 pb-4">
+            <div className={`mb-8 border-b ${THEME.colors.borderSubtle} pb-4`}>
                 <h2 className={`text-2xl font-bold ${THEME.colors.textMain}`}>{formHeader}</h2>
                 {selectedCompany?.name && (
                      <p className={`${THEME.colors.textSecondary} text-sm mt-1`}>
@@ -430,8 +419,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             </div>
 
             {/* Contact Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 bg-navy/30 rounded-lg border border-white/5">
-                <h3 className={`col-span-2 text-sm font-bold ${THEME.colors.textHighlight} uppercase border-b border-white/5 pb-2`}>{t.contactInfoLegend}</h3>
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 ${THEME.colors.surfaceHighlight} rounded-lg border ${THEME.colors.borderSubtle}`}>
+                <h3 className={`col-span-2 text-sm font-bold ${THEME.colors.textHighlight} uppercase border-b ${THEME.colors.borderSubtle} pb-2`}>{t.contactInfoLegend}</h3>
                 <input type="text" name="firstName" placeholder={t.firstNameLabel} value={formData.firstName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
                 <input type="text" name="lastName" placeholder={t.lastNameLabel} value={formData.lastName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
                 <input type="tel" name="phone" placeholder={t.phoneLabel} value={formData.phone} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
@@ -440,12 +429,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                      <p className={`text-xs ${THEME.colors.textSecondary} mb-2 uppercase font-bold`}>{t.contactMethodLegend}</p>
                      <div className="flex flex-wrap gap-4">
                         {t.CONTACT_METHODS.map(method => (
-                            <label key={method} className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                            <label key={method} className={`flex items-center gap-2 cursor-pointer hover:${THEME.colors.textMain} transition-colors`}>
                                 <input 
                                     type="checkbox"
                                     checked={formData.contactMethods.includes(method)}
                                     onChange={() => handleCheckboxChange('contactMethods', method)}
-                                    className="rounded border-slate bg-navy text-bright-cyan focus:ring-0" 
+                                    className="rounded border-slate text-gold focus:ring-gold" 
                                 />
                                 <span className={`text-sm ${THEME.colors.textSecondary}`}>{method}</span>
                             </label>
@@ -456,7 +445,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
             {/* Scope & Details */}
             <div className="mb-8 space-y-6">
-                <h3 className={`text-sm font-bold ${THEME.colors.textHighlight} uppercase border-b border-white/5 pb-2`}>{t.scopeTimelineLegend}</h3>
+                <h3 className={`text-sm font-bold ${THEME.colors.textHighlight} uppercase border-b ${THEME.colors.borderSubtle} pb-2`}>{t.scopeTimelineLegend}</h3>
                 
                 {/* Unit Info */}
                 <div>
@@ -469,12 +458,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-3`}>{t.serviceNeededLabel}</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {t.SERVICES.map(service => (
-                            <label key={service} className={`flex items-center gap-3 p-3 rounded border ${formData.services.includes(service) ? `${THEME.colors.borderHighlight} bg-bright-cyan/5` : 'border-white/5 bg-navy/50'} cursor-pointer hover:bg-navy transition-colors`}>
+                            <label key={service} className={`flex items-center gap-3 p-3 rounded border ${formData.services.includes(service) ? `${THEME.colors.borderHighlight} bg-gold/5` : `${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight}`} cursor-pointer hover:bg-stone-200 transition-colors`}>
                                 <input 
                                     type="checkbox"
                                     checked={formData.services.includes(service)}
                                     onChange={() => handleCheckboxChange('services', service)}
-                                    className="rounded border-slate bg-navy text-bright-cyan w-5 h-5 focus:ring-0"
+                                    className="rounded border-slate text-gold w-5 h-5 focus:ring-gold"
                                 />
                                 <span className={`${THEME.colors.textMain}`}>{service}</span>
                             </label>
@@ -495,13 +484,14 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 </div>
 
                 {/* Photo Upload */}
-                <div className="border border-dashed border-slate/30 rounded-lg p-6 text-center transition-colors hover:border-bright-cyan/50 hover:bg-navy/30"
+                <div className={`border border-dashed ${THEME.colors.borderSubtle} rounded-lg p-6 text-center transition-colors hover:border-gold hover:bg-stone-light cursor-pointer`}
                      onDragEnter={() => setDragActive(true)}
                      onDragLeave={() => setDragActive(false)}
                      onDragOver={(e) => e.preventDefault()}
                      onDrop={(e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
+                     onClick={() => fileInputRef.current?.click()}
                 >
-                    <div className="flex flex-col items-center gap-2 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <div className="flex flex-col items-center gap-2">
                         <CloudArrowUpIcon className="h-10 w-10 text-slate" />
                         <span className={`text-sm ${THEME.colors.textMain} font-bold`}>{t.photosLabel}</span>
                         <span className="text-xs text-slate">{t.dragDropText}</span>
@@ -510,9 +500,9 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     {formData.attachments && formData.attachments.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2 justify-center">
                             {formData.attachments.map((file, idx) => (
-                                <div key={idx} className="flex items-center gap-2 bg-navy px-3 py-1 rounded border border-white/10 text-xs">
-                                    <span className="text-bright-cyan max-w-[150px] truncate">{file.name}</span>
-                                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, attachments: prev.attachments?.filter((_, i) => i !== idx) }))} className="text-bright-pink hover:text-white">
+                                <div key={idx} className={`flex items-center gap-2 ${THEME.colors.surfaceHighlight} px-3 py-1 rounded border ${THEME.colors.borderSubtle} text-xs`}>
+                                    <span className={`${THEME.colors.textMain} max-w-[150px] truncate`}>{file.name}</span>
+                                    <button type="button" onClick={(e) => {e.stopPropagation(); setFormData(prev => ({ ...prev, attachments: prev.attachments?.filter((_, i) => i !== idx) }))}} className="text-rose hover:text-red-700">
                                         <XMarkIcon className="h-4 w-4" />
                                     </button>
                                 </div>
@@ -526,7 +516,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 <div>
                     <div className="flex justify-between items-center mb-2">
                         <label className={`text-xs font-bold ${THEME.colors.textSecondary}`}>{t.notesLabel}</label>
-                        <button type="button" onClick={handleAIDraft} disabled={isGeneratingDraft} className={`text-xs flex items-center gap-1 ${THEME.colors.textHighlight} hover:text-white transition-colors`}>
+                        <button type="button" onClick={handleAIDraft} disabled={isGeneratingDraft} className={`text-xs flex items-center gap-1 ${THEME.colors.textHighlight} hover:${THEME.colors.textMain} transition-colors`}>
                             {isGeneratingDraft ? <LoadingSpinner /> : <SparklesIcon className="h-4 w-4" />}
                             {isGeneratingDraft ? t.generatingButton : t.generateAIDraftButton}
                         </button>
@@ -535,7 +525,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 </div>
             </div>
 
-            <button type="submit" disabled={isSubmitting} className={`w-full py-4 rounded-lg font-bold text-lg shadow-lg tracking-wide transition-all ${isSubmitting ? 'opacity-70 cursor-wait' : `${THEME.colors.buttonPrimary} hover:scale-[1.01] hover:shadow-bright-cyan/25`}`}>
+            <button type="submit" disabled={isSubmitting} className={`w-full py-4 rounded-lg font-bold text-lg shadow-md tracking-wide transition-all ${isSubmitting ? 'opacity-70 cursor-wait' : `${THEME.colors.buttonPrimary} hover:scale-[1.01]`}`}>
                 {isSubmitting ? t.submittingButton : t.submitButton}
             </button>
         </form>
@@ -563,7 +553,6 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
         }
     }, [user]);
 
-    // Update Header when Survey selects a property
     const handleSurveySelection = (propName: string, compName: string) => {
         if (propName) {
             setHeaderTitle(propName);
@@ -571,7 +560,6 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
         }
     };
 
-    // Fetch History when tab changes
     useEffect(() => {
         if (activeTab === 'history' || activeTab === 'gallery') {
             const propertyName = user.company.properties[0]?.name;
@@ -585,9 +573,8 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
         }
     }, [activeTab, user]);
 
-    if (!user.company) return <div className="p-10 text-center text-white">Loading Portal Data...</div>;
+    if (!user.company) return <div className="p-10 text-center text-navy">Loading Portal Data...</div>;
 
-    // Collect all photos from history for Gallery View
     const allPhotos = history.flatMap(entry => entry.photos);
 
     return (
@@ -601,10 +588,10 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
             <div className="flex flex-1">
                 {/* Sidebar */}
                 <aside className={`w-64 ${THEME.colors.surface} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
-                    <div className="p-6 border-b border-white/5">
+                    <div className={`p-6 border-b ${THEME.colors.borderSubtle}`}>
                         <h2 className={`text-xl font-bold ${THEME.colors.textMain} tracking-wider`}>{t.dashboardLoginTitle}</h2>
                         <p className={`text-xs ${THEME.colors.textHighlight} mt-1 truncate`}>{user.company.name}</p>
-                        <p className="text-[10px] text-slate uppercase tracking-widest mt-1">
+                        <p className={`text-[10px] ${THEME.colors.textSecondary} uppercase tracking-widest mt-1`}>
                             {user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : t.roleSiteManager}
                         </p>
                     </div>
@@ -616,14 +603,14 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                             { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
                             { id: 'history', label: t.tabHistory, icon: ClockIcon },
                         ].map(item => (
-                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonSecondary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
+                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.surfaceHighlight} text-navy border border-stone-300 shadow-sm` : `${THEME.colors.textSecondary} hover:text-navy hover:bg-stone-light`}`}>
                                 <item.icon className="h-5 w-5" />
                                 {item.label}
                             </button>
                         ))}
                     </nav>
-                    <div className="p-4 border-t border-white/5">
-                        <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-bright-pink hover:bg-bright-pink/10 rounded transition-colors`}>
+                    <div className={`p-4 border-t ${THEME.colors.borderSubtle}`}>
+                        <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-rose hover:bg-rose/10 rounded transition-colors`}>
                             <LogoutIcon className="h-5 w-5" />
                             {t.logout}
                         </button>
@@ -636,20 +623,20 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                         <div className="animate-in fade-in duration-300">
                             <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-2`}>{t.tabOverview}</h1>
                             <p className={`${THEME.colors.textSecondary} mb-8`}>
-                                Welcome back, <span className="text-white font-bold">{user.profile?.firstName || 'Manager'}</span>. Here is what is happening at <span className="text-white font-bold">{user.company.name}</span>.
+                                Welcome back, <span className={`${THEME.colors.textMain} font-bold`}>{user.profile?.firstName || 'Manager'}</span>. Here is what is happening at <span className={`${THEME.colors.textMain} font-bold`}>{user.company.name}</span>.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
                                     <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsActive}</h3>
                                     <p className={`text-4xl font-bold ${THEME.colors.textHighlight}`}>3</p>
                                 </div>
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
                                     <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsCompleted}</h3>
-                                    <p className={`text-4xl font-bold text-white`}>12</p>
+                                    <p className={`text-4xl font-bold ${THEME.colors.textMain}`}>12</p>
                                 </div>
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
                                     <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsPending}</h3>
-                                    <p className={`text-4xl font-bold ${THEME.colors.textWarning}`}>1</p>
+                                    <p className={`text-4xl font-bold text-rose`}>1</p>
                                 </div>
                             </div>
                         </div>
@@ -684,22 +671,22 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                     {allPhotos.map((url, i) => {
                                         const directUrl = getDirectImageUrl(url);
                                         return (
-                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-white/10 hover:border-bright-cyan transition-colors group relative aspect-square">
+                                            <a key={i} href={url} target="_blank" rel="noreferrer" className={`block overflow-hidden rounded-lg border ${THEME.colors.borderSubtle} hover:border-gold transition-colors group relative aspect-square shadow-soft`}>
                                                 <img 
                                                   src={directUrl} 
                                                   alt={`Project Photo ${i}`} 
                                                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
                                                   referrerPolicy="no-referrer"
                                                 />
-                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <span className="text-white text-xs font-bold uppercase tracking-wider border border-white px-2 py-1 rounded">View</span>
+                                                <div className="absolute inset-0 bg-navy/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <span className="text-white text-xs font-bold uppercase tracking-wider border border-white px-2 py-1 rounded bg-navy/50">View</span>
                                                 </div>
                                             </a>
                                         );
                                     })}
                                 </div>
                             ) : (
-                                <div className="text-center py-20 bg-navy/30 rounded border border-white/5">
+                                <div className={`text-center py-20 ${THEME.colors.surfaceHighlight} rounded border ${THEME.colors.borderSubtle}`}>
                                     <PhotoIcon className="h-16 w-16 text-slate mx-auto mb-4 opacity-20" />
                                     <p className="text-slate">No photos found in your history.</p>
                                 </div>
@@ -715,7 +702,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                             ) : history.length > 0 ? (
                                 <div className="space-y-4">
                                     {history.map((entry, idx) => (
-                                        <div key={idx} className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:border-white/20 transition-colors`}>
+                                        <div key={idx} className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:shadow-soft transition-all`}>
                                             <div className="flex flex-col md:flex-row justify-between md:items-center mb-4">
                                                 <div>
                                                     <span className={`text-xs font-bold ${THEME.colors.textHighlight} uppercase tracking-wider`}>
@@ -725,11 +712,11 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                                         {entry.unitInfo || 'Service Request'}
                                                     </h3>
                                                 </div>
-                                                <span className="bg-navy px-3 py-1 rounded text-xs text-slate border border-white/10 mt-2 md:mt-0 w-fit">
+                                                <span className={`bg-stone px-3 py-1 rounded text-xs ${THEME.colors.textSecondary} border ${THEME.colors.borderSubtle} mt-2 md:mt-0 w-fit`}>
                                                     Submitted
                                                 </span>
                                             </div>
-                                            <div className="text-sm text-slate mb-4">
+                                            <div className={`text-sm ${THEME.colors.textSecondary} mb-4`}>
                                                 <span className="font-bold">Services:</span> {entry.services}
                                             </div>
                                             {entry.photos.length > 0 && (
@@ -737,14 +724,13 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                                     {entry.photos.map((url, i) => {
                                                         const directUrl = getDirectImageUrl(url);
                                                         return (
-                                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-white/20 hover:border-bright-cyan transition-all relative group shadow-lg">
+                                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-stone-300 hover:border-gold transition-all relative group shadow-md">
                                                                 <img 
                                                                     src={directUrl} 
                                                                     alt="Thumbnail" 
                                                                     className="w-full h-full object-cover" 
                                                                     referrerPolicy="no-referrer"
                                                                 />
-                                                                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
                                                             </a>
                                                         );
                                                     })}
@@ -754,7 +740,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-20 bg-navy/30 rounded border border-white/5">
+                                <div className={`text-center py-20 ${THEME.colors.surfaceHighlight} rounded border ${THEME.colors.borderSubtle}`}>
                                     <ClockIcon className="h-16 w-16 text-slate mx-auto mb-4 opacity-20" />
                                     <p className="text-slate">No history found.</p>
                                 </div>
@@ -793,10 +779,10 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                 customSubtitle={t.companyPortalSubtitle}
             />
             <div className="flex flex-1">
-                <aside className={`w-64 bg-black/40 border-r ${THEME.colors.borderHighlight} hidden md:flex flex-col`}>
+                <aside className={`w-64 bg-navy text-white border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
                     <div className="p-6 border-b border-white/10">
-                        <h2 className={`text-xl font-bold ${THEME.colors.textHighlight} tracking-wider`}>{t.companyPortalTitle}</h2>
-                        <p className={`text-xs ${THEME.colors.textSecondary} mt-1`}>{t.companyPortalSubtitle}</p>
+                        <h2 className={`text-xl font-bold text-white tracking-wider`}>{t.companyPortalTitle}</h2>
+                        <p className={`text-xs text-slate-300 mt-1`}>{t.companyPortalSubtitle}</p>
                     </div>
                     <nav className="flex-1 p-4 space-y-2">
                         {[
@@ -805,14 +791,14 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                             { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon }, 
                             { id: 'projects', label: 'Global Projects', icon: BuildingBlocksIcon },
                         ].map(item => (
-                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.buttonPrimary}` : `${THEME.colors.textSecondary} hover:text-white hover:bg-white/5`}`}>
+                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? 'bg-white text-navy font-bold' : 'text-slate-300 hover:text-white hover:bg-white/10'}`}>
                                 <item.icon className="h-5 w-5" />
                                 {item.label}
                             </button>
                         ))}
                     </nav>
                     <div className="p-4 border-t border-white/10">
-                        <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-slate hover:text-white hover:bg-white/5 rounded transition-colors`}>
+                        <button onClick={onLogout} className={`w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/10 rounded transition-colors`}>
                             <LogoutIcon className="h-5 w-5" />
                             {t.logout}
                         </button>
@@ -824,25 +810,25 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                         <div className="animate-in fade-in duration-300">
                             <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-8`}>Global Overview</h1>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                    <h3 className="text-bright-cyan font-bold mb-2">Total Active Projects</h3>
-                                    <p className="text-5xl font-bold text-white">15</p>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                    <h3 className="text-gold font-bold mb-2">Total Active Projects</h3>
+                                    <p className={`text-5xl font-bold ${THEME.colors.textMain}`}>15</p>
                                 </div>
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                    <h3 className="text-bright-pink font-bold mb-2">Pending Estimates</h3>
-                                    <p className="text-5xl font-bold text-white">4</p>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                    <h3 className="text-rose font-bold mb-2">Pending Estimates</h3>
+                                    <p className={`text-5xl font-bold ${THEME.colors.textMain}`}>4</p>
                                 </div>
                                 {/* SYSTEM STATUS CARD */}
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle}`}>
-                                    <h3 className="text-white font-bold mb-2">{t.systemStatusTitle}</h3>
+                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                    <h3 className={`${THEME.colors.textMain} font-bold mb-2`}>{t.systemStatusTitle}</h3>
                                     <div className="flex items-center gap-2 mb-4">
                                         <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
                                         <span className="text-sm text-slate">API Online</span>
                                     </div>
-                                    <button onClick={handleTestChat} className="text-xs bg-navy border border-bright-cyan text-bright-cyan px-3 py-2 rounded hover:bg-bright-cyan/10 transition-colors w-full">
+                                    <button onClick={handleTestChat} className={`text-xs ${THEME.colors.surface} border ${THEME.colors.borderHighlight} ${THEME.colors.textHighlight} px-3 py-2 rounded hover:bg-gold/10 transition-colors w-full`}>
                                         {t.testChatButton}
                                     </button>
-                                    {testStatus && <p className="text-xs mt-2 text-center text-bright-cyan">{testStatus}</p>}
+                                    {testStatus && <p className={`text-xs mt-2 text-center ${THEME.colors.textHighlight}`}>{testStatus}</p>}
                                 </div>
                             </div>
                         </div>
@@ -851,25 +837,25 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                         <div className="animate-in fade-in duration-300">
                             <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>{t.dataSourcesTitle}</h1>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <a href="https://docs.google.com/spreadsheets/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-green-400 group transition-all`}>
+                                <a href="https://docs.google.com/spreadsheets/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-green-400 group transition-all shadow-soft`}>
                                     <div className="flex items-center gap-4 mb-4">
-                                        <div className="bg-green-500/20 p-3 rounded-lg"><ClipboardListIcon className="h-8 w-8 text-green-400" /></div>
+                                        <div className="bg-green-100 p-3 rounded-lg"><ClipboardListIcon className="h-8 w-8 text-green-600" /></div>
                                         <div>
-                                            <h3 className="font-bold text-white text-lg">{t.googleSheetLabel}</h3>
+                                            <h3 className={`font-bold ${THEME.colors.textMain} text-lg`}>{t.googleSheetLabel}</h3>
                                             <p className="text-slate text-sm">View all raw survey responses</p>
                                         </div>
                                     </div>
-                                    <span className="text-green-400 font-bold text-sm group-hover:underline">{t.openSheetButton} &rarr;</span>
+                                    <span className="text-green-600 font-bold text-sm group-hover:underline">{t.openSheetButton} &rarr;</span>
                                 </a>
-                                <a href="https://drive.google.com/drive/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-blue-400 group transition-all`}>
+                                <a href="https://drive.google.com/drive/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-blue-400 group transition-all shadow-soft`}>
                                     <div className="flex items-center gap-4 mb-4">
-                                        <div className="bg-blue-500/20 p-3 rounded-lg"><PhotoIcon className="h-8 w-8 text-blue-400" /></div>
+                                        <div className="bg-blue-100 p-3 rounded-lg"><PhotoIcon className="h-8 w-8 text-blue-600" /></div>
                                         <div>
-                                            <h3 className="font-bold text-white text-lg">{t.googleDriveLabel}</h3>
+                                            <h3 className={`font-bold ${THEME.colors.textMain} text-lg`}>{t.googleDriveLabel}</h3>
                                             <p className="text-slate text-sm">Access photo repository</p>
                                         </div>
                                     </div>
-                                    <span className="text-blue-400 font-bold text-sm group-hover:underline">{t.openDriveButton} &rarr;</span>
+                                    <span className="text-blue-600 font-bold text-sm group-hover:underline">{t.openDriveButton} &rarr;</span>
                                 </a>
                             </div>
                         </div>
@@ -892,15 +878,15 @@ const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        await onLogin(code.toLowerCase()); // Normalize for email prefix check
+        await onLogin(code.toLowerCase()); 
         setIsLoading(false);
     };
 
     return (
         <div className={`min-h-screen ${THEME.colors.background} flex flex-col items-center justify-center p-4`}>
-            <div className={`w-full max-w-md ${THEME.colors.surface} p-8 rounded-2xl border ${THEME.colors.borderHighlight} ${THEME.effects.glow} text-center`}>
-                <div className="bg-navy/50 p-4 rounded-full w-fit mx-auto mb-6 border border-bright-cyan">
-                    <LockClosedIcon className="h-8 w-8 text-bright-cyan" />
+            <div className={`w-full max-w-md ${THEME.colors.surface} p-8 rounded-2xl border ${THEME.colors.borderHighlight} ${THEME.effects.glow} text-center shadow-2xl`}>
+                <div className={`${THEME.colors.surfaceHighlight} p-4 rounded-full w-fit mx-auto mb-6 border ${THEME.colors.borderHighlight}`}>
+                    <LockClosedIcon className="h-8 w-8 text-gold" />
                 </div>
                 <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.dashboardLoginTitle}</h1>
                 <p className={`${THEME.colors.textSecondary} mb-8`}>{t.dashboardLoginSubtitle}</p>
@@ -913,24 +899,24 @@ const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string
                             value={code} 
                             onChange={(e) => setCode(e.target.value)} 
                             placeholder="Enter Code..."
-                            className={`w-full p-4 rounded-lg bg-navy border ${THEME.colors.inputBorder} ${THEME.colors.textHighlight} text-center text-xl font-bold tracking-[0.2em] focus:ring-2 ${THEME.colors.inputFocus} outline-none placeholder:text-slate/20`}
+                            className={`w-full p-4 rounded-lg ${THEME.colors.inputBg} border ${THEME.colors.inputBorder} ${THEME.colors.textMain} text-center text-xl font-bold tracking-[0.2em] focus:ring-2 ${THEME.colors.inputFocus} outline-none placeholder:text-slate/30`}
                         />
                     </div>
-                    {error && <p className="text-bright-pink text-sm font-bold animate-pulse">{error}</p>}
+                    {error && <p className="text-rose text-sm font-bold animate-pulse">{error}</p>}
                     <button 
                         type="submit" 
                         disabled={!code || isLoading}
-                        className={`w-full py-4 rounded-lg font-bold text-lg transition-all ${!code || isLoading ? `${THEME.colors.buttonSecondary} opacity-50 cursor-not-allowed` : `${THEME.colors.buttonPrimary} shadow-lg hover:shadow-bright-cyan/25`}`}
+                        className={`w-full py-4 rounded-lg font-bold text-lg transition-all ${!code || isLoading ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : `${THEME.colors.buttonPrimary} shadow-md`}`}
                     >
                         {isLoading ? 'Verifying...' : t.loginButton}
                     </button>
                 </form>
 
-                <div className="mt-8 pt-8 border-t border-white/5 text-xs text-slate">
+                <div className="mt-8 pt-8 border-t ${THEME.colors.borderSubtle} text-xs text-slate">
                     <p className="mb-2 font-bold opacity-50">Admin Access:</p>
-                    <p className="mb-2"><span className="text-bright-cyan font-bold cursor-pointer hover:underline text-sm border border-bright-cyan/30 px-2 py-1 rounded bg-navy" onClick={() => { setCode('ADMIN'); }}>ADMIN</span> <span className="ml-2">(Jes Stone Internal)</span></p>
+                    <p className="mb-2"><span className="text-navy font-bold cursor-pointer hover:underline text-sm border border-navy/20 px-2 py-1 rounded bg-stone-200" onClick={() => { setCode('ADMIN'); }}>ADMIN</span> <span className="ml-2">(Jes Stone Internal)</span></p>
                     
-                    <button onClick={() => window.location.hash = ''} className="mt-6 text-white hover:underline opacity-50">
+                    <button onClick={() => window.location.hash = ''} className="mt-6 text-navy hover:underline opacity-50">
                         {t.returnHomeButton}
                     </button>
                 </div>
@@ -977,14 +963,14 @@ const ChatWidget: React.FC<{ lang: 'en' | 'es' }> = ({ lang }) => {
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {isOpen && (
                 <div className={`mb-4 w-80 h-96 ${THEME.colors.surface} border ${THEME.colors.borderHighlight} rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300`}>
-                    <div className="bg-navy p-4 border-b border-white/10 flex justify-between items-center">
+                    <div className="bg-navy p-4 border-b border-white/10 flex justify-between items-center text-white">
                         <div className="flex items-center gap-2">
-                             <SparklesIcon className="h-4 w-4 text-bright-cyan" />
-                             <h3 className={`font-bold ${THEME.colors.textMain}`}>{t.chatTitle}</h3>
+                             <SparklesIcon className="h-4 w-4 text-gold" />
+                             <h3 className="font-bold">{t.chatTitle}</h3>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="text-slate hover:text-white"><XMarkIcon className="h-5 w-5" /></button>
+                        <button onClick={() => setIsOpen(false)} className="text-slate-300 hover:text-white"><XMarkIcon className="h-5 w-5" /></button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-stone-light">
                         {messages.length === 0 && (
                             <div className="text-center text-slate text-sm mt-10">
                                 <p>Hello! I am the {BRANDING.assistantName}.</p>
@@ -993,22 +979,22 @@ const ChatWidget: React.FC<{ lang: 'en' | 'es' }> = ({ lang }) => {
                         )}
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] p-3 rounded-lg text-sm ${msg.role === 'user' ? 'bg-bright-cyan text-navy rounded-br-none' : 'bg-navy text-slate rounded-bl-none'}`}>
+                                <div className={`max-w-[80%] p-3 rounded-lg text-sm shadow-sm ${msg.role === 'user' ? 'bg-navy text-white rounded-br-none' : 'bg-white text-navy rounded-bl-none border border-stone-200'}`}>
                                     {msg.text}
                                 </div>
                             </div>
                         ))}
                         {isThinking && <div className="text-xs text-slate animate-pulse ml-2">Thinking...</div>}
                     </div>
-                    <div className="p-3 bg-navy border-t border-white/10 flex gap-2">
+                    <div className="p-3 bg-white border-t border-stone-200 flex gap-2">
                         <input 
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                             placeholder={t.chatPlaceholder}
-                            className={`flex-1 bg-black/20 border border-white/10 rounded px-3 py-2 text-sm ${THEME.colors.textMain} focus:outline-none focus:border-bright-cyan`}
+                            className={`flex-1 bg-stone-100 border border-stone-200 rounded px-3 py-2 text-sm ${THEME.colors.textMain} focus:outline-none focus:border-gold`}
                         />
-                        <button onClick={handleSend} disabled={!input || isThinking} className="text-bright-cyan disabled:opacity-50 hover:scale-110 transition-transform">
+                        <button onClick={handleSend} disabled={!input || isThinking} className="text-navy disabled:opacity-50 hover:scale-110 transition-transform">
                             <PaperAirplaneIcon className="h-5 w-5 rotate-90" />
                         </button>
                     </div>
@@ -1016,7 +1002,7 @@ const ChatWidget: React.FC<{ lang: 'en' | 'es' }> = ({ lang }) => {
             )}
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className={`${THEME.colors.buttonPrimary} p-4 rounded-full shadow-[0_0_20px_rgba(100,255,218,0.3)] hover:scale-110 transition-transform`}
+                className={`${THEME.colors.buttonPrimary} p-4 rounded-full shadow-lg hover:scale-110 transition-transform`}
             >
                 {isOpen ? <XMarkIcon className="h-6 w-6" /> : <ChatBubbleIcon className="h-6 w-6" />}
             </button>
@@ -1031,10 +1017,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
   const [loginError, setLoginError] = useState('');
   
-  // Routes: '' (Public Survey), '#dashboard' (Client Portal)
   const [route, setRoute] = useState(window.location.hash);
-  
-  // Lifted state for dynamic header on public page
   const [heroText, setHeroText] = useState('');
   const [heroSubText, setHeroSubText] = useState('');
 
@@ -1044,18 +1027,14 @@ function App() {
       return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Handle Login Logic
   const handleLogin = async (code: string) => {
       setLoginError('');
-      
-      // Special Admin Backdoor
       if (code === 'ADMIN') {
           setCurrentUser({ role: 'internal_admin', companyId: 'internal', allowedPropertyIds: [], company: {id: 'internal', name: 'Jes Stone', properties: []} } as any);
           return;
       }
 
       try {
-          // Real API Authentication
           const session = await login(BRANDING.defaultApiUrl, code);
           setCurrentUser(session);
       } catch (e) {
@@ -1074,8 +1053,6 @@ function App() {
       setHeroText(propName);
       setHeroSubText(compName);
   }
-
-  // --- ROUTING LOGIC ---
   
   if (route === '#dashboard') {
       if (!currentUser) {
@@ -1091,7 +1068,7 @@ function App() {
   // Public Landing / Survey
   return (
     <ErrorBoundary>
-        <div className={`min-h-screen ${THEME.colors.background} font-sans selection:bg-bright-cyan selection:text-navy`}>
+        <div className={`min-h-screen ${THEME.colors.background} font-sans selection:bg-gold selection:text-white`}>
           <Header 
             surveyUrl="#/" 
             lang={lang} 
@@ -1103,7 +1080,7 @@ function App() {
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             {/* Hero Section */}
             <div className="text-center mb-12 animate-in slide-in-from-bottom-8 duration-700">
-                <h1 className={`text-4xl md:text-6xl font-extrabold ${THEME.colors.textMain} mb-4 tracking-tight ${THEME.effects.glowText} uppercase`}>
+                <h1 className={`text-4xl md:text-6xl font-extrabold ${THEME.colors.textMain} mb-4 tracking-tight uppercase`}>
                     {heroText || BRANDING.companyName}
                 </h1>
                 <p className={`text-xl ${THEME.colors.textHighlight} font-medium tracking-widest uppercase`}>
@@ -1138,13 +1115,13 @@ function App() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className={`${THEME.colors.surface} p-4 rounded-lg border ${THEME.colors.borderSubtle} text-center`}>
-                            <ClockIcon className="h-8 w-8 text-bright-blue mx-auto mb-2" />
+                        <div className={`${THEME.colors.surface} p-4 rounded-lg border ${THEME.colors.borderSubtle} text-center shadow-soft`}>
+                            <ClockIcon className="h-8 w-8 text-gold mx-auto mb-2" />
                             <h3 className={`font-bold ${THEME.colors.textMain}`}>Fast Turnaround</h3>
                             <p className="text-xs text-slate">24h Response Time</p>
                         </div>
-                         <div className={`${THEME.colors.surface} p-4 rounded-lg border ${THEME.colors.borderSubtle} text-center`}>
-                            <SparklesIcon className="h-8 w-8 text-bright-pink mx-auto mb-2" />
+                         <div className={`${THEME.colors.surface} p-4 rounded-lg border ${THEME.colors.borderSubtle} text-center shadow-soft`}>
+                            <SparklesIcon className="h-8 w-8 text-navy mx-auto mb-2" />
                             <h3 className={`font-bold ${THEME.colors.textMain}`}>Quality First</h3>
                             <p className="text-xs text-slate">Top-Tier Materials</p>
                         </div>

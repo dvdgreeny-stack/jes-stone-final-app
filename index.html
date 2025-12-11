@@ -7,15 +7,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
-        darkMode: 'class',
         theme: {
           extend: {
-            colors: {
-              'navy': '#263238', 'light-navy': '#37474F', 'lightest-navy': '#455A64',
-              'slate': '#90A4AE', 'light-slate': '#B0BEC5', 'lightest-slate': '#ECEFF1',
-              'platinum': '#f5f5f5', 'bright-cyan': '#64ffda',
-              'bright-pink': '#f472b6', 'bright-blue': '#60a5fa',
+            fontFamily: {
+              sans: ['"Century Gothic"', 'CenturyGothic', 'AppleGothic', 'sans-serif'],
             },
+            colors: {
+              // OPTION C: Atelier Palette
+              'navy': '#2C3E50',       // Soft Navy (Primary Text/Buttons)
+              'navy-light': '#34495E', // Lighter Navy
+              'stone': '#EBE9E4',      // Warm Stone (Main Background)
+              'stone-light': '#F5F5F0',// Alabaster
+              'paper': '#FFFFFF',      // Pure White (Cards)
+              'gold': '#C5A059',       // Champagne Gold (Accents)
+              'gold-light': '#E5D4B3', // Soft Gold
+              'slate': '#7F8C8D',      // Secondary Text
+              'rose': '#D98880',       // Muted Rose (Errors/Alerts)
+            },
+            boxShadow: {
+              'soft': '0 4px 20px rgba(44, 62, 80, 0.08)',
+              'soft-hover': '0 10px 30px rgba(44, 62, 80, 0.12)',
+            }
           },
         },
       }
@@ -33,7 +45,7 @@
 }
 </script>
 </head>
-  <body class="bg-navy">
+  <body class="bg-stone font-sans text-navy antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

@@ -9,9 +9,12 @@ export const LoadingSpinner: React.FC = () => (
 
 export const JesStoneLogo: React.FC<{className?: string}> = ({className}) => (
     <svg className={className} viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M50 150 L100 50 L150 150 Z" stroke="#64ffda" strokeWidth="10" fill="rgba(100, 255, 218, 0.1)" />
-        <path d="M75 150 L125 75 L175 150 Z" stroke="#a8b2d1" strokeWidth="8" fill="transparent" />
-        <circle cx="100" cy="92" r="10" fill="currentColor" className="text-bright-cyan"/>
+        {/* Main Triangle - Navy */}
+        <path d="M50 150 L100 50 L150 150 Z" stroke="#2C3E50" strokeWidth="10" fill="rgba(44, 62, 80, 0.05)" />
+        {/* Overlapping Triangle - Gold */}
+        <path d="M75 150 L125 75 L175 150 Z" stroke="#C5A059" strokeWidth="8" fill="transparent" />
+        {/* Center Dot - Gold */}
+        <circle cx="100" cy="92" r="10" fill="#C5A059" />
     </svg>
 );
 

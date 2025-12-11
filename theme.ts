@@ -2,37 +2,37 @@
 export const THEME = {
     colors: {
         // Base Backgrounds
-        background: "bg-navy",
-        surface: "bg-light-navy",
-        surfaceHighlight: "bg-lightest-navy",
+        background: "bg-stone",
+        surface: "bg-paper",
+        surfaceHighlight: "bg-stone-light",
         
         // Text Colors
-        textMain: "text-lightest-slate",
+        textMain: "text-navy",
         textSecondary: "text-slate",
-        textHighlight: "text-bright-cyan",
-        textWarning: "text-bright-pink",
-        textLink: "text-bright-cyan hover:text-opacity-80",
+        textHighlight: "text-gold",
+        textWarning: "text-rose",
+        textInverse: "text-white", // For buttons
+        textLink: "text-gold hover:text-navy",
 
         // Borders
-        borderSubtle: "border-lightest-navy",
-        borderHighlight: "border-bright-cyan",
-        borderWarning: "border-bright-pink",
+        borderSubtle: "border-stone",
+        borderHighlight: "border-gold/50",
+        borderWarning: "border-rose",
 
         // Interactive Elements
-        buttonPrimary: "bg-bright-cyan text-navy hover:bg-opacity-90",
-        buttonSecondary: "bg-navy border border-bright-cyan text-bright-cyan hover:bg-bright-cyan/10",
-        buttonDanger: "bg-navy border border-bright-pink text-bright-pink hover:bg-bright-pink/10",
+        buttonPrimary: "bg-navy text-white hover:bg-navy-light transition-all shadow-md",
+        buttonSecondary: "bg-transparent border-2 border-navy text-navy hover:bg-navy hover:text-white font-bold transition-all",
+        buttonDanger: "bg-white border border-rose text-rose hover:bg-rose hover:text-white transition-all",
         
         // Inputs
-        inputBg: "bg-navy",
-        inputBorder: "border-lightest-navy",
-        inputFocus: "focus:ring-bright-cyan",
+        inputBg: "bg-stone-light",
+        inputBorder: "border-stone-300",
+        inputFocus: "focus:ring-gold focus:border-gold",
     },
     
-    // Special Effects
+    // Special Effects (Sophisticated Shadows instead of Neon Glow)
     effects: {
-        // The signature "Neon Glow" effect
-        glow: "shadow-[0_5px_15px_rgba(100,255,218,0.4)] hover:shadow-[0_8px_25px_rgba(100,255,218,0.6)] transition-all",
-        glowText: "drop-shadow-[0_0_5px_rgba(100,255,218,0.5)]",
+        glow: "shadow-soft hover:shadow-soft-hover transition-all duration-300",
+        glowText: "", // Removed neon text glow for cleaner look
     }
 };
