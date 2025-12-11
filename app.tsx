@@ -7,6 +7,7 @@ import { THEME } from './theme';
 import type { Company, SurveyData, UserSession, UserRole, UserProfile, HistoryEntry } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon, GlobeAltIcon, UsersIcon } from './components/icons';
+import { EstimatingModule } from './components/EstimatingModule';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
 // --- ERROR BOUNDARY COMPONENT ---
@@ -153,6 +154,50 @@ const Footer: React.FC = () => (
         </div>
     </footer>
 );
+
+// --- Login Card Component ---
+const LoginCard: React.FC<{ lang: 'en' | 'es', onLogin: (session: UserSession) => void }> = ({ lang, onLogin }) => {
+    const t = translations[lang];
+    const [accessCode, setAccessCode] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { session } = await login(BRANDING.defaultApiUrl, accessCode);
+            onLogin(session);
+        } catch (error) {
+            alert('Invalid access code or network error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card} sticky top-24`}>
+            <div className="text-center mb-6">
+                <div className="inline-block p-3 rounded-full bg-slate-50 mb-3">
+                    <LockClosedIcon className="h-8 w-8 text-gold" />
+                </div>
+                <h2 className={`text-xl font-bold ${THEME.colors.textMain}`}>{t.dashboardLoginTitle}</h2>
+                <p className={`text-sm ${THEME.colors.textSecondary} mt-1`}>{t.dashboardLoginSubtitle}</p>
+            </div>
+            <form onSubmit={handleLogin} className="space-y-4">
+                <input 
+                    type="password" 
+                    placeholder={t.accessCodeLabel}
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
+                    className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus} text-center tracking-widest`}
+                />
+                <button disabled={loading} className={`w-full ${THEME.colors.buttonPrimary} py-3 rounded-lg`}>
+                    {loading ? <LoadingSpinner /> : t.loginButton}
+                </button>
+            </form>
+        </div>
+    );
+};
 
 // --- Survey Component ---
 interface SurveyProps {
@@ -418,13 +463,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const inputStyle = `w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus} bg-white`;
 
     return (
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8 mt-8 pb-12">
+        <form onSubmit={handleSubmit} className="space-y-8 mt-2 pb-12">
             {/* Property Selection */}
             {companies.length > 0 && (
-                <fieldset className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
-                    <legend className={`text-lg font-bold ${THEME.colors.textMain} px-2 mb-4 flex items-center gap-2`}>
+                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
+                    <div className={`text-lg font-bold ${THEME.colors.textMain} mb-6 flex items-center gap-2 border-b ${THEME.colors.borderSubtle} pb-2`}>
                         <BuildingBlocksIcon className="h-5 w-5 text-gold" /> {t.propertyIdLegend}
-                    </legend>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {companies.length > 1 && (
                             <div className="flex flex-col">
@@ -453,14 +498,14 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                             </select>
                         </div>
                     </div>
-                </fieldset>
+                </div>
             )}
 
             {/* Contact Info */}
-            <fieldset className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
-                 <legend className={`text-lg font-bold ${THEME.colors.textMain} px-2 mb-4 flex items-center gap-2`}>
+            <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
+                 <div className={`text-lg font-bold ${THEME.colors.textMain} mb-6 flex items-center gap-2 border-b ${THEME.colors.borderSubtle} pb-2`}>
                     <UsersIcon className="h-5 w-5 text-gold" /> {t.contactInfoLegend}
-                </legend>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col">
                         <label className={labelStyle}>{t.firstNameLabel}</label>
@@ -486,13 +531,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                         <input name="phone" type="tel" value={formData.phone} onChange={handleChange} className={inputStyle} />
                     </div>
                 </div>
-            </fieldset>
+            </div>
 
             {/* Scope & Timeline */}
-             <fieldset className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
-                 <legend className={`text-lg font-bold ${THEME.colors.textMain} px-2 mb-4 flex items-center gap-2`}>
+             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
+                 <div className={`text-lg font-bold ${THEME.colors.textMain} mb-6 flex items-center gap-2 border-b ${THEME.colors.borderSubtle} pb-2`}>
                     <ClipboardListIcon className="h-5 w-5 text-gold" /> {t.scopeTimelineLegend}
-                </legend>
+                </div>
                 
                 <div className="space-y-4">
                     <div>
@@ -536,13 +581,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                          <textarea name="notes" rows={4} placeholder={t.notesPlaceholder} value={formData.notes} onChange={handleChange} className={inputStyle} />
                     </div>
                 </div>
-            </fieldset>
+            </div>
 
              {/* Photos */}
-             <fieldset className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
-                 <legend className={`text-lg font-bold ${THEME.colors.textMain} px-2 mb-4 flex items-center gap-2`}>
+             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
+                 <div className={`text-lg font-bold ${THEME.colors.textMain} mb-6 flex items-center gap-2 border-b ${THEME.colors.borderSubtle} pb-2`}>
                     <PhotoIcon className="h-5 w-5 text-gold" /> {t.photosLegend}
-                </legend>
+                </div>
                 <div 
                     className={`border-2 border-dashed ${dragActive ? THEME.colors.borderHighlight : THEME.colors.borderSubtle} rounded-lg p-8 text-center transition-colors cursor-pointer bg-slate-50`}
                     onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
@@ -570,13 +615,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                         ))}
                     </div>
                 )}
-             </fieldset>
+             </div>
 
              {/* Contact Methods */}
-             <fieldset className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
-                 <legend className={`text-lg font-bold ${THEME.colors.textMain} px-2 mb-4 flex items-center gap-2`}>
+             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
+                 <div className={`text-lg font-bold ${THEME.colors.textMain} mb-6 flex items-center gap-2 border-b ${THEME.colors.borderSubtle} pb-2`}>
                     <ChatBubbleIcon className="h-5 w-5 text-gold" /> {t.contactMethodLegend}
-                </legend>
+                </div>
                 <div className="flex flex-wrap gap-4">
                      {t.CONTACT_METHODS.map(method => (
                         <label key={method} className="flex items-center space-x-2 cursor-pointer border p-3 rounded hover:bg-slate-50 transition-colors">
@@ -590,7 +635,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                         </label>
                     ))}
                 </div>
-             </fieldset>
+             </div>
 
              {errorMessage && (
                  <div className={`p-4 rounded bg-rose-50 text-rose border border-rose-200 text-center font-bold`}>
@@ -611,13 +656,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 };
 
 // --- Dashboard Component ---
-const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es'}> = ({ companies, lang }) => {
+const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserSession | null, setSession: (s: UserSession | null) => void}> = ({ companies, lang, session, setSession }) => {
     const t = translations[lang];
-    const [session, setSession] = useState<UserSession | null>(null);
     const [accessCode, setAccessCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
 
+    // Internal login handler for direct dashboard access route (not used in side-by-side view but good for robustness)
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -844,6 +889,8 @@ export default function App() {
     const [lang, setLang] = useState<'en' | 'es'>('en');
     const [currentRoute, setCurrentRoute] = useState(window.location.hash);
     const [headerTitles, setHeaderTitles] = useState({ title: '', subtitle: '' });
+    // Lifted session state to App level for sidebar login support
+    const [session, setSession] = useState<UserSession | null>(null);
 
     useEffect(() => {
         const handleHashChange = () => setCurrentRoute(window.location.hash);
@@ -856,11 +903,11 @@ export default function App() {
     }, []);
 
     const handleSelectionChange = (propName: string, companyName: string) => {
-        // SWAPPED: Property Name is Main Title, Company is Subtitle
         setHeaderTitles({ title: propName, subtitle: companyName });
     };
 
-    const isDashboard = currentRoute.includes('dashboard');
+    // Determine if we show Dashboard view or Main view
+    const isDashboard = currentRoute.includes('dashboard') || session !== null;
 
     return (
         <ErrorBoundary>
@@ -874,9 +921,14 @@ export default function App() {
                 
                 <main className="animate-in fade-in duration-500">
                     {isDashboard ? (
-                        <Dashboard companies={companies} lang={lang} />
+                        <Dashboard 
+                            companies={companies} 
+                            lang={lang} 
+                            session={session} 
+                            setSession={setSession} 
+                        />
                     ) : (
-                        <div className="px-4 py-8">
+                        <div className="max-w-7xl mx-auto px-4 py-8">
                             <div className="text-center mb-10">
                                 <h1 className={`text-4xl font-extrabold ${THEME.colors.textMain} tracking-tight mb-2 uppercase`}>
                                     {translations[lang].surveyTitle}
@@ -885,11 +937,23 @@ export default function App() {
                                     Submit your service requests directly to our production team.
                                 </p>
                             </div>
-                            <Survey 
-                                companies={companies} 
-                                lang={lang} 
-                                onSelectionChange={handleSelectionChange} 
-                            />
+                            
+                            {/* SIDE BY SIDE GRID LAYOUT */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                                {/* LEFT: SURVEY FORM (2/3 width) */}
+                                <div className="lg:col-span-2">
+                                    <Survey 
+                                        companies={companies} 
+                                        lang={lang} 
+                                        onSelectionChange={handleSelectionChange} 
+                                    />
+                                </div>
+
+                                {/* RIGHT: LOGIN CARD (1/3 width) */}
+                                <div className="lg:col-span-1">
+                                    <LoginCard lang={lang} onLogin={setSession} />
+                                </div>
+                            </div>
                         </div>
                     )}
                 </main>
