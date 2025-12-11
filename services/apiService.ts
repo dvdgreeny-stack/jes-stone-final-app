@@ -77,12 +77,15 @@ export async function login(apiUrl: string, accessCode: string): Promise<{sessio
 }
 
 export async function submitSurveyData(apiUrl: string, data: SurveyData): Promise<void> {
+    // CRITICAL UPDATE: Removed the fallback object. 
+    // This forces the app to throw an error if the Google Script fails,
+    // allowing you to see that data is NOT being collected.
     const result = await safeFetch(apiUrl, {
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
         body: JSON.stringify({ action: 'submitSurveyData', payload: data })
-    }, { message: "Demo submission successful" });
+    });
 
     if (!result.success) throw new Error(result.error);
 }
