@@ -139,9 +139,6 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle, lang, setLang }) => {
     const t = translations[lang];
-    // Logic: 
-    // If customTitle is present (Property Selected OR Logged In), use it.
-    // If NOT present, use default JES STONE branding.
     const title = customTitle || BRANDING.companyName;
     const subtitle = customSubtitle || BRANDING.companySubtitle;
 
@@ -220,16 +217,15 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     
     // Initialize form data - USE PROFILE DIRECTLY to prevent flash of empty state
-    const [formData, setFormData] = useState<SurveyData>({
+    const [formData, setFormData] = useState<SurveyData>(() => ({
         propertyId: '', 
-        // Initial Autofill Logic:
         firstName: userProfile?.firstName || '', 
         lastName: userProfile?.lastName || '', 
         title: userProfile?.title || '', 
         phone: userProfile?.phone || '', 
         email: userProfile?.email || '',
         unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
-    });
+    }));
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -247,26 +243,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
     const availableProperties = selectedCompany?.properties || [];
 
-    // 2. Auto-select property if only one available (Force header update)
+    // 2. Auto-select property if only one available
     useEffect(() => {
         if (availableProperties.length === 1 && !formData.propertyId) {
             setFormData(prev => ({ ...prev, propertyId: availableProperties[0].id }));
         }
     }, [availableProperties, formData.propertyId]);
-
-    // 3. Re-apply profile data if userProfile prop changes significantly or on mount
-    useEffect(() => {
-        if (userProfile) {
-            setFormData(prev => ({
-                ...prev,
-                firstName: userProfile.firstName,
-                lastName: userProfile.lastName,
-                title: userProfile.title,
-                email: userProfile.email,
-                phone: userProfile.phone
-            }));
-        }
-    }, [userProfile]);
 
     // Notify parent when property is selected to update branding
     useEffect(() => {
@@ -377,10 +359,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             email: userProfile?.email || '',
             unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
         });
-        // Reset Header only if no property pre-selected
-        if (availableProperties.length !== 1 && onSelectionChange) {
-            onSelectionChange('', '');
-        }
     };
 
     if (submissionStatus === 'success') {
@@ -436,9 +414,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     }
 
     // Dynamic Header Text logic (If logged in, show Company Name)
-    // If user is selected (logged in), selectedCompany is available. 
-    // BUT we want to be more specific. If property is selected in dropdown, show Property.
-    // This is handled by headerTitle passed down from parent if needed, but for the form itself:
     const formHeader = selectedCompany?.name ? `For ${selectedCompany.name} Properties` : t.surveyTitle;
 
     return (
@@ -768,10 +743,11 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                                 <span className="font-bold">Services:</span> {entry.services}
                                             </div>
                                             {entry.photos.length > 0 && (
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-3">
                                                     {entry.photos.map((url, i) => (
-                                                        <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-12 h-12 rounded overflow-hidden border border-white/10 hover:border-bright-cyan">
+                                                        <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-16 h-16 rounded overflow-hidden border border-white/20 hover:border-bright-cyan transition-all relative group">
                                                             <img src={url} alt="Thumbnail" className="w-full h-full object-cover" />
+                                                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
                                                         </a>
                                                     ))}
                                                 </div>
