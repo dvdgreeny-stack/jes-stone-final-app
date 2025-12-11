@@ -296,8 +296,22 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSubmitting(true);
         setErrorMessage('');
+        
+        // --- CUSTOM VALIDATION ---
+        if (formData.contactMethods.length === 0) {
+            setErrorMessage("Please select at least one contact method.");
+            setSubmissionStatus('error');
+            return;
+        }
+
+        if (formData.services.length === 0) {
+            setErrorMessage("Please select at least one service needed.");
+            setSubmissionStatus('error');
+            return;
+        }
+
+        setIsSubmitting(true);
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
@@ -438,7 +452,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 <input type="tel" name="phone" placeholder={t.phoneLabel} value={formData.phone} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
                 <input type="email" name="email" placeholder={t.emailLabel} value={formData.email} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
                 <div className="col-span-2">
-                     <p className={`text-xs ${THEME.colors.textSecondary} mb-2 uppercase font-bold`}>{t.contactMethodLegend}</p>
+                     <p className={`text-xs ${THEME.colors.textSecondary} mb-2 uppercase font-bold`}>{t.contactMethodLegend} <span className="text-rose">*</span></p>
                      <div className="flex flex-wrap gap-4">
                         {t.CONTACT_METHODS.map(method => (
                             <label key={method} className={`flex items-center gap-2 cursor-pointer hover:${THEME.colors.textMain} transition-colors group`}>
@@ -461,13 +475,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 
                 {/* Unit Info */}
                 <div>
-                     <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel}</label>
-                     <input type="text" name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
+                     <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel} <span className="text-rose">*</span></label>
+                     <input type="text" name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
                 </div>
 
                 {/* Services Checkboxes */}
                 <div>
-                    <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-3`}>{t.serviceNeededLabel}</label>
+                    <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-3`}>{t.serviceNeededLabel} <span className="text-rose">*</span></label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {t.SERVICES.map(service => (
                             <label key={service} className={`flex items-center gap-3 p-3 rounded border ${formData.services.includes(service) ? `${THEME.colors.borderHighlight} bg-gold/5 shadow-inner` : `${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight}`} cursor-pointer hover:bg-white transition-all`}>
@@ -488,8 +502,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
                 {/* Timeline Dropdown */}
                 <div>
-                     <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-2`}>{t.timelineLabel}</label>
-                     <select name="timeline" value={formData.timeline} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`}>
+                     <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-2`}>{t.timelineLabel} <span className="text-rose">*</span></label>
+                     <select name="timeline" value={formData.timeline} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`}>
                          <option value="">{t.timelineSelectPlaceholder}</option>
                          {t.TIMELINES.map(tl => <option key={tl} value={tl}>{tl}</option>)}
                      </select>
