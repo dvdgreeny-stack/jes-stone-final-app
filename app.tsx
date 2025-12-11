@@ -340,7 +340,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     if (submissionStatus === 'success') {
         const property = availableProperties.find(p => p.id === formData.propertyId);
         return (
-            <div className={`max-w-3xl mx-auto p-12 text-center ${THEME.effects.card} mt-10 relative overflow-hidden`}>
+            <div className={`max-w-3xl mx-auto p-12 text-center ${THEME.effects.card} mt-10 relative overflow-hidden m-4`}>
                 <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
                 <div className="flex justify-center mb-6">
                     <SparklesIcon className="h-16 w-16 text-gold animate-pulse" />
@@ -379,7 +379,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     if (submissionStatus === 'error') {
         return (
-             <div className={`max-w-2xl mx-auto p-8 text-center ${THEME.effects.card} border-2 ${THEME.colors.borderWarning} mt-10`}>
+             <div className={`max-w-2xl mx-auto p-8 text-center ${THEME.effects.card} border-2 ${THEME.colors.borderWarning} mt-10 m-4`}>
                  <XMarkIcon className="h-16 w-16 text-rose mx-auto mb-4" />
                 <h2 className={`text-2xl font-bold ${THEME.colors.textWarning} mb-2`}>{t.submitErrorTitle}</h2>
                 <p className={`${THEME.colors.textSecondary} mb-6`}>{t.submitErrorMessage1}</p>
@@ -774,8 +774,8 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
     const handleTestChat = async () => {
         setTestStatus('Sending ping...');
         try {
-            await sendTestChat(BRANDING.defaultApiUrl);
-            setTestStatus('Success! Check Google Chat.');
+            const result = await sendTestChat(BRANDING.defaultApiUrl);
+            setTestStatus(result); // Will show "Signal Sent (Blind Mode)" if fell back
             setTimeout(() => setTestStatus(''), 5000);
         } catch (e) {
             setTestStatus('Failed. Check console.');
@@ -840,7 +840,7 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                                     <button onClick={handleTestChat} className={`text-xs ${THEME.colors.surface} border ${THEME.colors.borderHighlight} ${THEME.colors.textHighlight} px-3 py-2 rounded hover:bg-gold/10 transition-colors w-full`}>
                                         {t.testChatButton}
                                     </button>
-                                    {testStatus && <p className={`text-xs mt-2 text-center ${THEME.colors.textHighlight}`}>{testStatus}</p>}
+                                    {testStatus && <p className={`text-xs mt-2 text-center ${THEME.colors.textHighlight} animate-pulse`}>{testStatus}</p>}
                                 </div>
                             </div>
                         </div>
@@ -1035,6 +1035,9 @@ function App() {
   const [route, setRoute] = useState(window.location.hash);
   const [heroText, setHeroText] = useState('');
   const [heroSubText, setHeroSubText] = useState('');
+  
+  // New state to track if we are in demo/offline mode
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
       const handleHashChange = () => setRoute(window.location.hash);
@@ -1046,12 +1049,14 @@ function App() {
       setLoginError('');
       if (code === 'ADMIN') {
           setCurrentUser({ role: 'internal_admin', companyId: 'internal', allowedPropertyIds: [], company: {id: 'internal', name: 'Jes Stone', properties: []} } as any);
+          setIsDemoMode(false);
           return;
       }
 
       try {
-          const session = await login(BRANDING.defaultApiUrl, code);
-          setCurrentUser(session);
+          const result = await login(BRANDING.defaultApiUrl, code);
+          setCurrentUser(result.session);
+          setIsDemoMode(result.isFallback); // Set demo mode based on API result
       } catch (e) {
           setLoginError('Invalid Access Code');
       }
@@ -1059,6 +1064,7 @@ function App() {
 
   const handleLogout = () => {
       setCurrentUser(null);
+      setIsDemoMode(false);
       window.location.hash = '';
       setHeroText('');
       setHeroSubText('');
@@ -1073,11 +1079,20 @@ function App() {
       if (!currentUser) {
           return <DashboardLogin onLogin={handleLogin} error={loginError} lang={lang} />;
       }
-      if (currentUser.role === 'internal_admin') {
-          return <CompanyDashboard user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} />;
-      } else {
-          return <ClientDashboard user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} />;
-      }
+      return (
+          <>
+            {isDemoMode && (
+                <div className="fixed bottom-4 left-4 z-50 bg-rose text-white text-xs font-bold px-3 py-1 rounded shadow-lg animate-pulse pointer-events-none">
+                    ⚠ Demo / Offline Mode
+                </div>
+            )}
+            {currentUser.role === 'internal_admin' ? (
+                <CompanyDashboard user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} />
+            ) : (
+                <ClientDashboard user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} />
+            )}
+          </>
+      );
   }
 
   // Public Landing / Survey
