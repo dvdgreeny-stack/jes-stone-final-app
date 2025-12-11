@@ -7,7 +7,6 @@ import { THEME } from './theme';
 import type { Company, SurveyData, UserSession, UserRole, UserProfile, HistoryEntry } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon, GlobeAltIcon, UsersIcon } from './components/icons';
-import { EstimatingModule } from './components/EstimatingModule';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
 // --- ERROR BOUNDARY COMPONENT ---
@@ -209,26 +208,29 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
     const availableProperties = selectedCompany?.properties || [];
 
+    // Auto-select property if only one is available
     useEffect(() => {
         if (availableProperties.length === 1) {
              const prop = availableProperties[0];
              if (formData.propertyId !== prop.id) {
                  setFormData(prev => ({ ...prev, propertyId: prop.id }));
              }
-             if (onSelectionChange && selectedCompany) {
+        }
+    }, [availableProperties, formData.propertyId]);
+
+    // Update Header Title based on Property Selection
+    useEffect(() => {
+        if (onSelectionChange && selectedCompany) {
+             const prop = availableProperties.find(p => p.id === formData.propertyId);
+             if (prop) {
+                 // Update header with Property Name as main title
                  onSelectionChange(prop.name, selectedCompany.name);
+             } else {
+                 // Default to Company Name if no property selected
+                 onSelectionChange(selectedCompany.name, t.surveySubtitleProperties);
              }
         }
-    }, [availableProperties, formData.propertyId, selectedCompany, onSelectionChange]);
-
-    useEffect(() => {
-        if (formData.propertyId && selectedCompany) {
-            const prop = availableProperties.find(p => p.id === formData.propertyId);
-            if (prop && onSelectionChange) {
-                onSelectionChange(prop.name, selectedCompany.name);
-            }
-        }
-    }, [formData.propertyId, selectedCompany, availableProperties, onSelectionChange]);
+    }, [formData.propertyId, selectedCompany, availableProperties, onSelectionChange, t.surveySubtitleProperties]);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -278,7 +280,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                  if (e.target?.result) {
                      newAttachments.push({
                          name: file.name,
-                         type: file.type,
+                         type: file.type || 'application/octet-stream', // Fallback for safety
                          data: e.target.result as string
                      });
                      if (newAttachments.length === files.length) {
@@ -332,9 +334,11 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             services: formData.services || [],
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address',
-            // Strip base64 prefix for Google Apps Script compatibility
+            // Strip base64 prefix for Google Apps Script compatibility, ensuring data is raw string if it was data URI
             attachments: formData.attachments?.map(a => ({
                 ...a,
+                // Ensure type is present for Utilities.newBlob
+                type: a.type || 'application/octet-stream', 
                 data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
             })) || []
         };
@@ -409,6 +413,10 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         );
     }
 
+    // Common Label Style for consistency
+    const labelStyle = `text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`;
+    const inputStyle = `w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus} bg-white`;
+
     return (
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8 mt-8 pb-12">
             {/* Property Selection */}
@@ -420,25 +428,25 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {companies.length > 1 && (
                             <div className="flex flex-col">
-                                <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>Management Company</label>
+                                <label className={labelStyle}>Management Company</label>
                                 <select 
                                     value={selectedCompanyId} 
                                     onChange={(e) => setSelectedCompanyId(e.target.value)}
-                                    className={`w-full p-3 rounded bg-white border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`}
+                                    className={inputStyle}
                                 >
                                     <option value="">Select Company...</option>
                                     {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                             </div>
                         )}
-                        <div className="flex flex-col">
-                            <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.propertyNameLabel}</label>
+                        <div className={`flex flex-col ${companies.length > 1 ? '' : 'md:col-span-2'}`}>
+                            <label className={labelStyle}>{t.propertyNameLabel}</label>
                             <select 
                                 name="propertyId" 
                                 value={formData.propertyId} 
                                 onChange={handleChange}
                                 required
-                                className={`w-full p-3 rounded bg-white border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`}
+                                className={inputStyle}
                             >
                                 <option value="">{t.propertySelectPlaceholder}</option>
                                 {availableProperties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -455,27 +463,27 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 </legend>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col">
-                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.firstNameLabel}</label>
-                        <input name="firstName" value={formData.firstName} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                        <label className={labelStyle}>{t.firstNameLabel}</label>
+                        <input name="firstName" value={formData.firstName} onChange={handleChange} required className={inputStyle} />
                     </div>
                     <div className="flex flex-col">
-                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.lastNameLabel}</label>
-                        <input name="lastName" value={formData.lastName} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                        <label className={labelStyle}>{t.lastNameLabel}</label>
+                        <input name="lastName" value={formData.lastName} onChange={handleChange} required className={inputStyle} />
                     </div>
                     <div className="flex flex-col">
-                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.titleRoleLabel}</label>
-                        <select name="title" value={formData.title} onChange={handleChange} className={`w-full p-3 rounded bg-white border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`}>
+                        <label className={labelStyle}>{t.titleRoleLabel}</label>
+                        <select name="title" value={formData.title} onChange={handleChange} className={inputStyle}>
                             <option value="">{t.roleSelectPlaceholder}</option>
                             {t.TITLES.map(title => <option key={title} value={title}>{title}</option>)}
                         </select>
                     </div>
                     <div className="flex flex-col">
-                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.emailLabel}</label>
-                        <input name="email" type="email" value={formData.email} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                        <label className={labelStyle}>{t.emailLabel}</label>
+                        <input name="email" type="email" value={formData.email} onChange={handleChange} required className={inputStyle} />
                     </div>
-                    <div className="flex flex-col">
-                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.phoneLabel}</label>
-                        <input name="phone" type="tel" value={formData.phone} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                    <div className="flex flex-col md:col-span-2">
+                        <label className={labelStyle}>{t.phoneLabel}</label>
+                        <input name="phone" type="tel" value={formData.phone} onChange={handleChange} className={inputStyle} />
                     </div>
                 </div>
             </fieldset>
@@ -489,7 +497,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 <div className="space-y-4">
                     <div>
                         <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel}</label>
-                        <input name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                        <input name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} required className={inputStyle} />
                     </div>
                     
                     <div>
@@ -511,7 +519,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
                     <div>
                         <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-2`}>{t.timelineLabel}</label>
-                        <select name="timeline" value={formData.timeline} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`}>
+                        <select name="timeline" value={formData.timeline} onChange={handleChange} required className={inputStyle}>
                             <option value="">{t.timelineSelectPlaceholder}</option>
                             {t.TIMELINES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
@@ -525,7 +533,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                                 {isGeneratingDraft ? t.generatingButton : t.generateAIDraftButton}
                              </button>
                          </div>
-                         <textarea name="notes" rows={4} placeholder={t.notesPlaceholder} value={formData.notes} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                         <textarea name="notes" rows={4} placeholder={t.notesPlaceholder} value={formData.notes} onChange={handleChange} className={inputStyle} />
                     </div>
                 </div>
             </fieldset>
@@ -670,7 +678,6 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es'}> = ({ companie
                     { id: 'overview', label: t.tabOverview, icon: DashboardIcon },
                     { id: 'projects', label: t.tabProjects, icon: ChartBarIcon },
                     { id: 'new', label: t.tabNewRequest, icon: ClipboardListIcon },
-                    { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon },
                     { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
                 ].map(tab => (
                     <button 
@@ -713,8 +720,6 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es'}> = ({ companie
                         lang={lang} 
                     />
                 )}
-
-                {activeTab === 'estimating' && <EstimatingModule />}
                 
                 {activeTab === 'projects' && <ProjectManagementModule mode={isAdmin ? 'company' : 'client'} />}
 
