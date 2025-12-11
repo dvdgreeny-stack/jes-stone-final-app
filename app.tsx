@@ -298,7 +298,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         e.preventDefault();
         setErrorMessage('');
         
-        // --- CUSTOM VALIDATION ---
+        // --- CUSTOM VALIDATION FOR MANDATORY FIELDS ---
         if (formData.contactMethods.length === 0) {
             setErrorMessage("Please select at least one contact method.");
             setSubmissionStatus('error');
@@ -311,13 +311,25 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             return;
         }
 
+        if (!formData.unitInfo.trim()) {
+            setErrorMessage("Please provide unit information or site directions.");
+            setSubmissionStatus('error');
+            return;
+        }
+
+         if (!formData.timeline) {
+            setErrorMessage("Please select a timeline.");
+            setSubmissionStatus('error');
+            return;
+        }
+
         setIsSubmitting(true);
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
         const payload: SurveyData = {
             ...formData,
-            unitInfo: formData.unitInfo || 'N/A',
+            unitInfo: formData.unitInfo,
             notes: formData.notes || 'N/A',
             services: formData.services || [],
             propertyName: property?.name || 'Unknown Property',
@@ -750,7 +762,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                                     {entry.photos.map((url, i) => {
                                                         const directUrl = getDirectImageUrl(url);
                                                         return (
-                                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-stone-300 hover:border-gold transition-all relative group shadow-md">
+                                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-20 h-20 rounded-lg overflow-hidden border border-stone-200 hover:border-gold transition-all relative group shadow-md">
                                                                 <img 
                                                                     src={directUrl} 
                                                                     alt="Thumbnail" 
@@ -1052,11 +1064,21 @@ function App() {
   
   // New state to track if we are in demo/offline mode
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [publicCompanies, setPublicCompanies] = useState<Company[]>([]);
 
   useEffect(() => {
       const handleHashChange = () => setRoute(window.location.hash);
       window.addEventListener('hashchange', handleHashChange);
       return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // FETCH PUBLIC DATA ON LOAD
+  useEffect(() => {
+      fetchCompanyData(BRANDING.defaultApiUrl).then(res => {
+          setPublicCompanies(res.data);
+      }).catch(err => {
+          console.error("Failed to load public data", err);
+      });
   }, []);
 
   const handleLogin = async (code: string) => {
@@ -1136,7 +1158,7 @@ function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 <div className="order-2 md:order-1 animate-in slide-in-from-left duration-700 delay-100">
                     <Survey 
-                        companies={[{id: 'knightvest', name: 'Knightvest', properties: [{id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd'}]}]} 
+                        companies={publicCompanies.length > 0 ? publicCompanies : [{id: 'loading', name: 'Loading Properties...', properties: []}]}
                         isInternal={false}
                         lang={lang}
                         onSelectionChange={handlePublicSurveySelection}
