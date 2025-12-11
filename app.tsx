@@ -745,7 +745,12 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                         const directUrl = getDirectImageUrl(url);
                                         return (
                                             <a key={i} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-white/10 hover:border-bright-cyan transition-colors group relative aspect-square">
-                                                <img src={directUrl} alt={`Project Photo ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                <img 
+                                                  src={directUrl} 
+                                                  alt={`Project Photo ${i}`} 
+                                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                                  referrerPolicy="no-referrer"
+                                                />
                                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                     <span className="text-white text-xs font-bold uppercase tracking-wider border border-white px-2 py-1 rounded">View</span>
                                                 </div>
@@ -793,7 +798,12 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                                         const directUrl = getDirectImageUrl(url);
                                                         return (
                                                             <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-16 h-16 rounded overflow-hidden border border-white/20 hover:border-bright-cyan transition-all relative group">
-                                                                <img src={directUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                                                                <img 
+                                                                    src={directUrl} 
+                                                                    alt="Thumbnail" 
+                                                                    className="w-full h-full object-cover" 
+                                                                    referrerPolicy="no-referrer"
+                                                                />
                                                                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
                                                             </a>
                                                         );
