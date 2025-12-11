@@ -34,13 +34,39 @@ async function safeFetch(url: string, options: RequestInit, fallbackResponse?: a
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        return { ...data, _isFallback: false };
+
+        const text = await response.text();
+        
+        try {
+            const data = JSON.parse(text);
+            // If the script returned { success: false, error: "..." }, throw it now
+            if (data.success === false) {
+                throw new Error(data.error || "Unknown Script Error");
+            }
+            return { ...data, _isFallback: false };
+        } catch (e: any) {
+            // Check if it's our own error from above
+            if (e.message && e.message !== "Unexpected token" && !e.message.includes("JSON")) {
+                throw e; 
+            }
+            
+            console.error("Backend returned non-JSON response (likely an HTML error page):", text);
+            
+            if (text.includes("Google Drive")) {
+                 throw new Error("Script Error: The Google Script is returning an HTML login page. Check 'Who has access' is set to 'Anyone' in deployment.");
+            }
+            if (text.includes("ScriptError")) {
+                 throw new Error("Script Error: The Google Script crashed. Check the execution logs.");
+            }
+            
+            throw new Error("Server Error: The backend returned invalid data. Check the browser console for details.");
+        }
+
     } catch (error) {
-        console.warn(`API Request Failed (${url}). Switching to Demo Fallback mode.`, error);
+        console.warn(`API Request Failed (${url}).`, error);
         
         if (fallbackResponse !== undefined) {
-            // Simulate network delay for realism
+            console.info("Switching to Demo Fallback mode.");
             await new Promise(resolve => setTimeout(resolve, 1000));
             return { success: true, ...fallbackResponse, _isFallback: true };
         }
@@ -57,7 +83,6 @@ export async function fetchCompanyData(apiUrl: string): Promise<{data: Company[]
         body: JSON.stringify({ action: 'getCompanyData' })
     }, { data: DEMO_COMPANIES });
 
-    if (!result.success) throw new Error(result.error || 'Failed to fetch data');
     return { data: result.data, isFallback: result._isFallback };
 }
 
@@ -72,31 +97,23 @@ export async function login(apiUrl: string, accessCode: string): Promise<{sessio
         })
     }, { session: DEMO_SESSION });
 
-    if (!result.success) throw new Error(result.error || 'Invalid Access Code');
     return { session: result.session, isFallback: result._isFallback };
 }
 
 export async function submitSurveyData(apiUrl: string, data: SurveyData): Promise<void> {
-    // CRITICAL UPDATE: Removed the fallback object. 
-    // This forces the app to throw an error if the Google Script fails,
-    // allowing you to see that data is NOT being collected.
-    const result = await safeFetch(apiUrl, {
+    // No fallback here. If it fails, we want the user to know.
+    await safeFetch(apiUrl, {
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
         body: JSON.stringify({ action: 'submitSurveyData', payload: data })
     });
-
-    if (!result.success) throw new Error(result.error);
 }
 
-// UPDATED: ROBUST CHAT SENDER
 export async function sendTestChat(apiUrl: string): Promise<string> {
     const payload = JSON.stringify({ action: 'testChat', payload: { timestamp: Date.now() } });
 
     try {
-        // Attempt 1: Standard Request
-        // We use text/plain to avoid preflight, but some browsers still block the response reading if CORS headers are missing.
         const response = await fetch(apiUrl, {
             method: 'POST',
             credentials: 'omit',
@@ -105,15 +122,17 @@ export async function sendTestChat(apiUrl: string): Promise<string> {
             body: payload
         });
         
-        if (response.ok) return "Success: Server Responded OK";
-        throw new Error("Standard fetch returned " + response.status);
+        const text = await response.text();
+        try {
+             const json = JSON.parse(text);
+             if (json.success) return json.message || "Success";
+             return "Error: " + json.error;
+        } catch(e) {
+             return "Server Error (Non-JSON)";
+        }
 
     } catch (e) {
-        console.warn("Standard fetch failed. Attempting Blind Beacon (no-cors)...", e);
-        
-        // Attempt 2: Blind Beacon (no-cors)
-        // This sends the data but ignores the response. This usually bypasses CORS blocks.
-        // If the script is up, it WILL execute.
+        console.warn("Standard fetch failed. Attempting Blind Beacon...", e);
         try {
             await fetch(apiUrl, {
                 method: 'POST',
@@ -122,10 +141,9 @@ export async function sendTestChat(apiUrl: string): Promise<string> {
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: payload
             });
-            return "Signal Sent (Blind Mode - Check Chat)";
+            return "Signal Sent (Blind Mode)";
         } catch (e2) {
-            console.error("All chat attempts failed", e2);
-            throw new Error("Could not send signal. Check API URL.");
+            throw new Error("Connection Failed");
         }
     }
 }
@@ -146,6 +164,5 @@ export async function fetchSurveyHistory(apiUrl: string, propertyName: string): 
         })
     }, { history: mockHistory });
 
-    if (!result.success) throw new Error(result.error);
     return result.history || [];
 }
