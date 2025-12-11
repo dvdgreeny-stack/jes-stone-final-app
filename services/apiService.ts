@@ -101,12 +101,22 @@ export async function login(apiUrl: string, accessCode: string): Promise<{sessio
 }
 
 export async function submitSurveyData(apiUrl: string, data: SurveyData): Promise<void> {
+    console.log("Submitting Payload:", data); // DEBUG: Check console to see exactly what is sent
+
+    // Validate payload before sending to prevent script crashes
+    const safePayload = {
+        ...data,
+        services: data.services || [],
+        contactMethods: data.contactMethods || [],
+        attachments: data.attachments || []
+    };
+
     // No fallback here. If it fails, we want the user to know.
     await safeFetch(apiUrl, {
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
-        body: JSON.stringify({ action: 'submitSurveyData', payload: data })
+        body: JSON.stringify({ action: 'submitSurveyData', payload: safePayload })
     });
 }
 
