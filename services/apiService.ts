@@ -23,7 +23,14 @@ const DEMO_SESSION: UserSession = {
 // Helper: safeFetch wraps the fetch call.
 async function safeFetch(url: string, options: RequestInit, fallbackResponse?: any): Promise<any> {
     try {
-        const response = await fetch(url, options);
+        // CONTENT-TYPE IS CRITICAL: 'text/plain' prevents browser OPTIONS preflight check
+        const finalOptions = {
+            ...options,
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+        };
+
+        const response = await fetch(url, finalOptions);
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -47,7 +54,6 @@ export async function fetchCompanyData(apiUrl: string): Promise<{data: Company[]
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'getCompanyData' })
     }, { data: DEMO_COMPANIES });
 
@@ -60,7 +66,6 @@ export async function login(apiUrl: string, accessCode: string): Promise<{sessio
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ 
             action: 'login', 
             payload: { accessCode } 
@@ -76,43 +81,48 @@ export async function submitSurveyData(apiUrl: string, data: SurveyData): Promis
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'submitSurveyData', payload: data })
     }, { message: "Demo submission successful" });
 
     if (!result.success) throw new Error(result.error);
 }
 
-// UPDATED: Now attempts 'no-cors' if standard fetch fails to ensure signal is sent
+// UPDATED: ROBUST CHAT SENDER
 export async function sendTestChat(apiUrl: string): Promise<string> {
+    const payload = JSON.stringify({ action: 'testChat', payload: { timestamp: Date.now() } });
+
     try {
         // Attempt 1: Standard Request
+        // We use text/plain to avoid preflight, but some browsers still block the response reading if CORS headers are missing.
         const response = await fetch(apiUrl, {
             method: 'POST',
             credentials: 'omit',
+            redirect: 'follow',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'testChat' })
+            body: payload
         });
         
-        if (response.ok) return "Success! Notification Sent.";
-        throw new Error("Standard fetch failed");
+        if (response.ok) return "Success: Server Responded OK";
+        throw new Error("Standard fetch returned " + response.status);
+
     } catch (e) {
-        console.warn("Standard fetch failed. Attempting 'no-cors' beacon to force signal...");
+        console.warn("Standard fetch failed. Attempting Blind Beacon (no-cors)...", e);
         
-        // Attempt 2: No-Cors (Fire & Forget)
-        // This bypasses CORS blocks on the response, allowing the request to hit the server.
+        // Attempt 2: Blind Beacon (no-cors)
+        // This sends the data but ignores the response. This usually bypasses CORS blocks.
+        // If the script is up, it WILL execute.
         try {
             await fetch(apiUrl, {
                 method: 'POST',
                 mode: 'no-cors', 
                 credentials: 'omit',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'testChat' })
+                body: payload
             });
-            return "Signal Sent (Blind Mode)";
+            return "Signal Sent (Blind Mode - Check Chat)";
         } catch (e2) {
             console.error("All chat attempts failed", e2);
-            throw new Error("Could not send chat signal.");
+            throw new Error("Could not send signal. Check API URL.");
         }
     }
 }
@@ -127,7 +137,6 @@ export async function fetchSurveyHistory(apiUrl: string, propertyName: string): 
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ 
             action: 'getHistory', 
             payload: { propertyName } 
