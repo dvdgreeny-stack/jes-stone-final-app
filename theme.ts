@@ -16,7 +16,7 @@ export const THEME = {
         textGhost: "text-slate/20", // For watermarks
 
         // Borders - DEFINED & CRISP (Darker for less fuzz)
-        borderSubtle: "border-slate-300", // Was 200, now 300 for visibility
+        borderSubtle: "border-slate-300", 
         borderHighlight: "border-gold",   // Active/Highlight
         borderWarning: "border-rose",
 
@@ -33,11 +33,11 @@ export const THEME = {
     
     // Special Effects
     effects: {
-        // Card: Floating Backlit Style
-        // bg-pearl (white) + border-slate-300 (crisp edge) + shadow-floating (backlight/lift)
+        // Card: Floating Backlit Style - INTENSIFIED
+        // Increased shadow opacity and glow spread for max separation
         card: "bg-pearl rounded-xl border border-slate-300 shadow-floating hover:shadow-floating-hover transition-all duration-500",
         
-        // Glow effect for special containers (optional)
+        // Glow effect for special containers
         glow: "shadow-floating hover:shadow-floating-hover transition-all duration-300 border border-slate-300",
     }
 };
