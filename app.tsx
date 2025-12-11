@@ -7,6 +7,7 @@ import { THEME } from './theme';
 import type { Company, SurveyData, UserSession, UserRole, UserProfile, HistoryEntry } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon, GlobeAltIcon, UsersIcon } from './components/icons';
+import { EstimatingModule } from './components/EstimatingModule';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
 // --- ERROR BOUNDARY COMPONENT ---
