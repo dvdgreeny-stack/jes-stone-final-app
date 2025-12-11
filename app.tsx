@@ -810,8 +810,8 @@ const ChatWidget: React.FC = () => {
     );
 };
 
-// --- App Component ---
-export const App: React.FC = () => {
+// --- App Component Export ---
+export default function App() {
     const [companies, setCompanies] = useState<Company[]>([]);
     const [lang, setLang] = useState<'en' | 'es'>('en');
     const [currentRoute, setCurrentRoute] = useState(window.location.hash);
@@ -870,4 +870,4 @@ export const App: React.FC = () => {
             </div>
         </ErrorBoundary>
     );
-};
+}
