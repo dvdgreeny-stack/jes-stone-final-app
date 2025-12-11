@@ -370,6 +370,9 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const payload: SurveyData = {
             ...formData,
+            // Sanitize string fields to avoid undefined errors in backend
+            unitInfo: formData.unitInfo || 'N/A',
+            notes: formData.notes || 'N/A',
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address'
         };
