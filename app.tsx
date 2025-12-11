@@ -128,6 +128,22 @@ const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
     }
 };
 
+// --- HELPER: Convert Drive Link to Image Src ---
+const getDirectImageUrl = (url: string) => {
+    // Converts Google Drive Viewer URL to a Direct Image URL for <img> tags
+    try {
+        if (url.includes('drive.google.com') && url.includes('/d/')) {
+            // Extract ID
+            const id = url.split('/d/')[1].split('/')[0];
+            // Use Google's export=view endpoint which acts as an image source
+            return `https://drive.google.com/uc?export=view&id=${id}`;
+        }
+        return url;
+    } catch (e) {
+        return url;
+    }
+};
+
 // --- Layout Components ---
 interface HeaderProps {
     surveyUrl?: string;
@@ -227,6 +243,21 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
     }));
 
+    // Effect to forcibly re-apply profile data when component mounts or userProfile changes
+    // This fixes the "Autofill failed" issue by ensuring state syncs even after resets
+    useEffect(() => {
+        if (userProfile) {
+            setFormData(prev => ({
+                ...prev,
+                firstName: userProfile.firstName,
+                lastName: userProfile.lastName,
+                title: userProfile.title,
+                phone: userProfile.phone,
+                email: userProfile.email
+            }));
+        }
+    }, [userProfile]);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
@@ -245,12 +276,20 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     // 2. Auto-select property if only one available
     useEffect(() => {
-        if (availableProperties.length === 1 && !formData.propertyId) {
-            setFormData(prev => ({ ...prev, propertyId: availableProperties[0].id }));
+        if (availableProperties.length === 1) {
+             const prop = availableProperties[0];
+             // Only update if not already set to avoid loops
+             if (formData.propertyId !== prop.id) {
+                 setFormData(prev => ({ ...prev, propertyId: prop.id }));
+             }
+             // Trigger header update immediately
+             if (onSelectionChange && selectedCompany) {
+                 onSelectionChange(prop.name, selectedCompany.name);
+             }
         }
-    }, [availableProperties, formData.propertyId]);
+    }, [availableProperties, formData.propertyId, selectedCompany, onSelectionChange]);
 
-    // Notify parent when property is selected to update branding
+    // Notify parent when property is manually selected to update branding
     useEffect(() => {
         if (formData.propertyId && selectedCompany) {
             const prop = availableProperties.find(p => p.id === formData.propertyId);
@@ -351,7 +390,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         setSubmissionStatus('idle');
         setFormData({
             propertyId: availableProperties.length === 1 ? availableProperties[0].id : '',
-            // Re-apply profile data on reset
+            // Re-apply profile data immediately on reset
             firstName: userProfile?.firstName || '',
             lastName: userProfile?.lastName || '',
             title: userProfile?.title || '',
@@ -699,14 +738,17 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                 <div className="flex justify-center p-20"><LoadingSpinner /></div>
                             ) : allPhotos.length > 0 ? (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {allPhotos.map((url, i) => (
-                                        <a key={i} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-white/10 hover:border-bright-cyan transition-colors group relative aspect-square">
-                                            <img src={url} alt={`Project Photo ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <span className="text-white text-xs font-bold uppercase tracking-wider border border-white px-2 py-1 rounded">View</span>
-                                            </div>
-                                        </a>
-                                    ))}
+                                    {allPhotos.map((url, i) => {
+                                        const directUrl = getDirectImageUrl(url);
+                                        return (
+                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-white/10 hover:border-bright-cyan transition-colors group relative aspect-square">
+                                                <img src={directUrl} alt={`Project Photo ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <span className="text-white text-xs font-bold uppercase tracking-wider border border-white px-2 py-1 rounded">View</span>
+                                                </div>
+                                            </a>
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <div className="text-center py-20 bg-navy/30 rounded border border-white/5">
@@ -744,12 +786,15 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                             </div>
                                             {entry.photos.length > 0 && (
                                                 <div className="flex gap-3">
-                                                    {entry.photos.map((url, i) => (
-                                                        <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-16 h-16 rounded overflow-hidden border border-white/20 hover:border-bright-cyan transition-all relative group">
-                                                            <img src={url} alt="Thumbnail" className="w-full h-full object-cover" />
-                                                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
-                                                        </a>
-                                                    ))}
+                                                    {entry.photos.map((url, i) => {
+                                                        const directUrl = getDirectImageUrl(url);
+                                                        return (
+                                                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block w-16 h-16 rounded overflow-hidden border border-white/20 hover:border-bright-cyan transition-all relative group">
+                                                                <img src={directUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                                                                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+                                                            </a>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
