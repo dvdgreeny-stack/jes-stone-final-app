@@ -244,7 +244,17 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         }
     }, [companies]);
 
-    // 2. Re-apply profile data if userProfile prop changes significantly
+    const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+    const availableProperties = selectedCompany?.properties || [];
+
+    // 2. Auto-select property if only one available (Force header update)
+    useEffect(() => {
+        if (availableProperties.length === 1 && !formData.propertyId) {
+            setFormData(prev => ({ ...prev, propertyId: availableProperties[0].id }));
+        }
+    }, [availableProperties, formData.propertyId]);
+
+    // 3. Re-apply profile data if userProfile prop changes significantly or on mount
     useEffect(() => {
         if (userProfile) {
             setFormData(prev => ({
@@ -257,9 +267,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             }));
         }
     }, [userProfile]);
-
-    const selectedCompany = companies.find(c => c.id === selectedCompanyId);
-    const availableProperties = selectedCompany?.properties || [];
 
     // Notify parent when property is selected to update branding
     useEffect(() => {
@@ -361,7 +368,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const handleReset = () => {
         setSubmissionStatus('idle');
         setFormData({
-            propertyId: '',
+            propertyId: availableProperties.length === 1 ? availableProperties[0].id : '',
             // Re-apply profile data on reset
             firstName: userProfile?.firstName || '',
             lastName: userProfile?.lastName || '',
@@ -370,8 +377,10 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             email: userProfile?.email || '',
             unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
         });
-        // Reset Header
-        if (onSelectionChange) onSelectionChange('', '');
+        // Reset Header only if no property pre-selected
+        if (availableProperties.length !== 1 && onSelectionChange) {
+            onSelectionChange('', '');
+        }
     };
 
     if (submissionStatus === 'success') {
