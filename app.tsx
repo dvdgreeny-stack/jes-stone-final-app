@@ -331,7 +331,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             notes: formData.notes || 'N/A',
             services: formData.services || [],
             propertyName: property?.name || 'Unknown Property',
-            propertyAddress: property?.address || 'Unknown Address'
+            propertyAddress: property?.address || 'Unknown Address',
+            // Strip base64 prefix for Google Apps Script compatibility
+            attachments: formData.attachments?.map(a => ({
+                ...a,
+                data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
+            })) || []
         };
 
         try {
@@ -448,12 +453,30 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                  <legend className={`text-lg font-bold ${THEME.colors.textMain} px-2 mb-4 flex items-center gap-2`}>
                     <UsersIcon className="h-5 w-5 text-gold" /> {t.contactInfoLegend}
                 </legend>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input name="firstName" placeholder={t.firstNameLabel} value={formData.firstName} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
-                    <input name="lastName" placeholder={t.lastNameLabel} value={formData.lastName} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
-                    <input name="title" placeholder={t.titleRoleLabel} value={formData.title} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
-                    <input name="email" type="email" placeholder={t.emailLabel} value={formData.email} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
-                    <input name="phone" type="tel" placeholder={t.phoneLabel} value={formData.phone} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col">
+                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.firstNameLabel}</label>
+                        <input name="firstName" value={formData.firstName} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.lastNameLabel}</label>
+                        <input name="lastName" value={formData.lastName} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.titleRoleLabel}</label>
+                        <select name="title" value={formData.title} onChange={handleChange} className={`w-full p-3 rounded bg-white border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`}>
+                            <option value="">{t.roleSelectPlaceholder}</option>
+                            {t.TITLES.map(title => <option key={title} value={title}>{title}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col">
+                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.emailLabel}</label>
+                        <input name="email" type="email" value={formData.email} onChange={handleChange} required className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className={`text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>{t.phoneLabel}</label>
+                        <input name="phone" type="tel" value={formData.phone} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`} />
+                    </div>
                 </div>
             </fieldset>
 
@@ -828,7 +851,8 @@ export default function App() {
     }, []);
 
     const handleSelectionChange = (propName: string, companyName: string) => {
-        setHeaderTitles({ title: companyName, subtitle: propName });
+        // SWAPPED: Property Name is Main Title, Company is Subtitle
+        setHeaderTitles({ title: propName, subtitle: companyName });
     };
 
     const isDashboard = currentRoute.includes('dashboard');
