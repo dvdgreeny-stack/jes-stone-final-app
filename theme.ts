@@ -15,8 +15,8 @@ export const THEME = {
         textLink: "text-gold hover:text-navy",
         textGhost: "text-slate/20", // For watermarks
 
-        // Borders - DEFINED & CRISP
-        borderSubtle: "border-slate-200", // Lighter grey for dividers
+        // Borders - DEFINED & CRISP (Darker for less fuzz)
+        borderSubtle: "border-slate-300", // Was 200, now 300 for visibility
         borderHighlight: "border-gold",   // Active/Highlight
         borderWarning: "border-rose",
 
@@ -25,18 +25,19 @@ export const THEME = {
         buttonSecondary: "bg-white border-2 border-navy text-navy hover:bg-navy hover:text-white font-bold transition-all shadow-sm tracking-wider uppercase text-sm",
         buttonDanger: "bg-white border border-rose text-rose hover:bg-rose hover:text-white transition-all",
         
-        // Inputs - DEFINED OUTLINES
+        // Inputs - DEFINED OUTLINES (Darker border, crisp shadow)
         inputBg: "bg-white",
-        inputBorder: "border-slate-300 shadow-sm", // Visible darker grey border
+        inputBorder: "border-slate-400 shadow-crisp", // High contrast border
         inputFocus: "focus:ring-2 focus:ring-gold/20 focus:border-gold outline-none", // Gold ring on focus
     },
     
     // Special Effects
     effects: {
-        // Card: Crisp white box, thin dark border, subtle shadow
-        card: "bg-pearl rounded-xl border border-slate-300 shadow-card hover:shadow-card-hover transition-shadow duration-300",
+        // Card: Floating Backlit Style
+        // bg-pearl (white) + border-slate-300 (crisp edge) + shadow-floating (backlight/lift)
+        card: "bg-pearl rounded-xl border border-slate-300 shadow-floating hover:shadow-floating-hover transition-all duration-500",
         
         // Glow effect for special containers (optional)
-        glow: "shadow-card hover:shadow-card-hover transition-all duration-300 border border-slate-300",
+        glow: "shadow-floating hover:shadow-floating-hover transition-all duration-300 border border-slate-300",
     }
 };

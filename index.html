@@ -17,7 +17,7 @@
               'navy': '#1A2530',       // Midnight Navy (High Contrast Text)
               'navy-light': '#2C3E50', // Soft Navy
               
-              'steel': '#D4DCE6',      // NEW: Cool Steel Blue Background (Contrast)
+              'steel': '#D4DCE6',      // Cool Steel Blue Background (Contrast)
               'stone': '#EBE9E4',      // Legacy warm grey (kept for fallbacks)
               
               'pearl': '#FFFFFF',      // Pure White for Cards (Max Pop against Steel)
@@ -30,9 +30,11 @@
               'rose': '#C06C64',       // Muted Rose
             },
             boxShadow: {
-              // CRISPER SHADOWS (Less fuzz, more lift)
-              'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-              'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04)',
+              // FLOATING BACKLIT SHADOWS
+              // 1. Deep drop shadow for height
+              // 2. White glow for "backlight" effect
+              'floating': '0 20px 40px -10px rgba(26, 37, 48, 0.2), 0 0 20px 0px rgba(255, 255, 255, 0.8)',
+              'floating-hover': '0 30px 60px -12px rgba(26, 37, 48, 0.25), 0 0 30px 0px rgba(255, 255, 255, 0.9)',
               
               // Input focus glow
               'glow-gold': '0 0 0 4px rgba(197, 160, 89, 0.15)',
@@ -58,7 +60,7 @@
 </script>
 </head>
   <body class="bg-steel font-sans text-navy antialiased overflow-x-hidden relative">
-    <!-- GHOST FONT WATERMARK - Slightly darker for Steel background -->
+    <!-- GHOST FONT WATERMARK -->
     <div class="fixed top-20 left-0 w-full h-full pointer-events-none z-0 overflow-hidden flex items-center justify-center opacity-[0.04]">
         <h1 class="text-[15vw] font-bold text-navy tracking-widest rotate-[-10deg] select-none whitespace-nowrap">
             JES STONE

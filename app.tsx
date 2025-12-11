@@ -196,6 +196,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [errorMessage, setErrorMessage] = useState<string>(''); // Added for debugging
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -296,6 +297,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setErrorMessage('');
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
@@ -312,9 +314,10 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             await submitSurveyData(BRANDING.defaultApiUrl, payload);
             setSubmissionStatus('success');
             localStorage.setItem('lastSurvey', JSON.stringify(payload));
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             setSubmissionStatus('error');
+            setErrorMessage(error.message || 'Unknown network error');
         } finally {
             setIsSubmitting(false);
         }
@@ -322,6 +325,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     const handleReset = () => {
         setSubmissionStatus('idle');
+        setErrorMessage('');
         setFormData({
             propertyId: availableProperties.length === 1 ? availableProperties[0].id : '',
             firstName: userProfile?.firstName || '',
@@ -375,10 +379,15 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     if (submissionStatus === 'error') {
         return (
-             <div className={`max-w-2xl mx-auto p-8 text-center ${THEME.effects.card} border ${THEME.colors.borderWarning} mt-10`}>
+             <div className={`max-w-2xl mx-auto p-8 text-center ${THEME.effects.card} border-2 ${THEME.colors.borderWarning} mt-10`}>
                  <XMarkIcon className="h-16 w-16 text-rose mx-auto mb-4" />
                 <h2 className={`text-2xl font-bold ${THEME.colors.textWarning} mb-2`}>{t.submitErrorTitle}</h2>
                 <p className={`${THEME.colors.textSecondary} mb-6`}>{t.submitErrorMessage1}</p>
+                {errorMessage && (
+                    <div className="bg-rose/10 border border-rose/30 p-3 rounded mb-6 text-sm text-rose font-mono break-all">
+                        Error: {errorMessage}
+                    </div>
+                )}
                 <button onClick={() => setSubmissionStatus('idle')} className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded font-bold`}>
                     {t.tryAgainButton}
                 </button>
@@ -422,7 +431,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             </div>
 
             {/* Contact Info */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 ${THEME.colors.surfaceHighlight} rounded-lg border ${THEME.colors.borderSubtle} shadow-inner-light`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 ${THEME.colors.surfaceHighlight} rounded-lg border ${THEME.colors.borderSubtle} shadow-inner`}>
                 <h3 className={`col-span-2 text-sm font-bold ${THEME.colors.textHighlight} uppercase border-b ${THEME.colors.borderSubtle} pb-2`}>{t.contactInfoLegend}</h3>
                 <input type="text" name="firstName" placeholder={t.firstNameLabel} value={formData.firstName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
                 <input type="text" name="lastName" placeholder={t.lastNameLabel} value={formData.lastName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
