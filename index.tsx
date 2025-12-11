@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+// Fix: Update import to use './app' to resolve casing mismatch error with 'app.tsx'
 import App from './app';
 
 const rootElement = document.getElementById('root');
