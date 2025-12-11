@@ -97,13 +97,13 @@ const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle,
     const subtitle = customSubtitle || BRANDING.companySubtitle;
 
     return (
-        <header className={`${THEME.colors.surface} bg-opacity-90 backdrop-blur-md sticky top-0 z-20 shadow-sm border-b ${THEME.colors.borderSubtle}`}>
+        <header className={`${THEME.colors.surface}/80 backdrop-blur-md sticky top-0 z-20 shadow-sm border-b ${THEME.colors.borderSubtle}`}>
             <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                 <a href={surveyUrl || "#/"} onClick={handleNav} className="flex items-center gap-4 group">
                     {BRANDING.logoUrl ? (
                         <img src={BRANDING.logoUrl} alt={`${BRANDING.companyName} Logo`} className="h-12 w-auto object-contain" />
                     ) : (
-                        <JesStoneLogo className="h-10 w-auto group-hover:scale-105 transition-transform" />
+                        <JesStoneLogo className="h-10 w-auto group-hover:scale-105 transition-transform drop-shadow-md" />
                     )}
                     <div className="flex flex-col">
                         <span className={`text-xl font-extrabold ${THEME.colors.textMain} tracking-widest leading-none uppercase`}>
@@ -117,7 +117,7 @@ const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle,
                 
                 <button
                     onClick={() => setLang(lang === 'en' ? 'es' : 'en')}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight} hover:border-gold transition-all`}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight} hover:border-gold transition-all shadow-sm`}
                 >
                     <GlobeAltIcon className={`h-4 w-4 ${THEME.colors.textSecondary}`} />
                     <span className={`text-xs font-bold ${THEME.colors.textMain}`}>{t.languageToggle}</span>
@@ -128,10 +128,10 @@ const Header: React.FC<HeaderProps> = ({ surveyUrl, customTitle, customSubtitle,
 };
 
 const Footer: React.FC = () => (
-    <footer className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t ${THEME.colors.borderSubtle} text-center`}>
+    <footer className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t ${THEME.colors.borderSubtle} text-center relative z-10`}>
         <div className="mb-6">
             <h3 className={`text-sm font-bold ${THEME.colors.textSecondary} tracking-widest uppercase mb-4`}>Internal Team Contacts</h3>
-            <div className={`inline-block ${THEME.colors.surface} p-4 rounded-lg text-left shadow-soft border ${THEME.colors.borderSubtle}`}>
+            <div className={`inline-block ${THEME.effects.card} p-6 text-left`}>
                 {BRANDING.teamContacts.map((contact, idx) => (
                     <div key={idx}>
                         <p className={`font-bold ${THEME.colors.textMain}`}>{contact.name}</p>
@@ -336,7 +336,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     if (submissionStatus === 'success') {
         const property = availableProperties.find(p => p.id === formData.propertyId);
         return (
-            <div className={`max-w-3xl mx-auto p-8 text-center ${THEME.colors.surface} rounded-xl ${THEME.effects.glow} border ${THEME.colors.borderHighlight} mt-10`}>
+            <div className={`max-w-3xl mx-auto p-12 text-center ${THEME.effects.card} mt-10 relative overflow-hidden`}>
+                <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
                 <div className="flex justify-center mb-6">
                     <SparklesIcon className="h-16 w-16 text-gold animate-pulse" />
                 </div>
@@ -374,7 +375,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     if (submissionStatus === 'error') {
         return (
-             <div className={`max-w-2xl mx-auto p-8 text-center ${THEME.colors.surface} rounded-xl border ${THEME.colors.borderWarning} mt-10`}>
+             <div className={`max-w-2xl mx-auto p-8 text-center ${THEME.effects.card} border ${THEME.colors.borderWarning} mt-10`}>
                  <XMarkIcon className="h-16 w-16 text-rose mx-auto mb-4" />
                 <h2 className={`text-2xl font-bold ${THEME.colors.textWarning} mb-2`}>{t.submitErrorTitle}</h2>
                 <p className={`${THEME.colors.textSecondary} mb-6`}>{t.submitErrorMessage1}</p>
@@ -388,7 +389,9 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const formHeader = selectedCompany?.name ? `For ${selectedCompany.name} Properties` : t.surveyTitle;
 
     return (
-        <form onSubmit={handleSubmit} className={`w-full max-w-4xl mx-auto ${embedded ? '' : 'mt-8 p-6 md:p-10'} ${THEME.colors.surface} rounded-xl ${THEME.effects.glow} border ${THEME.colors.borderSubtle}`}>
+        <form onSubmit={handleSubmit} className={`w-full max-w-4xl mx-auto ${embedded ? '' : 'mt-8 p-6 md:p-12'} ${THEME.effects.card} relative overflow-hidden`}>
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gold/50 to-transparent"></div>
+            
             {/* Header */}
             <div className={`mb-8 border-b ${THEME.colors.borderSubtle} pb-4`}>
                 <h2 className={`text-2xl font-bold ${THEME.colors.textMain}`}>{formHeader}</h2>
@@ -408,7 +411,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                         value={formData.propertyId}
                         onChange={handleChange}
                         required
-                        className={`w-full p-3 rounded-lg border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:outline-none focus:ring-2 ${THEME.colors.inputFocus}`}
+                        className={`w-full p-3 rounded-lg ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:outline-none ${THEME.colors.inputFocus} transition-all duration-300`}
                     >
                         <option value="">{t.propertySelectPlaceholder}</option>
                         {availableProperties.map(p => (
@@ -419,24 +422,24 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             </div>
 
             {/* Contact Info */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 ${THEME.colors.surfaceHighlight} rounded-lg border ${THEME.colors.borderSubtle}`}>
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 ${THEME.colors.surfaceHighlight} rounded-lg border ${THEME.colors.borderSubtle} shadow-inner-light`}>
                 <h3 className={`col-span-2 text-sm font-bold ${THEME.colors.textHighlight} uppercase border-b ${THEME.colors.borderSubtle} pb-2`}>{t.contactInfoLegend}</h3>
-                <input type="text" name="firstName" placeholder={t.firstNameLabel} value={formData.firstName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
-                <input type="text" name="lastName" placeholder={t.lastNameLabel} value={formData.lastName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
-                <input type="tel" name="phone" placeholder={t.phoneLabel} value={formData.phone} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
-                <input type="email" name="email" placeholder={t.emailLabel} value={formData.email} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                <input type="text" name="firstName" placeholder={t.firstNameLabel} value={formData.firstName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
+                <input type="text" name="lastName" placeholder={t.lastNameLabel} value={formData.lastName} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
+                <input type="tel" name="phone" placeholder={t.phoneLabel} value={formData.phone} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
+                <input type="email" name="email" placeholder={t.emailLabel} value={formData.email} onChange={handleChange} required className={`p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
                 <div className="col-span-2">
                      <p className={`text-xs ${THEME.colors.textSecondary} mb-2 uppercase font-bold`}>{t.contactMethodLegend}</p>
                      <div className="flex flex-wrap gap-4">
                         {t.CONTACT_METHODS.map(method => (
-                            <label key={method} className={`flex items-center gap-2 cursor-pointer hover:${THEME.colors.textMain} transition-colors`}>
+                            <label key={method} className={`flex items-center gap-2 cursor-pointer hover:${THEME.colors.textMain} transition-colors group`}>
                                 <input 
                                     type="checkbox"
                                     checked={formData.contactMethods.includes(method)}
                                     onChange={() => handleCheckboxChange('contactMethods', method)}
                                     className="rounded border-slate text-gold focus:ring-gold" 
                                 />
-                                <span className={`text-sm ${THEME.colors.textSecondary}`}>{method}</span>
+                                <span className={`text-sm ${THEME.colors.textSecondary} group-hover:text-navy transition-colors`}>{method}</span>
                             </label>
                         ))}
                      </div>
@@ -450,7 +453,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 {/* Unit Info */}
                 <div>
                      <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel}</label>
-                     <input type="text" name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                     <input type="text" name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
                 </div>
 
                 {/* Services Checkboxes */}
@@ -458,7 +461,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-3`}>{t.serviceNeededLabel}</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {t.SERVICES.map(service => (
-                            <label key={service} className={`flex items-center gap-3 p-3 rounded border ${formData.services.includes(service) ? `${THEME.colors.borderHighlight} bg-gold/5` : `${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight}`} cursor-pointer hover:bg-stone-200 transition-colors`}>
+                            <label key={service} className={`flex items-center gap-3 p-3 rounded border ${formData.services.includes(service) ? `${THEME.colors.borderHighlight} bg-gold/5 shadow-inner` : `${THEME.colors.borderSubtle} ${THEME.colors.surfaceHighlight}`} cursor-pointer hover:bg-white transition-all`}>
                                 <input 
                                     type="checkbox"
                                     checked={formData.services.includes(service)}
@@ -477,14 +480,14 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 {/* Timeline Dropdown */}
                 <div>
                      <label className={`block text-xs font-bold ${THEME.colors.textSecondary} mb-2`}>{t.timelineLabel}</label>
-                     <select name="timeline" value={formData.timeline} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`}>
+                     <select name="timeline" value={formData.timeline} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`}>
                          <option value="">{t.timelineSelectPlaceholder}</option>
                          {t.TIMELINES.map(tl => <option key={tl} value={tl}>{tl}</option>)}
                      </select>
                 </div>
 
                 {/* Photo Upload */}
-                <div className={`border border-dashed ${THEME.colors.borderSubtle} rounded-lg p-6 text-center transition-colors hover:border-gold hover:bg-stone-light cursor-pointer`}
+                <div className={`border border-dashed ${THEME.colors.borderSubtle} rounded-lg p-6 text-center transition-all hover:border-gold hover:bg-stone-light cursor-pointer group`}
                      onDragEnter={() => setDragActive(true)}
                      onDragLeave={() => setDragActive(false)}
                      onDragOver={(e) => e.preventDefault()}
@@ -492,7 +495,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                      onClick={() => fileInputRef.current?.click()}
                 >
                     <div className="flex flex-col items-center gap-2">
-                        <CloudArrowUpIcon className="h-10 w-10 text-slate" />
+                        <CloudArrowUpIcon className="h-10 w-10 text-slate group-hover:text-gold transition-colors" />
                         <span className={`text-sm ${THEME.colors.textMain} font-bold`}>{t.photosLabel}</span>
                         <span className="text-xs text-slate">{t.dragDropText}</span>
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*" className="hidden" />
@@ -500,7 +503,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     {formData.attachments && formData.attachments.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2 justify-center">
                             {formData.attachments.map((file, idx) => (
-                                <div key={idx} className={`flex items-center gap-2 ${THEME.colors.surfaceHighlight} px-3 py-1 rounded border ${THEME.colors.borderSubtle} text-xs`}>
+                                <div key={idx} className={`flex items-center gap-2 ${THEME.colors.surfaceHighlight} px-3 py-1 rounded border ${THEME.colors.borderSubtle} text-xs shadow-sm`}>
                                     <span className={`${THEME.colors.textMain} max-w-[150px] truncate`}>{file.name}</span>
                                     <button type="button" onClick={(e) => {e.stopPropagation(); setFormData(prev => ({ ...prev, attachments: prev.attachments?.filter((_, i) => i !== idx) }))}} className="text-rose hover:text-red-700">
                                         <XMarkIcon className="h-4 w-4" />
@@ -521,7 +524,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                             {isGeneratingDraft ? t.generatingButton : t.generateAIDraftButton}
                         </button>
                     </div>
-                    <textarea name="notes" rows={4} placeholder={t.notesPlaceholder} value={formData.notes} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} focus:ring-1 ${THEME.colors.inputFocus}`} />
+                    <textarea name="notes" rows={4} placeholder={t.notesPlaceholder} value={formData.notes} onChange={handleChange} className={`w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputBg} ${THEME.colors.textMain} ${THEME.colors.inputFocus}`} />
                 </div>
             </div>
 
@@ -587,7 +590,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
             />
             <div className="flex flex-1">
                 {/* Sidebar */}
-                <aside className={`w-64 ${THEME.colors.surface} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col`}>
+                <aside className={`w-64 ${THEME.effects.card} border-r ${THEME.colors.borderSubtle} hidden md:flex flex-col m-4 rounded-xl`}>
                     <div className={`p-6 border-b ${THEME.colors.borderSubtle}`}>
                         <h2 className={`text-xl font-bold ${THEME.colors.textMain} tracking-wider`}>{t.dashboardLoginTitle}</h2>
                         <p className={`text-xs ${THEME.colors.textHighlight} mt-1 truncate`}>{user.company.name}</p>
@@ -603,7 +606,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                             { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
                             { id: 'history', label: t.tabHistory, icon: ClockIcon },
                         ].map(item => (
-                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${activeTab === item.id ? `${THEME.colors.surfaceHighlight} text-navy border border-stone-300 shadow-sm` : `${THEME.colors.textSecondary} hover:text-navy hover:bg-stone-light`}`}>
+                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-all duration-300 ${activeTab === item.id ? `${THEME.colors.surfaceHighlight} text-navy border-l-4 border-gold shadow-sm` : `${THEME.colors.textSecondary} hover:text-navy hover:bg-stone-light`}`}>
                                 <item.icon className="h-5 w-5" />
                                 {item.label}
                             </button>
@@ -618,7 +621,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                 </aside>
 
                 {/* Content Area */}
-                <main className="flex-1 overflow-y-auto p-6 md:p-10">
+                <main className="flex-1 overflow-y-auto p-6 md:p-10 relative z-10">
                     {activeTab === 'overview' && (
                         <div className="animate-in fade-in duration-300">
                             <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-2`}>{t.tabOverview}</h1>
@@ -626,15 +629,15 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                                 Welcome back, <span className={`${THEME.colors.textMain} font-bold`}>{user.profile?.firstName || 'Manager'}</span>. Here is what is happening at <span className={`${THEME.colors.textMain} font-bold`}>{user.company.name}</span>.
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                <div className={`${THEME.effects.card} p-6`}>
                                     <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsActive}</h3>
                                     <p className={`text-4xl font-bold ${THEME.colors.textHighlight}`}>3</p>
                                 </div>
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                <div className={`${THEME.effects.card} p-6`}>
                                     <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsCompleted}</h3>
                                     <p className={`text-4xl font-bold ${THEME.colors.textMain}`}>12</p>
                                 </div>
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                <div className={`${THEME.effects.card} p-6`}>
                                     <h3 className={`text-sm ${THEME.colors.textSecondary} uppercase tracking-wider mb-2`}>{t.statsPending}</h3>
                                     <p className={`text-4xl font-bold text-rose`}>1</p>
                                 </div>
@@ -702,7 +705,7 @@ const ClientDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang:
                             ) : history.length > 0 ? (
                                 <div className="space-y-4">
                                     {history.map((entry, idx) => (
-                                        <div key={idx} className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:shadow-soft transition-all`}>
+                                        <div key={idx} className={`${THEME.effects.card} p-6 transition-all`}>
                                             <div className="flex flex-col md:flex-row justify-between md:items-center mb-4">
                                                 <div>
                                                     <span className={`text-xs font-bold ${THEME.colors.textHighlight} uppercase tracking-wider`}>
@@ -805,21 +808,21 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                     </div>
                 </aside>
 
-                <main className="flex-1 overflow-y-auto p-6 md:p-10">
+                <main className="flex-1 overflow-y-auto p-6 md:p-10 relative z-10">
                     {activeTab === 'overview' && (
                         <div className="animate-in fade-in duration-300">
                             <h1 className={`text-3xl font-bold ${THEME.colors.textMain} mb-8`}>Global Overview</h1>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                <div className={`${THEME.effects.card} p-6`}>
                                     <h3 className="text-gold font-bold mb-2">Total Active Projects</h3>
                                     <p className={`text-5xl font-bold ${THEME.colors.textMain}`}>15</p>
                                 </div>
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                <div className={`${THEME.effects.card} p-6`}>
                                     <h3 className="text-rose font-bold mb-2">Pending Estimates</h3>
                                     <p className={`text-5xl font-bold ${THEME.colors.textMain}`}>4</p>
                                 </div>
                                 {/* SYSTEM STATUS CARD */}
-                                <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} shadow-soft`}>
+                                <div className={`${THEME.effects.card} p-6`}>
                                     <h3 className={`${THEME.colors.textMain} font-bold mb-2`}>{t.systemStatusTitle}</h3>
                                     <div className="flex items-center gap-2 mb-4">
                                         <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
@@ -837,7 +840,7 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                         <div className="animate-in fade-in duration-300">
                             <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-6`}>{t.dataSourcesTitle}</h1>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <a href="https://docs.google.com/spreadsheets/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-green-400 group transition-all shadow-soft`}>
+                                <a href="https://docs.google.com/spreadsheets/u/0/" target="_blank" rel="noreferrer" className={`${THEME.effects.card} p-8 hover:border-green-400 group`}>
                                     <div className="flex items-center gap-4 mb-4">
                                         <div className="bg-green-100 p-3 rounded-lg"><ClipboardListIcon className="h-8 w-8 text-green-600" /></div>
                                         <div>
@@ -847,7 +850,7 @@ const CompanyDashboard: React.FC<{ user: UserSession; onLogout: () => void; lang
                                     </div>
                                     <span className="text-green-600 font-bold text-sm group-hover:underline">{t.openSheetButton} &rarr;</span>
                                 </a>
-                                <a href="https://drive.google.com/drive/u/0/" target="_blank" rel="noreferrer" className={`${THEME.colors.surface} p-8 rounded-xl border ${THEME.colors.borderSubtle} hover:border-blue-400 group transition-all shadow-soft`}>
+                                <a href="https://drive.google.com/drive/u/0/" target="_blank" rel="noreferrer" className={`${THEME.effects.card} p-8 hover:border-blue-400 group`}>
                                     <div className="flex items-center gap-4 mb-4">
                                         <div className="bg-blue-100 p-3 rounded-lg"><PhotoIcon className="h-8 w-8 text-blue-600" /></div>
                                         <div>
@@ -883,9 +886,12 @@ const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string
     };
 
     return (
-        <div className={`min-h-screen ${THEME.colors.background} flex flex-col items-center justify-center p-4`}>
-            <div className={`w-full max-w-md ${THEME.colors.surface} p-8 rounded-2xl border ${THEME.colors.borderHighlight} ${THEME.effects.glow} text-center shadow-2xl`}>
-                <div className={`${THEME.colors.surfaceHighlight} p-4 rounded-full w-fit mx-auto mb-6 border ${THEME.colors.borderHighlight}`}>
+        <div className={`min-h-screen ${THEME.colors.background} flex flex-col items-center justify-center p-4 relative overflow-hidden`}>
+             {/* Background Decoration */}
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gold/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div className={`w-full max-w-md ${THEME.effects.card} p-10 text-center relative z-10`}>
+                <div className={`${THEME.colors.surfaceHighlight} p-4 rounded-full w-fit mx-auto mb-6 border ${THEME.colors.borderHighlight} shadow-inner-light`}>
                     <LockClosedIcon className="h-8 w-8 text-gold" />
                 </div>
                 <h1 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.dashboardLoginTitle}</h1>
@@ -899,7 +905,7 @@ const DashboardLogin: React.FC<{ onLogin: (code: string) => void, error?: string
                             value={code} 
                             onChange={(e) => setCode(e.target.value)} 
                             placeholder="Enter Code..."
-                            className={`w-full p-4 rounded-lg ${THEME.colors.inputBg} border ${THEME.colors.inputBorder} ${THEME.colors.textMain} text-center text-xl font-bold tracking-[0.2em] focus:ring-2 ${THEME.colors.inputFocus} outline-none placeholder:text-slate/30`}
+                            className={`w-full p-4 rounded-lg ${THEME.colors.inputBg} border ${THEME.colors.inputBorder} ${THEME.colors.textMain} text-center text-xl font-bold tracking-[0.2em] focus:outline-none ${THEME.colors.inputFocus} placeholder:text-slate/30 transition-all duration-300`}
                         />
                     </div>
                     {error && <p className="text-rose text-sm font-bold animate-pulse">{error}</p>}
@@ -962,7 +968,7 @@ const ChatWidget: React.FC<{ lang: 'en' | 'es' }> = ({ lang }) => {
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {isOpen && (
-                <div className={`mb-4 w-80 h-96 ${THEME.colors.surface} border ${THEME.colors.borderHighlight} rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300`}>
+                <div className={`mb-4 w-80 h-96 ${THEME.effects.card} flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300`}>
                     <div className="bg-navy p-4 border-b border-white/10 flex justify-between items-center text-white">
                         <div className="flex items-center gap-2">
                              <SparklesIcon className="h-4 w-4 text-gold" />
@@ -970,7 +976,7 @@ const ChatWidget: React.FC<{ lang: 'en' | 'es' }> = ({ lang }) => {
                         </div>
                         <button onClick={() => setIsOpen(false)} className="text-slate-300 hover:text-white"><XMarkIcon className="h-5 w-5" /></button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-stone-light">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-stone-light/50">
                         {messages.length === 0 && (
                             <div className="text-center text-slate text-sm mt-10">
                                 <p>Hello! I am the {BRANDING.assistantName}.</p>
@@ -1077,7 +1083,7 @@ function App() {
             customSubtitle={heroSubText}
           />
 
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
             {/* Hero Section */}
             <div className="text-center mb-12 animate-in slide-in-from-bottom-8 duration-700">
                 <h1 className={`text-4xl md:text-6xl font-extrabold ${THEME.colors.textMain} mb-4 tracking-tight uppercase`}>
@@ -1100,14 +1106,17 @@ function App() {
                 </div>
                 
                 <div className="order-1 md:order-2 flex flex-col justify-center h-full space-y-8 animate-in slide-in-from-right duration-700 delay-200">
-                    <div className={`${THEME.colors.surface} p-8 rounded-2xl border ${THEME.colors.borderHighlight} ${THEME.effects.glow}`}>
-                        <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-4`}>Property Manager Portal</h2>
-                        <p className={`${THEME.colors.textSecondary} mb-6`}>
+                    <div className={`${THEME.effects.card} p-10 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-500`}>
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <LockClosedIcon className="h-32 w-32 text-navy" />
+                        </div>
+                        <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-4 relative z-10`}>Property Manager Portal</h2>
+                        <p className={`${THEME.colors.textSecondary} mb-6 relative z-10`}>
                             Track your requests, view project photos, and manage approvals in one secure place.
                         </p>
                         <button 
                             onClick={() => window.location.hash = '#dashboard'}
-                            className={`w-full flex items-center justify-center gap-3 ${THEME.colors.buttonSecondary} py-4 rounded-lg font-bold text-lg transition-all`}
+                            className={`w-full flex items-center justify-center gap-3 ${THEME.colors.buttonSecondary} py-4 rounded-lg font-bold text-lg transition-all relative z-10`}
                         >
                             <LockClosedIcon className="h-6 w-6" />
                             {t.enterDashboardButton}
@@ -1115,12 +1124,12 @@ function App() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className={`${THEME.colors.surface} p-4 rounded-lg border ${THEME.colors.borderSubtle} text-center shadow-soft`}>
+                        <div className={`${THEME.effects.card} p-4 text-center`}>
                             <ClockIcon className="h-8 w-8 text-gold mx-auto mb-2" />
                             <h3 className={`font-bold ${THEME.colors.textMain}`}>Fast Turnaround</h3>
                             <p className="text-xs text-slate">24h Response Time</p>
                         </div>
-                         <div className={`${THEME.colors.surface} p-4 rounded-lg border ${THEME.colors.borderSubtle} text-center shadow-soft`}>
+                         <div className={`${THEME.effects.card} p-4 text-center`}>
                             <SparklesIcon className="h-8 w-8 text-navy mx-auto mb-2" />
                             <h3 className={`font-bold ${THEME.colors.textMain}`}>Quality First</h3>
                             <p className="text-xs text-slate">Top-Tier Materials</p>

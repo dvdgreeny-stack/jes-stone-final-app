@@ -13,20 +13,32 @@
               sans: ['"Century Gothic"', 'CenturyGothic', 'AppleGothic', 'sans-serif'],
             },
             colors: {
-              // OPTION C: Atelier Palette
-              'navy': '#2C3E50',       // Soft Navy (Primary Text/Buttons)
-              'navy-light': '#34495E', // Lighter Navy
-              'stone': '#EBE9E4',      // Warm Stone (Main Background)
-              'stone-light': '#F5F5F0',// Alabaster
-              'paper': '#FFFFFF',      // Pure White (Cards)
-              'gold': '#C5A059',       // Champagne Gold (Accents)
-              'gold-light': '#E5D4B3', // Soft Gold
-              'slate': '#7F8C8D',      // Secondary Text
-              'rose': '#D98880',       // Muted Rose (Errors/Alerts)
+              // LUXURY ATELIER PALETTE
+              'navy': '#1A2530',       // Midnight Navy (High Contrast)
+              'navy-light': '#2C3E50', // Soft Navy
+              
+              'stone': '#EBE9E4',      // The "Off-White" Backdrop (Warm Grey)
+              'pearl': '#FDFCF8',      // The "Card" Color (Glowing White)
+              
+              'gold': '#C5A059',       // Champagne Gold
+              'gold-light': '#E5D4B3', // Pale Gold
+              
+              'slate': '#637075',      // Deep Grey (Secondary Text)
+              'rose': '#C06C64',       // Muted Rose
             },
             boxShadow: {
-              'soft': '0 4px 20px rgba(44, 62, 80, 0.08)',
-              'soft-hover': '0 10px 30px rgba(44, 62, 80, 0.12)',
+              // THE "PEARL" GLOW
+              // A mix of soft gold shadow and a white halo to create the "backlit" effect
+              'pearl': '0 10px 40px -10px rgba(197, 160, 89, 0.15), 0 0 25px rgba(255, 255, 255, 0.6)',
+              
+              // Stronger lift for hovering
+              'pearl-hover': '0 20px 50px -10px rgba(44, 62, 80, 0.15), 0 0 30px rgba(255, 255, 255, 0.8)',
+              
+              // Inner glow for inputs
+              'inner-light': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
+            },
+            backgroundImage: {
+               'shimmer': 'linear-gradient(45deg, rgba(255,255,255,0) 40%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0) 60%)'
             }
           },
         },
@@ -45,8 +57,15 @@
 }
 </script>
 </head>
-  <body class="bg-stone font-sans text-navy antialiased">
-    <div id="root"></div>
+  <body class="bg-stone font-sans text-navy antialiased overflow-x-hidden relative">
+    <!-- GHOST FONT WATERMARK -->
+    <div class="fixed top-20 left-0 w-full h-full pointer-events-none z-0 overflow-hidden flex items-center justify-center opacity-[0.03]">
+        <h1 class="text-[15vw] font-bold text-navy tracking-widest rotate-[-10deg] select-none whitespace-nowrap">
+            JES STONE
+        </h1>
+    </div>
+
+    <div id="root" class="relative z-10"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
