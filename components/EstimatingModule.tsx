@@ -22,9 +22,12 @@ interface Package {
 
 interface Props {
     session: UserSession;
+    lang: 'en' | 'es';
 }
 
-export const EstimatingModule: React.FC<Props> = ({ session }) => {
+export const EstimatingModule: React.FC<Props> = ({ session, lang }) => {
+    const t = translations[lang];
+
     // --- Configuration ---
     const PRICE_BOOK = {
         'Quartz Countertop': 45, // per sq ft
@@ -155,15 +158,15 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                 <div className="inline-block p-4 rounded-full bg-emerald-50 mb-4">
                     <ClipboardListIcon className="h-12 w-12 text-emerald-600" />
                 </div>
-                <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>Estimate Submitted!</h2>
+                <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>{t.estSuccessTitle}</h2>
                 <p className={`${THEME.colors.textSecondary} max-w-md mx-auto mb-6`}>
-                    We have received your budget request. A formal proposal will be sent to your email shortly for final approval.
+                    {t.estSuccessMsg}
                 </p>
                 <button 
                     onClick={() => setSubmitSuccess(false)}
                     className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded`}
                 >
-                    Start New Estimate
+                    {t.estNewButton}
                 </button>
             </div>
         );
@@ -174,14 +177,14 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
             {/* Header Area */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
                 <div>
-                    <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-1`}>CapEx Calculator</h2>
-                    <p className={`${THEME.colors.textSecondary} text-sm`}>Build a soft bid and submit for ROI approval.</p>
+                    <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-1`}>{t.estTitle}</h2>
+                    <p className={`${THEME.colors.textSecondary} text-sm`}>{t.estSubtitle}</p>
                 </div>
                 
                 {/* Budget Thermometer */}
                 <div className={`flex-1 w-full md:max-w-md ${THEME.colors.surface} p-3 rounded-lg border ${THEME.colors.borderSubtle} shadow-sm`}>
                     <div className="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
-                        <span className={THEME.colors.textSecondary}>Budget Utilization</span>
+                        <span className={THEME.colors.textSecondary}>{t.estBudgetUtil}</span>
                         <span className={total > budgetCap ? THEME.colors.textWarning : THEME.colors.textHighlight}>
                             ${total.toFixed(0)} / <input 
                                 type="number" 
@@ -209,13 +212,13 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                             onClick={() => setActiveTab('build')}
                             className={`flex-1 py-3 text-sm font-bold uppercase tracking-wide ${activeTab === 'build' ? 'bg-navy text-white' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
-                            Build
+                            {t.estTabBuild}
                         </button>
                         <button 
                             onClick={() => setActiveTab('packages')}
                             className={`flex-1 py-3 text-sm font-bold uppercase tracking-wide ${activeTab === 'packages' ? 'bg-navy text-white' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
-                            Packages
+                            {t.estTabPackages}
                         </button>
                     </div>
 
@@ -223,7 +226,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                         {activeTab === 'build' ? (
                             <div className="space-y-4">
                                 <div>
-                                    <label className={`block text-xs ${THEME.colors.textSecondary} mb-1 uppercase`}>Item</label>
+                                    <label className={`block text-xs ${THEME.colors.textSecondary} mb-1 uppercase`}>{t.estItemLabel}</label>
                                     <select 
                                         value={selectedItem}
                                         onChange={(e) => setSelectedItem(e.target.value)}
@@ -235,7 +238,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className={`block text-xs ${THEME.colors.textSecondary} mb-1 uppercase`}>Quantity</label>
+                                    <label className={`block text-xs ${THEME.colors.textSecondary} mb-1 uppercase`}>{t.estQtyLabel}</label>
                                     <input 
                                         type="number" 
                                         min="1"
@@ -248,7 +251,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                                     onClick={handleAddItem}
                                     className={`w-full ${THEME.colors.buttonSecondary} py-2 rounded font-bold transition-all`}
                                 >
-                                    Add Item
+                                    {t.estAddButton}
                                 </button>
                             </div>
                         ) : (
@@ -261,7 +264,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                                     >
                                         <div className="font-bold text-navy group-hover:text-gold">{pkg.name}</div>
                                         <div className="text-xs text-slate-500">{pkg.description}</div>
-                                        <div className="text-xs font-bold text-slate-400 mt-1">Includes {pkg.items.length} items</div>
+                                        <div className="text-xs font-bold text-slate-400 mt-1">{t.estPkgIncludes} {pkg.items.length} {t.estPkgItems}</div>
                                     </button>
                                 ))}
                             </div>
@@ -275,10 +278,10 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                         <table className="w-full text-left text-sm">
                             <thead className={`${THEME.colors.background} ${THEME.colors.textSecondary} uppercase text-xs font-bold`}>
                                 <tr>
-                                    <th className="p-4">Description</th>
-                                    <th className="p-4 text-center">Qty</th>
-                                    <th className="p-4 text-right">Price</th>
-                                    <th className="p-4 text-right">Total</th>
+                                    <th className="p-4">{t.estTableDesc}</th>
+                                    <th className="p-4 text-center">{t.estTableQty}</th>
+                                    <th className="p-4 text-right">{t.estTablePrice}</th>
+                                    <th className="p-4 text-right">{t.estTableTotal}</th>
                                     <th className="p-4 w-10"></th>
                                 </tr>
                             </thead>
@@ -287,7 +290,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                                     <tr>
                                         <td colSpan={5} className={`p-12 text-center ${THEME.colors.textSecondary} italic`}>
                                             <CalculatorIcon className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                                            Start building your estimate to see the breakdown.
+                                            {t.estEmptyState}
                                         </td>
                                     </tr>
                                 ) : (
@@ -312,7 +315,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                     {/* Footer Area */}
                     <div className={`${THEME.colors.background} border-t ${THEME.colors.borderHighlight} p-6`}>
                         <div className="flex justify-between items-center mb-6">
-                            <div className={`text-sm font-bold ${THEME.colors.textSecondary} uppercase tracking-wider`}>Estimated Total</div>
+                            <div className={`text-sm font-bold ${THEME.colors.textSecondary} uppercase tracking-wider`}>{t.estTotalLabel}</div>
                             <div className={`text-3xl font-bold ${THEME.colors.textMain}`}>${total.toFixed(2)}</div>
                         </div>
 
@@ -336,10 +339,10 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                             className={`w-full ${THEME.colors.buttonPrimary} py-4 rounded shadow-lg text-lg flex justify-center items-center gap-2 ${items.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
                         >
                             {isSubmitting ? <LoadingSpinner /> : <SparklesIcon className="h-5 w-5 text-gold" />}
-                            {isSubmitting ? 'Submit Estimate for Approval' : 'Submit Estimate for Approval'}
+                            {isSubmitting ? t.submittingButton : t.estSubmitButton}
                         </button>
                         <p className="text-center text-xs text-slate-400 mt-3 flex items-center justify-center gap-2">
-                            <span>Submitting as: <strong className={THEME.colors.textMain}>{session.profile?.email}</strong></span>
+                            <span>{t.estSubmittingAs} <strong className={THEME.colors.textMain}>{session.profile?.email}</strong></span>
                         </p>
                     </div>
                 </div>

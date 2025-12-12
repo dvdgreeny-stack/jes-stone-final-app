@@ -274,7 +274,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     };
 
     const handleServiceChange = (service: string) => {
-        // Toggle selection for Multi-Select Checkbox
+        // Multi-select Toggle logic
         setFormData(prev => {
             const isSelected = prev.services.includes(service);
             if (isSelected) {
@@ -389,14 +389,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             ...formData,
             unitInfo: formData.unitInfo,
             notes: formData.notes || 'N/A',
-            // Send selected services as is
+            // Send selected services array directly
             services: formData.services,
-            // Send other service description as is
+            // Send other service description
             otherService: formData.otherService || '', 
             propertyName: property?.name || 'Unknown Property',
-            // Pass the address to the backend
             propertyAddress: property?.address || 'Unknown Address',
-            // Strip base64 prefix so Google Apps Script can consume it
+            // Strip base64 prefix
             attachments: formData.attachments?.map(a => ({
                 name: a.name || 'image.jpg',
                 type: a.type && a.type !== '' ? a.type : 'application/octet-stream', 
@@ -578,7 +577,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Column 1: Predefined Services */}
+                        {/* Column 1: Predefined Services (Multi-Select Checkboxes) */}
                         <div className="flex flex-col">
                             <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.serviceNeededLabel}</label>
                             <div className="flex flex-col gap-2">
@@ -597,7 +596,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                             </div>
                         </div>
 
-                        {/* Column 2: Other Services */}
+                        {/* Column 2: Other Services (Textarea) */}
                         <div className="flex flex-col">
                             <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.otherServicesLabel}</label>
                             <textarea 
@@ -830,7 +829,7 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
                 
                 {activeTab === 'projects' && <ProjectManagementModule mode={isAdmin ? 'company' : 'client'} lang={lang} />}
 
-                {activeTab === 'estimating' && <EstimatingModule session={session} />}
+                {activeTab === 'estimating' && <EstimatingModule session={session} lang={lang} />}
 
                 {activeTab === 'gallery' && (
                     <div className="text-center py-20 text-slate-400">
