@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData, login } from './services/apiService';
@@ -380,7 +381,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
         // --- PREPARE SERVICES PAYLOAD ---
         // If "Other..." is selected, inject the user's typed text instead of the checkbox label
-        const otherLabel = t.SERVICES.find(s => s.toLowerCase().includes('other')) || 'Other';
+        const otherLabel = t.SERVICES.find(s => s.toLowerCase().includes('other') || s.toLowerCase().includes('otro')) || 'Other';
         let servicesToSubmit = [...formData.services];
         
         if (servicesToSubmit.includes(otherLabel)) {
@@ -491,7 +492,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const inputStyle = `w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus} bg-white`;
 
     // Check if "Other" is selected in services
-    const isOtherSelected = formData.services.some(s => s.toLowerCase().includes('other'));
+    const isOtherSelected = formData.services.some(s => s.toLowerCase().includes('other') || s.toLowerCase().includes('otro'));
 
     const property = availableProperties.find(p => p.id === formData.propertyId);
 

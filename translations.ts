@@ -72,6 +72,157 @@ export const translations = {
     dashboardLoginSubtitle: "Secure access for Property Managers",
     accessCodeLabel: "Enter Access Code",
     loginButton: "Enter Dashboard",
+    tabOverview: "Overview",
+    tabNewRequest: "New Request",
+    tabGallery: "Photo Gallery",
+    tabHistory: "History",
+    tabEstimating: "Quick Estimating",
+    tabProjects: "Project Tracker",
+    tabDataSources: "Data Sources",
+
+    statsActive: "Active Jobs",
+    statsCompleted: "Completed",
+    statsPending: "Pending Approval",
+    recentActivity: "Recent Activity",
+    galleryTitle: "Project Photos",
+    gallerySubtitle: "See your recent updates",
+    logout: "Log Out",
+    
+    // Project Management Module
+    projTitleClient: "My Projects",
+    projTitleCompany: "Global Project Tracker",
+    projSubtitleClient: "Track the status of your requested services.",
+    projSubtitleCompany: "Monitor active jobs across all properties.",
+    projFilterAll: "All",
+    projFilterProduction: "Production",
+    projFilterProcurement: "Procurement",
+    projFilterPlanning: "Planning",
+    projFilterCompleted: "Completed",
+    projStatusOnSchedule: "On Schedule",
+    projStatusWaiting: "Waiting on Material",
+    projStatusPermitting: "Permitting",
+    projStatusReady: "Ready",
+
+    // Roles
+    roleSiteManager: "Site Manager",
+    roleRegionalManager: "Regional Manager",
+    roleExecutive: "Executive",
+    roleInternalAdmin: "Admin Jes Stone",
+
+    // Company Portal
+    companyPortalTitle: "Command Center",
+    companyPortalSubtitle: "Internal Admin",
+    dataSourcesTitle: "Connected Data Sources",
+    dataSourcesSubtitle: "Direct access to backend files.",
+    systemStatusTitle: "System Status",
+    testChatButton: "Test Chat Connection",
+    googleSheetLabel: "Response Database",
+    googleDriveLabel: "Photo Repository",
+    openSheetButton: "Open Google Sheet",
+    openDriveButton: "Open Drive Folder",
+
+    // Options (Arrays)
+    SERVICES: [
+      'Countertops - Quartz',
+      'Countertops - Granite',
+      'Cabinets - Refacing',
+      'Cabinets - Replacement',
+      'Contract Make-Ready',
+      'Tile - Wall',
+      'Tile - Flooring',
+      'Other: we have many Associate Subs',
+    ],
+    TITLES: [
+      'Onsite Manager',
+      'Onsite Maintenance',
+      'Regional Manager',
+    ],
+    TIMELINES: [
+      'Emergency',
+      'Service - Urgent',
+      'Service - Repairs',
+      'Consultation',
+      'CapEx Budget - Future',
+      'CapEx Budget - Surplus'
+    ],
+    CONTACT_METHODS: [
+      'Phone Call (Immediate)',
+      'Email Reply',
+      'Text Message (SMS)',
+    ],
+  },
+  es: {
+    // Survey Headers
+    surveyTitle: "Asistente de Servicio",
+    surveySubtitle: "Para",
+    surveySubtitleProperties: "Propiedades",
+    languageToggle: "English",
+
+    // Fieldset Legends
+    propertyIdLegend: "Identificación de Propiedad",
+    contactInfoLegend: "Información de Contacto",
+    scopeTimelineLegend: "Alcance y Cronograma",
+    contactMethodLegend: "¿Cómo le gustaría ser contactado?",
+    photosLegend: "Fotos y Adjuntos",
+
+    // Field Labels
+    propertyNameLabel: "Nombre de Propiedad",
+    propertyAddressLabel: "Dirección de Propiedad",
+    firstNameLabel: "Nombre",
+    lastNameLabel: "Apellido",
+    titleRoleLabel: "Título / Rol",
+    phoneLabel: "Número de Teléfono",
+    emailLabel: "Correo Electrónico (Separar con comas)",
+    unitInfoLabel: "Unidad # / Conteo / Área",
+    serviceNeededLabel: "Servicio Principal Necesario",
+    timelineLabel: "Cronograma del Proyecto",
+    notesLabel: "Notas Adicionales y Dinámicas",
+    photosLabel: "Subir Fotos 'Antes' (Máx 2MB por archivo)",
+    photosPermissionHint: "Nota: Asegúrese de autorizar Google Script si las fotos no aparecen.",
+    ccManagersLabel: "CC Gerentes / Jefe (Opcional)",
+
+    // Placeholders & Default Text
+    propertySelectPlaceholder: "Seleccionar Propiedad...",
+    addressPlaceholder: "La dirección se autocompleta...",
+    roleSelectPlaceholder: "Seleccionar Rol...",
+    unitInfoPlaceholder: "Indíquenos las direcciones del sitio...",
+    otherServicePlaceholder: "Especifique 'Otro' servicio",
+    timelineSelectPlaceholder: "Seleccione cronograma...",
+    notesPlaceholder: "Desahóguese aquí. Lo resolveremos rápido...",
+    dragDropText: "Arrastre y suelte fotos aquí, o haga clic para seleccionar",
+    emailPlaceholder: "ej. tu@compañia.com, jefe@compañia.com",
+
+    // Buttons
+    generateAIDraftButton: "Generar Borrador IA",
+    generatingButton: "Generando...",
+    submitButton: "ENVIAR PARA RESPUESTA INMEDIATA",
+    submittingButton: "Enviando...",
+    submitAnotherButton: "Enviar Otra Solicitud",
+    enterDashboardButton: "Entrar al Panel Personal",
+    uploadButton: "Agregar Fotos",
+    removePhoto: "Eliminar",
+
+    // Submission Status Messages
+    submitSuccessTitle: "¡Solicitud Recibida!",
+    submitSuccessMessage1: "Gracias por su solicitud. Nuestro equipo le responderá en breve.",
+    submitSuccessMessage2: "Puede rastrear esta solicitud en su panel.",
+    photosUploadedBadge: "Fotos Subidas Exitosamente",
+    returnHomeButton: "Volver al Inicio",
+    submitErrorTitle: "Envío Fallido",
+    submitErrorMessage1: "Hubo un error al procesar su solicitud.",
+    submitErrorMessage2: "Por favor intente de nuevo o contáctenos directamente si el problema persiste.",
+    tryAgainButton: "Intentar de Nuevo",
+
+    // Chat Widget
+    chatTitle: "Asistente", 
+    chatPlaceholder: "Pregunte sobre servicios o pida ayuda...",
+    chatSend: "Enviar",
+
+    // Dashboard
+    dashboardLoginTitle: "Portal de Clientes",
+    dashboardLoginSubtitle: "Acceso seguro para Gerentes",
+    accessCodeLabel: "Ingrese Código de Acceso",
+    loginButton: "Entrar al Panel",
     tabOverview: "Resumen",
     tabNewRequest: "Nueva Solicitud",
     tabGallery: "Galería de Fotos",
@@ -121,7 +272,7 @@ export const translations = {
     openSheetButton: "Abrir Hoja de Google",
     openDriveButton: "Abrir Carpeta Drive",
 
-    // Opciones (Arrays)
+    // Options (Arrays)
     SERVICES: [
       'Countertops - Quartz',
       'Countertops - Granite',
@@ -130,7 +281,7 @@ export const translations = {
       'Contract Make-Ready',
       'Tile - Wall',
       'Tile - Flooring',
-      'Other: we have many Associate Subs',
+      'Otro: tenemos muchos subcontratistas asociados',
     ],
     TITLES: [
       'Onsite Manager',
