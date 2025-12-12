@@ -1,36 +1,91 @@
 import React, { useState, useMemo } from 'react';
 import { THEME } from '../theme';
-import { translations } from '../translations';
-import { CalculatorIcon, TrashIcon } from './icons';
+import { CalculatorIcon, TrashIcon, ClipboardListIcon, SparklesIcon, LoadingSpinner } from './icons';
+import { submitSurveyData } from '../services/apiService';
+import { BRANDING } from '../branding';
+import type { UserSession, SurveyData } from '../types';
 
 interface LineItem {
     id: string;
-    category: string;
     description: string;
     quantity: number;
     unitPrice: number;
 }
 
-export const EstimatingModule: React.FC = () => {
-    // Hardcoded simple price list for the MVP
-    // In a real SaaS, this would come from the Google Sheet "Pricing" tab
+interface Package {
+    id: string;
+    name: string;
+    description: string;
+    items: Omit<LineItem, 'id'>[];
+}
+
+interface Props {
+    session: UserSession;
+}
+
+export const EstimatingModule: React.FC<Props> = ({ session }) => {
+    // --- Configuration ---
     const PRICE_BOOK = {
         'Quartz Countertop': 45, // per sq ft
         'Granite Countertop': 38, // per sq ft
         'Backsplash Tile': 12, // per sq ft
         'LVP Flooring': 3.50, // per sq ft
-        'Cabinet Box': 150, // per unit
+        'Baseboards (4")': 2.25, // per ln ft
+        'Cabinet Paint': 900, // per set
+        'Cabinet Box Replaced': 150, // per unit
+        'Tub Resurface': 350, // flat
+        'Full Paint (1 Bed)': 450, // flat
+        'Full Paint (2 Bed)': 650, // flat
         'Labor Hour': 75, // per hour
     };
 
+    const PACKAGES: Package[] = [
+        {
+            id: 'pkg-1-std',
+            name: 'Standard 1-Bed Make Ready',
+            description: 'Paint, Clean, and Basic Repairs',
+            items: [
+                { description: 'Full Paint (1 Bed)', quantity: 1, unitPrice: 450 },
+                { description: 'Labor Hour', quantity: 4, unitPrice: 75 }, // Minor repairs
+            ]
+        },
+        {
+            id: 'pkg-kitchen-lux',
+            name: 'Luxury Kitchen Upgrade',
+            description: 'Quartz, Backsplash, & Cab Paint',
+            items: [
+                { description: 'Quartz Countertop', quantity: 45, unitPrice: 45 },
+                { description: 'Backsplash Tile', quantity: 25, unitPrice: 12 },
+                { description: 'Cabinet Paint', quantity: 1, unitPrice: 900 },
+            ]
+        }
+    ];
+
+    // --- State ---
     const [items, setItems] = useState<LineItem[]>([]);
     const [selectedItem, setSelectedItem] = useState<string>(Object.keys(PRICE_BOOK)[0]);
     const [qty, setQty] = useState<number>(1);
+    const [budgetCap, setBudgetCap] = useState<number>(5000); // Default CapEx Limit
+    const [activeTab, setActiveTab] = useState<'build' | 'packages'>('build');
+    
+    // Submission State
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitSuccess, setSubmitSuccess] = useState(false);
 
+    // --- Calculations ---
+    const total = useMemo(() => {
+        return items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
+    }, [items]);
+
+    const budgetPercent = Math.min((total / budgetCap) * 100, 100);
+    let budgetColor = "bg-emerald-500";
+    if (budgetPercent > 75) budgetColor = "bg-yellow-500";
+    if (budgetPercent >= 100) budgetColor = "bg-rose-500";
+
+    // --- Handlers ---
     const handleAddItem = () => {
         const newItem: LineItem = {
             id: Date.now().toString(),
-            category: 'Material',
             description: selectedItem,
             quantity: qty,
             unitPrice: PRICE_BOOK[selectedItem as keyof typeof PRICE_BOOK]
@@ -38,105 +93,233 @@ export const EstimatingModule: React.FC = () => {
         setItems([...items, newItem]);
     };
 
+    const handleAddPackage = (pkg: Package) => {
+        const newItems = pkg.items.map(i => ({
+            ...i,
+            id: Math.random().toString(36).substr(2, 9)
+        }));
+        setItems([...items, ...newItems]);
+    };
+
     const handleRemoveItem = (id: string) => {
         setItems(items.filter(i => i.id !== id));
     };
 
-    const total = useMemo(() => {
-        return items.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
-    }, [items]);
+    const handleSubmitEstimate = async () => {
+        setIsSubmitting(true);
+        
+        const estimateDetails = items.map(i => 
+            `- ${i.description} (x${i.quantity}): $${(i.quantity * i.unitPrice).toFixed(2)}`
+        ).join('\n');
+
+        const notes = `*** ESTIMATE REQUEST ***\n\nTarget Budget: $${budgetCap}\nEstimated Total: $${total.toFixed(2)}\n\nLine Items:\n${estimateDetails}`;
+
+        const payload: SurveyData = {
+            propertyId: session.company.properties[0]?.id || 'unknown', // Default to first property
+            propertyName: session.company.properties[0]?.name || 'Unknown',
+            firstName: session.profile?.firstName || '',
+            lastName: session.profile?.lastName || '',
+            email: session.profile?.email || '',
+            phone: session.profile?.phone || '',
+            title: session.profile?.title || 'Manager',
+            unitInfo: 'Multiple/General CapEx',
+            services: ['Estimate Request', 'Budget Approval'],
+            otherService: `CapEx Limit: $${budgetCap}`,
+            timeline: 'CapEx Budget - Future',
+            contactMethods: ['Email Reply'],
+            notes: notes,
+            attachments: []
+        };
+
+        try {
+            await submitSurveyData(BRANDING.defaultApiUrl, payload);
+            setSubmitSuccess(true);
+            setItems([]); // Clear cart
+        } catch (error) {
+            alert("Failed to submit estimate. Please check connection.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (submitSuccess) {
+        return (
+            <div className="animate-in fade-in duration-500 py-12 text-center">
+                <div className="inline-block p-4 rounded-full bg-emerald-50 mb-4">
+                    <ClipboardListIcon className="h-12 w-12 text-emerald-600" />
+                </div>
+                <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>Estimate Submitted!</h2>
+                <p className={`${THEME.colors.textSecondary} max-w-md mx-auto mb-6`}>
+                    We have received your budget request. A formal proposal will be sent to your email shortly for final approval.
+                </p>
+                <button 
+                    onClick={() => setSubmitSuccess(false)}
+                    className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded`}
+                >
+                    Start New Estimate
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="animate-in fade-in duration-300">
-            <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>Quick Estimator</h2>
-            <p className={`${THEME.colors.textSecondary} mb-6`}>Draft budget estimates for approval.</p>
+            {/* Header Area */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+                <div>
+                    <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-1`}>CapEx Calculator</h2>
+                    <p className={`${THEME.colors.textSecondary} text-sm`}>Build a soft bid and submit for ROI approval.</p>
+                </div>
+                
+                {/* Budget Thermometer */}
+                <div className={`flex-1 w-full md:max-w-md ${THEME.colors.surface} p-3 rounded-lg border ${THEME.colors.borderSubtle} shadow-sm`}>
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
+                        <span className={THEME.colors.textSecondary}>Budget Utilization</span>
+                        <span className={total > budgetCap ? THEME.colors.textWarning : THEME.colors.textHighlight}>
+                            ${total.toFixed(0)} / <input 
+                                type="number" 
+                                value={budgetCap} 
+                                onChange={(e) => setBudgetCap(Number(e.target.value))}
+                                className="w-16 text-right border-b border-slate-300 focus:outline-none focus:border-gold bg-transparent"
+                            />
+                        </span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                        <div 
+                            className={`h-full transition-all duration-500 ease-out ${budgetColor}`} 
+                            style={{ width: `${budgetPercent}%` }}
+                        ></div>
+                    </div>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Calculator Input */}
-                <div className={`lg:col-span-1 ${THEME.colors.surface} p-6 rounded-lg h-fit border ${THEME.colors.borderSubtle}`}>
-                    <h3 className={`font-bold ${THEME.colors.textHighlight} mb-4 flex items-center gap-2`}>
-                        <CalculatorIcon className="h-5 w-5" /> Add Line Item
-                    </h3>
-                    
-                    <div className="space-y-4">
-                        <div>
-                            <label className={`block text-xs ${THEME.colors.textSecondary} mb-1 uppercase`}>Item</label>
-                            <select 
-                                value={selectedItem}
-                                onChange={(e) => setSelectedItem(e.target.value)}
-                                className={`w-full ${THEME.colors.inputBg} ${THEME.colors.textMain} p-2 border ${THEME.colors.inputBorder} rounded focus:ring-1 ${THEME.colors.inputFocus}`}
-                            >
-                                {Object.keys(PRICE_BOOK).map(k => (
-                                    <option key={k} value={k}>{k} (${PRICE_BOOK[k as keyof typeof PRICE_BOOK]})</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                             <label className={`block text-xs ${THEME.colors.textSecondary} mb-1 uppercase`}>Quantity</label>
-                             <input 
-                                type="number" 
-                                min="1"
-                                value={qty}
-                                onChange={(e) => setQty(Number(e.target.value))}
-                                className={`w-full ${THEME.colors.inputBg} ${THEME.colors.textMain} p-2 border ${THEME.colors.inputBorder} rounded focus:ring-1 ${THEME.colors.inputFocus}`}
-                             />
-                        </div>
+                
+                {/* Builder Column */}
+                <div className={`lg:col-span-1 ${THEME.colors.surface} rounded-lg border ${THEME.colors.borderSubtle} overflow-hidden h-fit`}>
+                    <div className="flex border-b border-slate-200">
                         <button 
-                            onClick={handleAddItem}
-                            className={`w-full ${THEME.colors.buttonSecondary} py-2 rounded font-bold transition-all`}
+                            onClick={() => setActiveTab('build')}
+                            className={`flex-1 py-3 text-sm font-bold uppercase tracking-wide ${activeTab === 'build' ? 'bg-navy text-white' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
-                            Add to Estimate
+                            Build
                         </button>
+                        <button 
+                            onClick={() => setActiveTab('packages')}
+                            className={`flex-1 py-3 text-sm font-bold uppercase tracking-wide ${activeTab === 'packages' ? 'bg-navy text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                            Packages
+                        </button>
+                    </div>
+
+                    <div className="p-6">
+                        {activeTab === 'build' ? (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className={`block text-xs ${THEME.colors.textSecondary} mb-1 uppercase`}>Item</label>
+                                    <select 
+                                        value={selectedItem}
+                                        onChange={(e) => setSelectedItem(e.target.value)}
+                                        className={`w-full ${THEME.colors.inputBg} ${THEME.colors.textMain} p-2 border ${THEME.colors.inputBorder} rounded focus:ring-1 ${THEME.colors.inputFocus}`}
+                                    >
+                                        {Object.keys(PRICE_BOOK).map(k => (
+                                            <option key={k} value={k}>{k} (${PRICE_BOOK[k as keyof typeof PRICE_BOOK]})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className={`block text-xs ${THEME.colors.textSecondary} mb-1 uppercase`}>Quantity</label>
+                                    <input 
+                                        type="number" 
+                                        min="1"
+                                        value={qty}
+                                        onChange={(e) => setQty(Number(e.target.value))}
+                                        className={`w-full ${THEME.colors.inputBg} ${THEME.colors.textMain} p-2 border ${THEME.colors.inputBorder} rounded focus:ring-1 ${THEME.colors.inputFocus}`}
+                                    />
+                                </div>
+                                <button 
+                                    onClick={handleAddItem}
+                                    className={`w-full ${THEME.colors.buttonSecondary} py-2 rounded font-bold transition-all`}
+                                >
+                                    Add Item
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {PACKAGES.map(pkg => (
+                                    <button 
+                                        key={pkg.id}
+                                        onClick={() => handleAddPackage(pkg)}
+                                        className="w-full text-left p-3 border border-slate-200 rounded hover:border-gold hover:shadow-md transition-all group"
+                                    >
+                                        <div className="font-bold text-navy group-hover:text-gold">{pkg.name}</div>
+                                        <div className="text-xs text-slate-500">{pkg.description}</div>
+                                        <div className="text-xs font-bold text-slate-400 mt-1">Includes {pkg.items.length} items</div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Estimate Summary */}
-                <div className={`lg:col-span-2 ${THEME.colors.surface} rounded-lg overflow-hidden border ${THEME.colors.borderSubtle}`}>
-                    <table className="w-full text-left text-sm">
-                        <thead className={`${THEME.colors.background} ${THEME.colors.textSecondary} uppercase text-xs font-bold`}>
-                            <tr>
-                                <th className="p-4">Description</th>
-                                <th className="p-4 text-center">Qty</th>
-                                <th className="p-4 text-right">Price</th>
-                                <th className="p-4 text-right">Total</th>
-                                <th className="p-4 w-10"></th>
-                            </tr>
-                        </thead>
-                        <tbody className={`divide-y ${THEME.colors.borderSubtle}`}>
-                            {items.length === 0 ? (
+                {/* Summary Column */}
+                <div className={`lg:col-span-2 ${THEME.colors.surface} rounded-lg overflow-hidden border ${THEME.colors.borderSubtle} flex flex-col`}>
+                    <div className="flex-1">
+                        <table className="w-full text-left text-sm">
+                            <thead className={`${THEME.colors.background} ${THEME.colors.textSecondary} uppercase text-xs font-bold`}>
                                 <tr>
-                                    <td colSpan={5} className={`p-8 text-center ${THEME.colors.textSecondary} italic`}>
-                                        No items added yet.
-                                    </td>
+                                    <th className="p-4">Description</th>
+                                    <th className="p-4 text-center">Qty</th>
+                                    <th className="p-4 text-right">Price</th>
+                                    <th className="p-4 text-right">Total</th>
+                                    <th className="p-4 w-10"></th>
                                 </tr>
-                            ) : (
-                                items.map(item => (
-                                    <tr key={item.id} className={`hover:${THEME.colors.background}/50`}>
-                                        <td className={`p-4 ${THEME.colors.textMain}`}>{item.description}</td>
-                                        <td className={`p-4 text-center ${THEME.colors.textSecondary}`}>{item.quantity}</td>
-                                        <td className={`p-4 text-right ${THEME.colors.textSecondary}`}>${item.unitPrice.toFixed(2)}</td>
-                                        <td className={`p-4 text-right ${THEME.colors.textMain} font-bold`}>${(item.quantity * item.unitPrice).toFixed(2)}</td>
-                                        <td className="p-4 text-right">
-                                            <button onClick={() => handleRemoveItem(item.id)} className={`${THEME.colors.textWarning} hover:text-opacity-80`}>
-                                                <TrashIcon className="h-4 w-4" />
-                                            </button>
+                            </thead>
+                            <tbody className={`divide-y ${THEME.colors.borderSubtle}`}>
+                                {items.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className={`p-12 text-center ${THEME.colors.textSecondary} italic`}>
+                                            <CalculatorIcon className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                                            Start building your estimate to see the breakdown.
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                        <tfoot className={`${THEME.colors.background} border-t ${THEME.colors.borderHighlight}`}>
-                            <tr>
-                                <td colSpan={3} className={`p-4 text-right font-bold ${THEME.colors.textSecondary} uppercase tracking-wider`}>Total Estimate</td>
-                                <td className={`p-4 text-right font-bold text-xl ${THEME.colors.textHighlight}`}>${total.toFixed(2)}</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                    <div className="p-4 flex justify-end">
-                        <button className={`${THEME.colors.buttonPrimary} px-6 py-2 rounded font-bold disabled:opacity-50`} disabled={items.length === 0}>
-                            Save & Email Quote
+                                ) : (
+                                    items.map(item => (
+                                        <tr key={item.id} className={`hover:${THEME.colors.background}/50`}>
+                                            <td className={`p-4 ${THEME.colors.textMain}`}>{item.description}</td>
+                                            <td className={`p-4 text-center ${THEME.colors.textSecondary}`}>{item.quantity}</td>
+                                            <td className={`p-4 text-right ${THEME.colors.textSecondary}`}>${item.unitPrice.toFixed(2)}</td>
+                                            <td className={`p-4 text-right ${THEME.colors.textMain} font-bold`}>${(item.quantity * item.unitPrice).toFixed(2)}</td>
+                                            <td className="p-4 text-right">
+                                                <button onClick={() => handleRemoveItem(item.id)} className={`${THEME.colors.textWarning} hover:text-opacity-80`}>
+                                                    <TrashIcon className="h-4 w-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {/* Footer Area */}
+                    <div className={`${THEME.colors.background} border-t ${THEME.colors.borderHighlight} p-6`}>
+                        <div className="flex justify-between items-center mb-6">
+                            <div className={`text-sm font-bold ${THEME.colors.textSecondary} uppercase tracking-wider`}>Estimated Total</div>
+                            <div className={`text-3xl font-bold ${THEME.colors.textMain}`}>${total.toFixed(2)}</div>
+                        </div>
+                        
+                        <button 
+                            onClick={handleSubmitEstimate}
+                            disabled={items.length === 0 || isSubmitting}
+                            className={`w-full ${THEME.colors.buttonPrimary} py-4 rounded shadow-lg text-lg flex justify-center items-center gap-2 ${items.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
+                        >
+                            {isSubmitting ? <LoadingSpinner /> : <SparklesIcon className="h-5 w-5 text-gold" />}
+                            {isSubmitting ? 'Processing Request...' : 'Submit Estimate for Approval'}
                         </button>
+                        <p className="text-center text-xs text-slate-400 mt-3">
+                            Submitting this request does not guarantee pricing. Final proposal to follow.
+                        </p>
                     </div>
                 </div>
             </div>

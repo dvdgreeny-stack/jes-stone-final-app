@@ -806,7 +806,7 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
                 
                 {activeTab === 'projects' && <ProjectManagementModule mode={isAdmin ? 'company' : 'client'} lang={lang} />}
 
-                {activeTab === 'estimating' && <EstimatingModule />}
+                {activeTab === 'estimating' && <EstimatingModule session={session} />}
 
                 {activeTab === 'gallery' && (
                     <div className="text-center py-20 text-slate-400">
