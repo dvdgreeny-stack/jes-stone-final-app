@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
 import { fetchCompanyData, submitSurveyData, login } from './services/apiService';
@@ -275,8 +274,15 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     };
 
     const handleServiceChange = (service: string) => {
-        // Enforce Single Select by replacing the array
-        setFormData(prev => ({ ...prev, services: [service] }));
+        // Toggle selection for Multi-Select Checkbox
+        setFormData(prev => {
+            const isSelected = prev.services.includes(service);
+            if (isSelected) {
+                return { ...prev, services: prev.services.filter(s => s !== service) };
+            } else {
+                return { ...prev, services: [...prev.services, service] };
+            }
+        });
     };
 
     const handleCheckboxChange = (field: 'contactMethods', value: string) => {
@@ -357,8 +363,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             return;
         }
 
-        if (formData.services.length === 0) {
-            setErrorMessage("Please select a service needed.");
+        if (formData.services.length === 0 && !formData.otherService.trim()) {
+            setErrorMessage("Please select a service or describe other services needed.");
             setSubmissionStatus('error');
             return;
         }
@@ -378,26 +384,15 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         setIsSubmitting(true);
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
-
-        // --- PREPARE SERVICES PAYLOAD ---
-        // If "Other..." is selected, inject the user's typed text instead of the checkbox label
-        const otherLabel = t.SERVICES.find(s => s.toLowerCase().includes('other') || s.toLowerCase().includes('otro')) || 'Other';
-        let servicesToSubmit = [...formData.services];
-        
-        if (servicesToSubmit.includes(otherLabel)) {
-             // Remove the label and replace with typed text
-             servicesToSubmit = servicesToSubmit.filter(s => s !== otherLabel);
-             const specificOtherText = formData.otherService.trim() 
-                 ? `Other: ${formData.otherService}` 
-                 : 'Other (Unspecified)';
-             servicesToSubmit.push(specificOtherText);
-        }
         
         const payload: SurveyData = {
             ...formData,
             unitInfo: formData.unitInfo,
             notes: formData.notes || 'N/A',
-            services: servicesToSubmit,
+            // Send selected services as is
+            services: formData.services,
+            // Send other service description as is
+            otherService: formData.otherService || '', 
             propertyName: property?.name || 'Unknown Property',
             // Pass the address to the backend
             propertyAddress: property?.address || 'Unknown Address',
@@ -491,9 +486,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const labelStyle = `text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`;
     const inputStyle = `w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus} bg-white`;
 
-    // Check if "Other" is selected in services
-    const isOtherSelected = formData.services.some(s => s.toLowerCase().includes('other') || s.toLowerCase().includes('otro'));
-
     const property = availableProperties.find(p => p.id === formData.propertyId);
 
     return (
@@ -584,38 +576,42 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     <ClipboardListIcon className="h-5 w-5 text-gold" /> {t.scopeTimelineLegend}
                 </div>
                 
-                <div className="space-y-4">
-                    <div>
-                        <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-2`}>{t.serviceNeededLabel}</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {t.SERVICES.map(service => (
-                                <label key={service} className="flex items-center space-x-2 cursor-pointer p-2 hover:bg-slate-50 rounded">
-                                    <input 
-                                        type="radio" 
-                                        name="service_selection"
-                                        checked={formData.services.includes(service)} 
-                                        onChange={() => handleServiceChange(service)}
-                                        className="rounded-full text-navy focus:ring-gold"
-                                    />
-                                    <span className={THEME.colors.textMain}>{service}</span>
-                                </label>
-                            ))}
-                        </div>
-                        {isOtherSelected && (
-                            <div className="mt-3 animate-in fade-in slide-in-from-top-1">
-                                <label className={labelStyle}>Please specify 'Other' service</label>
-                                <input 
-                                    name="otherService" 
-                                    value={formData.otherService} 
-                                    onChange={handleChange} 
-                                    placeholder={t.otherServicePlaceholder} 
-                                    className={inputStyle} 
-                                />
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Column 1: Predefined Services */}
+                        <div className="flex flex-col">
+                            <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.serviceNeededLabel}</label>
+                            <div className="flex flex-col gap-2">
+                                {t.SERVICES.map(service => (
+                                    <label key={service} className="flex items-center space-x-3 cursor-pointer p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors group">
+                                        <input 
+                                            type="checkbox" 
+                                            name="service_selection"
+                                            checked={formData.services.includes(service)} 
+                                            onChange={() => handleServiceChange(service)}
+                                            className="w-4 h-4 rounded text-navy focus:ring-gold border-slate-300"
+                                        />
+                                        <span className={`${THEME.colors.textMain} font-medium group-hover:text-navy`}>{service}</span>
+                                    </label>
+                                ))}
                             </div>
-                        )}
+                        </div>
+
+                        {/* Column 2: Other Services */}
+                        <div className="flex flex-col">
+                            <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.otherServicesLabel}</label>
+                            <textarea 
+                                name="otherService" 
+                                rows={8}
+                                value={formData.otherService} 
+                                onChange={handleChange} 
+                                placeholder={t.otherServicePlaceholder} 
+                                className={`${inputStyle} h-full resize-none`} 
+                            />
+                        </div>
                     </div>
                     
-                    <div>
+                    <div className="pt-4 border-t border-slate-100">
                         <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel}</label>
                         <input name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} required className={inputStyle} />
                     </div>
