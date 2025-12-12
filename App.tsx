@@ -6,7 +6,7 @@ import { BRANDING } from './branding';
 import { THEME } from './theme';
 import type { Company, SurveyData, UserSession, UserProfile } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, BuildingBlocksIcon, CloudArrowUpIcon, ChartBarIcon, GlobeAltIcon, UsersIcon, CalculatorIcon } from './components/icons';
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, BuildingBlocksIcon, ChartBarIcon, GlobeAltIcon, UsersIcon, CalculatorIcon } from './components/icons';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 import { EstimatingModule } from './components/EstimatingModule';
 
@@ -228,8 +228,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState<string>(''); 
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
-    const [dragActive, setDragActive] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (companies.length === 1) {
@@ -293,40 +291,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFiles(e.target.files);
-        }
-    };
-
-    const handleFiles = (files: FileList) => {
-         const newAttachments: {name: string, type: string, data: string}[] = [];
-         
-         Array.from(files).forEach(file => {
-             if (file.size > 2 * 1024 * 1024) {
-                 alert(`File ${file.name} is too large (Max 2MB)`);
-                 return;
-             }
-             const reader = new FileReader();
-             reader.onload = (e) => {
-                 if (e.target?.result) {
-                     newAttachments.push({
-                         name: file.name,
-                         type: file.type || 'application/octet-stream', // Fallback for safety
-                         data: e.target.result as string
-                     });
-                     if (newAttachments.length === files.length) {
-                         setFormData(prev => ({ 
-                             ...prev, 
-                             attachments: [...(prev.attachments || []), ...newAttachments] 
-                         }));
-                     }
-                 }
-             };
-             reader.readAsDataURL(file);
-         });
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMessage('');
@@ -366,13 +330,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             services: formData.services || [],
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address',
-            // Strip base64 prefix for Google Apps Script compatibility, ensuring data is raw string if it was data URI
-            attachments: formData.attachments?.map(a => ({
-                name: a.name || 'image.jpg',
-                // SAFETY: Ensure type is present for Utilities.newBlob. Default to octet-stream if missing.
-                type: a.type && a.type !== '' ? a.type : 'application/octet-stream', 
-                data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
-            })) || []
+            attachments: [] // PHOTOS DISABLED - CLEAN PAYLOAD
         };
 
         try {
@@ -400,9 +358,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             email: userProfile?.email || '',
             unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
         });
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
     };
 
     if (submissionStatus === 'success') {
@@ -420,13 +375,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 {property && <p className={`${THEME.colors.textSecondary} mb-2 font-bold`}>{property.name}</p>}
                 <p className={`${THEME.colors.textSecondary} mb-8`}>{t.submitSuccessMessage2}</p>
                 
-                {formData.attachments && formData.attachments.length > 0 && (
-                     <div className={`flex justify-center items-center gap-2 mb-8 ${THEME.colors.surfaceHighlight} py-2 rounded-full w-fit mx-auto px-6 border ${THEME.colors.borderSubtle}`}>
-                        <CloudArrowUpIcon className="h-5 w-5 text-gold" />
-                        <span className={`text-gold text-sm font-bold`}>{t.photosUploadedBadge}</span>
-                     </div>
-                )}
-
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button onClick={handleReset} className={`${THEME.colors.buttonSecondary} px-8 py-3 rounded-lg`}>
                         {t.submitAnotherButton}
@@ -585,39 +533,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 </div>
             </div>
 
-             {/* Photos */}
-             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
-                 <div className={`text-lg font-bold ${THEME.colors.textMain} mb-6 flex items-center gap-2 border-b ${THEME.colors.borderSubtle} pb-2`}>
-                    <PhotoIcon className="h-5 w-5 text-gold" /> {t.photosLegend}
-                </div>
-                <div 
-                    className={`border-2 border-dashed ${dragActive ? THEME.colors.borderHighlight : THEME.colors.borderSubtle} rounded-lg p-8 text-center transition-colors cursor-pointer bg-slate-50`}
-                    onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-                    onDragLeave={() => setDragActive(false)}
-                    onDrop={(e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    <CloudArrowUpIcon className="h-10 w-10 mx-auto text-slate-400 mb-2" />
-                    <p className={`${THEME.colors.textSecondary} font-bold`}>{t.dragDropText}</p>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*" className="hidden" />
-                </div>
-                {formData.attachments && formData.attachments.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {formData.attachments.map((file, idx) => (
-                            <div key={idx} className="relative group">
-                                <img src={file.data} alt="preview" className="h-24 w-full object-cover rounded shadow-sm" />
-                                <button 
-                                    type="button" 
-                                    onClick={() => setFormData(prev => ({ ...prev, attachments: prev.attachments?.filter((_, i) => i !== idx) }))}
-                                    className="absolute top-1 right-1 bg-rose text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <XMarkIcon className="h-3 w-3" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-             </div>
+             {/* PHOTOS SECTION REMOVED COMPLETELY */}
 
              {/* Contact Methods */}
              <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
