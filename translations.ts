@@ -23,7 +23,7 @@ export const translations = {
     phoneLabel: "Phone Number",
     emailLabel: "Email Address(es) (Separate with commas)",
     unitInfoLabel: "Unit # / Unit Count / Area",
-    serviceNeededLabel: "Service Needed (Select Multiple)",
+    serviceNeededLabel: "Primary Service Needed",
     timelineLabel: "Project Timeline",
     notesLabel: "Additional Notes and Dynamics",
     photosLabel: "Upload 'Before' Photos (Max 2MB per file)",
@@ -72,157 +72,6 @@ export const translations = {
     dashboardLoginSubtitle: "Secure access for Property Managers",
     accessCodeLabel: "Enter Access Code",
     loginButton: "Enter Dashboard",
-    tabOverview: "Overview",
-    tabNewRequest: "New Request",
-    tabGallery: "Photo Gallery",
-    tabHistory: "History",
-    tabEstimating: "Quick Estimates",
-    tabProjects: "Project Tracking",
-    tabDataSources: "Data Sources",
-    
-    statsActive: "Active Jobs",
-    statsCompleted: "Completed",
-    statsPending: "Pending Approval",
-    recentActivity: "Recent Activity",
-    galleryTitle: "Project Photos",
-    gallerySubtitle: "View your recent remodeling updates",
-    logout: "Log Out",
-    
-    // Project Management Module
-    projTitleClient: "My Projects",
-    projTitleCompany: "Global Project Tracker",
-    projSubtitleClient: "Track status of your requested services.",
-    projSubtitleCompany: "Monitor active jobs across all properties.",
-    projFilterAll: "All",
-    projFilterProduction: "Production",
-    projFilterProcurement: "Procurement",
-    projFilterPlanning: "Planning",
-    projFilterCompleted: "Completed",
-    projStatusOnSchedule: "On Schedule",
-    projStatusWaiting: "Waiting on Material",
-    projStatusPermitting: "Permitting",
-    projStatusReady: "Ready",
-    
-    // Roles
-    roleSiteManager: "Site Manager",
-    roleRegionalManager: "Regional Manager",
-    roleExecutive: "Executive",
-    roleInternalAdmin: "Jes Stone Admin",
-
-    // Company Portal
-    companyPortalTitle: "Command Center",
-    companyPortalSubtitle: "Internal Administration",
-    dataSourcesTitle: "Connected Data Sources",
-    dataSourcesSubtitle: "Acceso directo a archivos backend.",
-    systemStatusTitle: "System Status",
-    testChatButton: "Test Chat Connection",
-    googleSheetLabel: "Responses Database",
-    googleDriveLabel: "Photo Repository",
-    openSheetButton: "Open Google Sheet",
-    openDriveButton: "Open Drive Folder",
-
-    // Options (Arrays)
-    SERVICES: [
-      'Countertops - Quartz',
-      'Countertops - Granite',
-      'Cabinets - Refacing',
-      'Cabinets - Replacement',
-      'Contract Make-Ready',
-      'Tile - Wall',
-      'Tile - Flooring',
-      'Other: we have many Associate Subs',
-    ],
-    TITLES: [
-      'Onsite Manager',
-      'Onsite Maintenance',
-      'Regional Manager',
-    ],
-    TIMELINES: [
-      'Emergency',
-      'Service - Time Sensitive',
-      'Service - Repairs',
-      'Consultation',
-      'CapEx Budget - Future',
-      'CapEx Budget - Surplus'
-    ],
-    CONTACT_METHODS: [
-      'Phone Call (immediate)',
-      'Email Reply',
-      'Text Message (SMS)',
-    ],
-  },
-  es: {
-    // Encabezados de la Encuesta
-    surveyTitle: "Asistente de Servicio",
-    surveySubtitle: "Para Propiedades de",
-    surveySubtitleProperties: "", 
-    languageToggle: "English",
-
-    // Leyendas de Fieldset
-    propertyIdLegend: "Identificación de la Propiedad",
-    contactInfoLegend: "Información de Contacto",
-    scopeTimelineLegend: "Alcance y Cronograma",
-    contactMethodLegend: "¿Cómo le gustaría ser contactado?",
-    photosLegend: "Fotos y Adjuntos",
-
-    // Etiquetas de Campo
-    propertyNameLabel: "Nombre de la Propiedad",
-    propertyAddressLabel: "Dirección de la Propiedad",
-    firstNameLabel: "Nombre",
-    lastNameLabel: "Apellido",
-    titleRoleLabel: "Título / Cargo",
-    phoneLabel: "Número de Teléfono",
-    emailLabel: "Correo Electrónico (Separar con comas)",
-    unitInfoLabel: "Nº de Unidad / Cantidad / Área",
-    serviceNeededLabel: "Servicio Requerido (Seleccione Múltiples)",
-    timelineLabel: "Cronograma del Proyecto",
-    notesLabel: "Notas y Dinámicas Adicionales",
-    photosLabel: "Subir fotos 'Antes' (Máx. 2MB por archivo)",
-    photosPermissionHint: "Nota: Asegúrese de que el Script de Google esté autorizado para acceder a Drive.",
-    ccManagersLabel: "CC Gerentes / Jefe (Opcional)",
-
-    // Placeholders y Texto por Defecto
-    propertySelectPlaceholder: "Seleccione una propiedad...",
-    addressPlaceholder: "La dirección se autocompleta...",
-    roleSelectPlaceholder: "Seleccione Cargo...",
-    unitInfoPlaceholder: "Díganos las direcciones del sitio...",
-    otherServicePlaceholder: "Por favor, especifique el servicio 'Otro'",
-    timelineSelectPlaceholder: "Seleccione cronograma...",
-    notesPlaceholder: "Cuéntenos todo aquí. Lo resolveremos rápido...",
-    dragDropText: "Arrastre fotos aquí, o haga clic para seleccionar",
-    emailPlaceholder: "ej. tu@compania.com, jefe@compania.com",
-
-    // Botones
-    generateAIDraftButton: "Generar Borrador con IA",
-    generatingButton: "Generando...",
-    submitButton: "ENVIAR PARA RESPUESTA INMEDIATA",
-    submittingButton: "Enviando...",
-    submitAnotherButton: "Enviar Otra Solicitud",
-    enterDashboardButton: "Entrar al Panel Personal",
-    uploadButton: "Agregar Fotos",
-    removePhoto: "Eliminar",
-
-    // Mensajes de Estado de Envío
-    submitSuccessTitle: "¡Solicitud Recibida!",
-    submitSuccessMessage1: "Gracias por su solicitud. Nuestro equipo se pondrá en contacto con usted en breve.",
-    submitSuccessMessage2: "Puede rastrear esta solicitud en su panel.",
-    photosUploadedBadge: "Fotos Subidas Exitosamente",
-    returnHomeButton: "Volver al Inicio",
-    submitErrorTitle: "Error en el Envío",
-    submitErrorMessage1: "Hubo un error al procesar su solicitud.",
-    submitErrorMessage2: "Por favor, inténtelo de nuevo o contáctenos directamente si el problema persiste.",
-    tryAgainButton: "Intentar de Nuevo",
-
-    // Chat Widget
-    chatTitle: "Asistente",
-    chatPlaceholder: "Pregunte sobre servicios o ayuda...",
-    chatSend: "Enviar",
-
-    // Dashboard
-    dashboardLoginTitle: "Portal de Clientes",
-    dashboardLoginSubtitle: "Acceso seguro para Gerentes",
-    accessCodeLabel: "Código de Acceso",
-    loginButton: "Entrar al Panel",
     tabOverview: "Resumen",
     tabNewRequest: "Nueva Solicitud",
     tabGallery: "Galería de Fotos",
@@ -261,7 +110,7 @@ export const translations = {
     roleInternalAdmin: "Admin Jes Stone",
 
     // Company Portal
-    companyPortalTitle: "Centro de Comando",
+    companyPortalTitle: "Command Center",
     companyPortalSubtitle: "Administración Interna",
     dataSourcesTitle: "Fuentes de Datos Conectadas",
     dataSourcesSubtitle: "Acceso directo a archivos backend.",
@@ -274,19 +123,19 @@ export const translations = {
 
     // Opciones (Arrays)
     SERVICES: [
-      'Encimeras - Cuarzo',
-      'Encimeras - Granito',
-      'Gabinetes - Renovación',
-      'Gabinetes - Reemplazo',
-      'Preparación para Alquiler',
-      'Azulejo - Pared',
-      'Azulejo - Piso',
-      'Otro: tenemos muchos subcontratistas asociados',
+      'Countertops - Quartz',
+      'Countertops - Granite',
+      'Cabinets - Refacing',
+      'Cabinets - Replacement',
+      'Contract Make-Ready',
+      'Tile - Wall',
+      'Tile - Flooring',
+      'Other: we have many Associate Subs',
     ],
     TITLES: [
-      'Gerente de Sitio',
-      'Mantenimiento de Sitio',
-      'Gerente Regional',
+      'Onsite Manager',
+      'Onsite Maintenance',
+      'Regional Manager',
     ],
     TIMELINES: [
       'Emergencia',

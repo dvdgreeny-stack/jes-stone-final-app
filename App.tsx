@@ -273,7 +273,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleCheckboxChange = (field: 'services' | 'contactMethods', value: string) => {
+    const handleServiceChange = (service: string) => {
+        // Enforce Single Select by replacing the array
+        setFormData(prev => ({ ...prev, services: [service] }));
+    };
+
+    const handleCheckboxChange = (field: 'contactMethods', value: string) => {
         setFormData(prev => {
             const current = prev[field];
             const updated = current.includes(value)
@@ -352,7 +357,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         }
 
         if (formData.services.length === 0) {
-            setErrorMessage("Please select at least one service needed.");
+            setErrorMessage("Please select a service needed.");
             setSubmissionStatus('error');
             return;
         }
@@ -372,12 +377,26 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         setIsSubmitting(true);
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
+
+        // --- PREPARE SERVICES PAYLOAD ---
+        // If "Other..." is selected, inject the user's typed text instead of the checkbox label
+        const otherLabel = t.SERVICES.find(s => s.toLowerCase().includes('other')) || 'Other';
+        let servicesToSubmit = [...formData.services];
+        
+        if (servicesToSubmit.includes(otherLabel)) {
+             // Remove the label and replace with typed text
+             servicesToSubmit = servicesToSubmit.filter(s => s !== otherLabel);
+             const specificOtherText = formData.otherService.trim() 
+                 ? `Other: ${formData.otherService}` 
+                 : 'Other (Unspecified)';
+             servicesToSubmit.push(specificOtherText);
+        }
         
         const payload: SurveyData = {
             ...formData,
             unitInfo: formData.unitInfo,
             notes: formData.notes || 'N/A',
-            services: formData.services || [],
+            services: servicesToSubmit,
             propertyName: property?.name || 'Unknown Property',
             // Pass the address to the backend
             propertyAddress: property?.address || 'Unknown Address',
@@ -566,20 +585,16 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 
                 <div className="space-y-4">
                     <div>
-                        <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel}</label>
-                        <input name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} required className={inputStyle} />
-                    </div>
-                    
-                    <div>
                         <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-2`}>{t.serviceNeededLabel}</label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {t.SERVICES.map(service => (
                                 <label key={service} className="flex items-center space-x-2 cursor-pointer p-2 hover:bg-slate-50 rounded">
                                     <input 
-                                        type="checkbox" 
+                                        type="radio" 
+                                        name="service_selection"
                                         checked={formData.services.includes(service)} 
-                                        onChange={() => handleCheckboxChange('services', service)}
-                                        className="rounded text-navy focus:ring-gold"
+                                        onChange={() => handleServiceChange(service)}
+                                        className="rounded-full text-navy focus:ring-gold"
                                     />
                                     <span className={THEME.colors.textMain}>{service}</span>
                                 </label>
@@ -597,6 +612,11 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                                 />
                             </div>
                         )}
+                    </div>
+                    
+                    <div>
+                        <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel}</label>
+                        <input name="unitInfo" placeholder={t.unitInfoPlaceholder} value={formData.unitInfo} onChange={handleChange} required className={inputStyle} />
                     </div>
 
                     <div>
