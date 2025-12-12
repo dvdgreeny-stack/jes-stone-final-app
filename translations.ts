@@ -1,5 +1,4 @@
 
-
 export const translations = {
   en: {
     // Survey Headers
@@ -62,7 +61,7 @@ export const translations = {
     tryAgainButton: "Try Again",
 
     // Chat Widget
-    chatTitle: "Assistant", // Removed company name
+    chatTitle: "Assistant", 
     chatPlaceholder: "Ask about services or get help...",
     chatSend: "Send",
 
@@ -75,10 +74,9 @@ export const translations = {
     tabNewRequest: "New Request",
     tabGallery: "Photo Gallery",
     tabHistory: "History",
-    // NEW TABS
     tabEstimating: "Quick Estimates",
     tabProjects: "Project Tracking",
-    tabDataSources: "Data Sources", // NEW
+    tabDataSources: "Data Sources",
     
     statsActive: "Active Jobs",
     statsCompleted: "Completed",
@@ -87,6 +85,21 @@ export const translations = {
     galleryTitle: "Project Photos",
     gallerySubtitle: "View your recent remodeling updates",
     logout: "Log Out",
+    
+    // Project Management Module
+    projTitleClient: "My Projects",
+    projTitleCompany: "Global Project Tracker",
+    projSubtitleClient: "Track status of your requested services.",
+    projSubtitleCompany: "Monitor active jobs across all properties.",
+    projFilterAll: "All",
+    projFilterProduction: "Production",
+    projFilterProcurement: "Procurement",
+    projFilterPlanning: "Planning",
+    projFilterCompleted: "Completed",
+    projStatusOnSchedule: "On Schedule",
+    projStatusWaiting: "Waiting on Material",
+    projStatusPermitting: "Permitting",
+    projStatusReady: "Ready",
     
     // Roles
     roleSiteManager: "Site Manager",
@@ -98,9 +111,9 @@ export const translations = {
     companyPortalTitle: "Command Center",
     companyPortalSubtitle: "Internal Administration",
     dataSourcesTitle: "Connected Data Sources",
-    dataSourcesSubtitle: "Direct access to backend files.",
-    systemStatusTitle: "System Status", // NEW
-    testChatButton: "Test Chat Connection", // NEW
+    dataSourcesSubtitle: "Acceso directo a archivos backend.",
+    systemStatusTitle: "System Status",
+    testChatButton: "Test Chat Connection",
     googleSheetLabel: "Responses Database",
     googleDriveLabel: "Photo Repository",
     openSheetButton: "Open Google Sheet",
@@ -140,7 +153,7 @@ export const translations = {
     // Encabezados de la Encuesta
     surveyTitle: "Asistente de Servicio",
     surveySubtitle: "Para Propiedades de",
-    surveySubtitleProperties: "", // Appended after company name
+    surveySubtitleProperties: "", 
     languageToggle: "English",
 
     // Leyendas de Fieldset
@@ -210,7 +223,6 @@ export const translations = {
     tabNewRequest: "Nueva Solicitud",
     tabGallery: "Galería de Fotos",
     tabHistory: "Historial",
-    // NEW TABS
     tabEstimating: "Estimaciones Rápidas",
     tabProjects: "Seguimiento de Proyectos",
     tabDataSources: "Fuentes de Datos",
@@ -223,6 +235,21 @@ export const translations = {
     gallerySubtitle: "Vea sus actualizaciones recientes",
     logout: "Cerrar Sesión",
     
+    // Project Management Module
+    projTitleClient: "Mis Proyectos",
+    projTitleCompany: "Rastreador Global de Proyectos",
+    projSubtitleClient: "Rastree el estado de sus servicios solicitados.",
+    projSubtitleCompany: "Monitoree trabajos activos en todas las propiedades.",
+    projFilterAll: "Todos",
+    projFilterProduction: "Producción",
+    projFilterProcurement: "Adquisiciones",
+    projFilterPlanning: "Planificación",
+    projFilterCompleted: "Completado",
+    projStatusOnSchedule: "A Tiempo",
+    projStatusWaiting: "Esperando Material",
+    projStatusPermitting: "Permisos",
+    projStatusReady: "Listo",
+
     // Roles
     roleSiteManager: "Gerente de Sitio",
     roleRegionalManager: "Gerente Regional",

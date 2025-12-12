@@ -2,20 +2,24 @@
 import React, { useState } from 'react';
 import { THEME } from '../theme';
 import { ClockIcon, BuildingBlocksIcon, ClipboardListIcon } from './icons';
+import { translations } from '../translations';
 
 interface Props {
     mode: 'client' | 'company';
+    lang: 'en' | 'es';
 }
 
-export const ProjectManagementModule: React.FC<Props> = ({ mode }) => {
+export const ProjectManagementModule: React.FC<Props> = ({ mode, lang }) => {
+    const t = translations[lang];
+
     // Mock Data for SaaS demo
     // In a real app, 'company' mode would fetch ALL projects, 'client' would filter by user's property
     const allProjects = [
-        { id: '1', title: 'Unit 104 Full Remodel', property: 'The Arts at Park Place', stage: 'Production', progress: 65, status: 'On Schedule' },
-        { id: '2', title: 'Lobby Flooring', property: 'Canyon Creek', stage: 'Procurement', progress: 20, status: 'Waiting on Material' },
-        { id: '3', title: 'Pool Area Granite', property: 'The Arts at Park Place', stage: 'Planning', progress: 5, status: 'Permitting' },
-        { id: '4', title: 'Office Expansion', property: 'The Arts at Park Place', stage: 'Production', progress: 40, status: 'On Schedule' },
-        { id: '5', title: 'Unit 205 Turn', property: 'Canyon Creek', stage: 'Completed', progress: 100, status: 'Ready' },
+        { id: '1', title: 'Unit 104 Full Remodel', property: 'The Arts at Park Place', stage: t.projFilterProduction, progress: 65, status: t.projStatusOnSchedule },
+        { id: '2', title: 'Lobby Flooring', property: 'Canyon Creek', stage: t.projFilterProcurement, progress: 20, status: t.projStatusWaiting },
+        { id: '3', title: 'Pool Area Granite', property: 'The Arts at Park Place', stage: t.projFilterPlanning, progress: 5, status: t.projStatusPermitting },
+        { id: '4', title: 'Office Expansion', property: 'The Arts at Park Place', stage: t.projFilterProduction, progress: 40, status: t.projStatusOnSchedule },
+        { id: '5', title: 'Unit 205 Turn', property: 'Canyon Creek', stage: t.projFilterCompleted, progress: 100, status: t.projStatusReady },
     ];
 
     // Simple filter simulation
@@ -24,17 +28,19 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode }) => {
         ? allProjects.slice(0, 3) 
         : allProjects;
 
-    const [filter, setFilter] = useState('All');
+    const [filter, setFilter] = useState(t.projFilterAll);
+
+    const filters = [t.projFilterAll, t.projFilterProduction, t.projFilterProcurement, t.projFilterPlanning, t.projFilterCompleted];
 
     return (
         <div className="animate-in fade-in duration-300">
             <div className="flex justify-between items-end mb-6">
                 <div>
                     <h2 className={`text-2xl font-bold ${THEME.colors.textMain} mb-2`}>
-                        {mode === 'company' ? 'Global Project Tracker' : 'My Projects'}
+                        {mode === 'company' ? t.projTitleCompany : t.projTitleClient}
                     </h2>
                     <p className={`${THEME.colors.textSecondary}`}>
-                        {mode === 'company' ? 'Monitor active jobs across all properties.' : 'Track status of your requested services.'}
+                        {mode === 'company' ? t.projSubtitleCompany : t.projSubtitleClient}
                     </p>
                 </div>
                 {mode === 'company' && (
@@ -46,7 +52,7 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode }) => {
 
             {mode === 'company' && (
                 <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                    {['All', 'Production', 'Procurement', 'Planning', 'Completed'].map(f => (
+                    {filters.map(f => (
                         <button 
                             key={f}
                             onClick={() => setFilter(f)}
@@ -59,7 +65,7 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode }) => {
             )}
 
             <div className="grid gap-4">
-                {projects.filter(p => filter === 'All' || p.stage === filter).map(project => (
+                {projects.filter(p => filter === t.projFilterAll || p.stage === filter).map(project => (
                     <div key={project.id} className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:${THEME.colors.borderHighlight} transition-colors group`}>
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                             <div>
@@ -72,8 +78,8 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode }) => {
                                 </span>
                             </div>
                             <div className={`text-sm font-bold px-3 py-1 rounded border ${
-                                project.status === 'On Schedule' || project.status === 'Ready' ? 'border-bright-cyan text-bright-cyan' : 
-                                project.status === 'Waiting on Material' ? 'border-bright-pink text-bright-pink' : 'border-slate text-slate'
+                                project.status === t.projStatusOnSchedule || project.status === t.projStatusReady ? 'border-bright-cyan text-bright-cyan' : 
+                                project.status === t.projStatusWaiting ? 'border-bright-pink text-bright-pink' : 'border-slate text-slate'
                             }`}>
                                 {project.status}
                             </div>
@@ -82,7 +88,7 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode }) => {
                         {/* Progress Bar */}
                         <div className="w-full bg-navy rounded-full h-2.5 mb-2 overflow-hidden">
                             <div 
-                                className={`h-2.5 rounded-full ${project.status === 'Waiting on Material' ? 'bg-bright-pink' : 'bg-bright-cyan'}`} 
+                                className={`h-2.5 rounded-full ${project.status === t.projStatusWaiting ? 'bg-bright-pink' : 'bg-bright-cyan'}`} 
                                 style={{ width: `${project.progress}%` }}
                             ></div>
                         </div>
