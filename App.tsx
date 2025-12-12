@@ -294,36 +294,47 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
+        if (e.target.files && e.target.files.length > 0) {
             handleFiles(e.target.files);
         }
     };
 
     const handleFiles = (files: FileList) => {
-         const newAttachments: {name: string, type: string, data: string}[] = [];
+         const fileArray = Array.from(files);
          
-         Array.from(files).forEach(file => {
-             if (file.size > 2 * 1024 * 1024) {
-                 alert(`File ${file.name} is too large (Max 2MB)`);
-                 return;
-             }
-             const reader = new FileReader();
-             reader.onload = (e) => {
-                 if (e.target?.result) {
-                     newAttachments.push({
-                         name: file.name,
-                         type: file.type || 'application/octet-stream', // Fallback for safety
-                         data: e.target.result as string
-                     });
-                     if (newAttachments.length === files.length) {
-                         setFormData(prev => ({ 
-                             ...prev, 
-                             attachments: [...(prev.attachments || []), ...newAttachments] 
-                         }));
-                     }
+         const promises = fileArray.map(file => {
+             return new Promise<{name: string, type: string, data: string}>((resolve, reject) => {
+                 if (file.size > 2 * 1024 * 1024) {
+                     alert(`File ${file.name} is too large (Max 2MB)`);
+                     resolve({ name: '', type: '', data: '' }); // Resolve empty to filter out later
+                     return;
                  }
-             };
-             reader.readAsDataURL(file);
+                 
+                 const reader = new FileReader();
+                 reader.onload = (e) => {
+                     resolve({
+                         name: file.name,
+                         type: file.type || 'application/octet-stream',
+                         data: e.target?.result as string || ''
+                     });
+                 };
+                 reader.onerror = () => reject(new Error('File reading failed'));
+                 reader.readAsDataURL(file);
+             });
+         });
+
+         Promise.all(promises).then(newAttachments => {
+             // Filter out failed or too large files
+             const validAttachments = newAttachments.filter(a => a.data && a.data !== '');
+             
+             if (validAttachments.length > 0) {
+                 setFormData(prev => ({ 
+                     ...prev, 
+                     attachments: [...(prev.attachments || []), ...validAttachments] 
+                 }));
+             }
+         }).catch(err => {
+             console.error("Error processing files:", err);
          });
     };
 
@@ -365,11 +376,11 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             notes: formData.notes || 'N/A',
             services: formData.services || [],
             propertyName: property?.name || 'Unknown Property',
+            // Pass the address to the backend
             propertyAddress: property?.address || 'Unknown Address',
-            // Strip base64 prefix for Google Apps Script compatibility, ensuring data is raw string if it was data URI
+            // Strip base64 prefix so Google Apps Script can consume it
             attachments: formData.attachments?.map(a => ({
                 name: a.name || 'image.jpg',
-                // SAFETY: Ensure type is present for Utilities.newBlob. Default to octet-stream if missing.
                 type: a.type && a.type !== '' ? a.type : 'application/octet-stream', 
                 data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
             })) || []
@@ -421,9 +432,17 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 <p className={`${THEME.colors.textSecondary} mb-8`}>{t.submitSuccessMessage2}</p>
                 
                 {formData.attachments && formData.attachments.length > 0 && (
-                     <div className={`flex justify-center items-center gap-2 mb-8 ${THEME.colors.surfaceHighlight} py-2 rounded-full w-fit mx-auto px-6 border ${THEME.colors.borderSubtle}`}>
-                        <CloudArrowUpIcon className="h-5 w-5 text-gold" />
-                        <span className={`text-gold text-sm font-bold`}>{t.photosUploadedBadge}</span>
+                     <div className={`flex flex-col items-center gap-2 mb-8 ${THEME.colors.surfaceHighlight} py-4 rounded-xl w-fit mx-auto px-8 border ${THEME.colors.borderSubtle}`}>
+                        <div className="flex items-center gap-2">
+                            <CloudArrowUpIcon className="h-5 w-5 text-gold" />
+                            <span className={`text-gold text-sm font-bold`}>{t.photosUploadedBadge}</span>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                             {formData.attachments.slice(0, 3).map((a, i) => (
+                                 <img key={i} src={a.data.includes('base64,') ? a.data : `data:${a.type};base64,${a.data}`} alt="thumbnail" className="h-10 w-10 object-cover rounded border border-slate-300" />
+                             ))}
+                             {formData.attachments.length > 3 && <span className="text-xs text-slate-400 self-center">+{formData.attachments.length - 3}</span>}
+                        </div>
                      </div>
                 )}
 
@@ -451,6 +470,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     // Check if "Other" is selected in services
     const isOtherSelected = formData.services.some(s => s.toLowerCase().includes('other'));
+
+    const property = availableProperties.find(p => p.id === formData.propertyId);
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8 mt-2 pb-12">
@@ -487,6 +508,17 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                                 {availableProperties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                         </div>
+                        
+                         {/* ADDRESS LOGIC: Populates when property is selected */}
+                        {property && property.address && (
+                            <div className="md:col-span-2 animate-in fade-in slide-in-from-top-1">
+                                <label className={labelStyle}>{t.propertyAddressLabel}</label>
+                                <div className={`flex items-center gap-2 w-full p-3 rounded border ${THEME.colors.inputBorder} bg-slate-50 text-slate-700`}>
+                                    <GlobeAltIcon className="h-4 w-4 text-gold" />
+                                    <span>{property.address}</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
