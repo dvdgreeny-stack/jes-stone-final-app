@@ -385,13 +385,23 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
+        // --- DATA ALIGNMENT FIX ---
+        // Combine "Other Services" back into the "services" array.
+        // This ensures the data appears in the "Services" column (Col G) in the Google Sheet.
+        // This mitigates the issue where the Google Script skips the new "Other" column (Col H)
+        // and writes "Unit Info" there instead.
+        const combinedServices = [...formData.services];
+        if (formData.otherService.trim()) {
+            combinedServices.push(`Other: ${formData.otherService}`);
+        }
+
         const payload: SurveyData = {
             ...formData,
             unitInfo: formData.unitInfo,
             notes: formData.notes || 'N/A',
-            // Send selected services array directly
-            services: formData.services,
-            // Send other service description
+            // Send the combined services list
+            services: combinedServices,
+            // We still send otherService separately in case the script is updated later
             otherService: formData.otherService || '', 
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address',

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { THEME } from '../theme';
 import { ClockIcon, BuildingBlocksIcon, ClipboardListIcon } from './icons';
 import { translations } from '../translations';
@@ -29,6 +29,11 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode, lang }) => {
         : allProjects;
 
     const [filter, setFilter] = useState(t.projFilterAll);
+
+    // Update filter text when language changes to prevent stuck state
+    useEffect(() => {
+        setFilter(t.projFilterAll);
+    }, [lang, t.projFilterAll]);
 
     const filters = [t.projFilterAll, t.projFilterProduction, t.projFilterProcurement, t.projFilterPlanning, t.projFilterCompleted];
 
