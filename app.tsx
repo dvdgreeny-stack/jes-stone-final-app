@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateNotesDraft, createChatSession } from './services/geminiService';
-import { fetchCompanyData, submitSurveyData, sendTestChat, fetchSurveyHistory, login } from './services/apiService';
+import { fetchCompanyData, submitSurveyData, login } from './services/apiService';
 import { translations } from './translations';
 import { BRANDING } from './branding';
 import { THEME } from './theme';
-import type { Company, SurveyData, UserSession, UserRole, UserProfile, HistoryEntry } from './types';
+import type { Company, SurveyData, UserSession, UserProfile } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, ClockIcon, BuildingBlocksIcon, CloudArrowUpIcon, TrashIcon, CalculatorIcon, ChartBarIcon, GlobeAltIcon, UsersIcon } from './components/icons';
-import { EstimatingModule } from './components/EstimatingModule';
+import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, BuildingBlocksIcon, CloudArrowUpIcon, ChartBarIcon, GlobeAltIcon, UsersIcon } from './components/icons';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 
 // --- ERROR BOUNDARY COMPONENT ---
@@ -65,19 +64,6 @@ const handleNav = (e: React.MouseEvent<HTMLAnchorElement>) => {
     const href = e.currentTarget.getAttribute('href');
     if (href) {
         window.location.hash = href;
-    }
-};
-
-// --- HELPER: Convert Drive Link to Image Src ---
-const getDirectImageUrl = (url: string) => {
-    try {
-        if (url.includes('drive.google.com') && url.includes('/d/')) {
-            const id = url.split('/d/')[1].split('/')[0];
-            return `https://drive.google.com/uc?export=view&id=${id}`;
-        }
-        return url;
-    } catch (e) {
-        return url;
     }
 };
 
@@ -381,9 +367,9 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             propertyAddress: property?.address || 'Unknown Address',
             // Strip base64 prefix for Google Apps Script compatibility, ensuring data is raw string if it was data URI
             attachments: formData.attachments?.map(a => ({
-                ...a,
-                // Ensure type is present for Utilities.newBlob
-                type: a.type || 'application/octet-stream', 
+                name: a.name || 'image.jpg',
+                // SAFETY: Ensure type is present for Utilities.newBlob. Default to octet-stream if missing.
+                type: a.type && a.type !== '' ? a.type : 'application/octet-stream', 
                 data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
             })) || []
         };
@@ -461,6 +447,9 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     // Common Label Style for consistency
     const labelStyle = `text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`;
     const inputStyle = `w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus} bg-white`;
+
+    // Check if "Other" is selected in services
+    const isOtherSelected = formData.services.some(s => s.toLowerCase().includes('other'));
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8 mt-2 pb-12">
@@ -560,6 +549,18 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                                 </label>
                             ))}
                         </div>
+                        {isOtherSelected && (
+                            <div className="mt-3 animate-in fade-in slide-in-from-top-1">
+                                <label className={labelStyle}>Please specify 'Other' service</label>
+                                <input 
+                                    name="otherService" 
+                                    value={formData.otherService} 
+                                    onChange={handleChange} 
+                                    placeholder={t.otherServicePlaceholder} 
+                                    className={inputStyle} 
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div>
