@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Fix: Import from './app' to match the actual file casing 'app.tsx' and avoid case-sensitivity errors
 import App from './app';
 
 const rootElement = document.getElementById('root');
