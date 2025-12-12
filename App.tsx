@@ -12,7 +12,7 @@ import { EstimatingModule } from './components/EstimatingModule';
 
 // --- ERROR BOUNDARY COMPONENT ---
 interface ErrorBoundaryProps {
-    children?: React.ReactNode;
+    children: React.ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -21,7 +21,10 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false, error: null };
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -363,9 +366,10 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             services: formData.services || [],
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address',
-            // Strip base64 prefix so Google Apps Script can consume it
+            // Strip base64 prefix for Google Apps Script compatibility, ensuring data is raw string if it was data URI
             attachments: formData.attachments?.map(a => ({
                 name: a.name || 'image.jpg',
+                // SAFETY: Ensure type is present for Utilities.newBlob. Default to octet-stream if missing.
                 type: a.type && a.type !== '' ? a.type : 'application/octet-stream', 
                 data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
             })) || []
@@ -581,7 +585,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 </div>
             </div>
 
-             {/* Photos - RESTORED */}
+             {/* Photos */}
              <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
                  <div className={`text-lg font-bold ${THEME.colors.textMain} mb-6 flex items-center gap-2 border-b ${THEME.colors.borderSubtle} pb-2`}>
                     <PhotoIcon className="h-5 w-5 text-gold" /> {t.photosLegend}
@@ -601,7 +605,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {formData.attachments.map((file, idx) => (
                             <div key={idx} className="relative group">
-                                <img src={`data:${file.type};base64,${file.data.includes('base64,') ? file.data.split('base64,')[1] : file.data}`} alt="preview" className="h-24 w-full object-cover rounded shadow-sm" />
+                                <img src={file.data} alt="preview" className="h-24 w-full object-cover rounded shadow-sm" />
                                 <button 
                                     type="button" 
                                     onClick={() => setFormData(prev => ({ ...prev, attachments: prev.attachments?.filter((_, i) => i !== idx) }))}
@@ -834,13 +838,13 @@ const ChatWidget: React.FC = () => {
         <>
             <button 
                 onClick={() => setIsOpen(!isOpen)} 
-                className={`fixed bottom-6 right-6 ${THEME.colors.buttonPrimary} p-4 rounded-full shadow-2xl z-[100] hover:scale-110 transition-transform`}
+                className={`fixed bottom-6 right-6 ${THEME.colors.buttonPrimary} p-4 rounded-full shadow-2xl z-50 hover:scale-110 transition-transform`}
             >
                 {isOpen ? <XMarkIcon className="h-6 w-6" /> : <ChatBubbleIcon className="h-6 w-6" />}
             </button>
 
             {isOpen && (
-                <div className={`fixed bottom-24 right-6 w-80 md:w-96 h-[500px] ${THEME.colors.surface} rounded-xl shadow-2xl border ${THEME.colors.borderSubtle} flex flex-col z-[100] animate-in slide-in-from-bottom-10 fade-in duration-300`}>
+                <div className={`fixed bottom-24 right-6 w-80 md:w-96 h-[500px] ${THEME.colors.surface} rounded-xl shadow-2xl border ${THEME.colors.borderSubtle} flex flex-col z-50 animate-in slide-in-from-bottom-10 fade-in duration-300`}>
                     <div className={`${THEME.colors.background} p-4 rounded-t-xl border-b ${THEME.colors.borderSubtle} flex justify-between items-center`}>
                         <div className="flex items-center gap-2">
                              <JesStoneLogo className="h-6 w-6" />
