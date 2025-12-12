@@ -370,7 +370,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 name: a.name || 'image.jpg',
                 // SAFETY: Ensure type is present for Utilities.newBlob. Default to octet-stream if missing.
                 type: a.type && a.type !== '' ? a.type : 'application/octet-stream', 
-                mimeType: a.type && a.type !== '' ? a.type : 'application/octet-stream', // Alias for backend scripts to ensure photo dump
+                mimeType: a.type && a.type !== '' ? a.type : 'application/octet-stream', // REQUIRED for backend
                 data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
             })) || []
         };
