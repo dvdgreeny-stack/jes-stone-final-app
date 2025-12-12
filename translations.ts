@@ -3,7 +3,7 @@
 export const translations = {
   en: {
     // Survey Headers
-    surveyTitle: "Service Request Survey",
+    surveyTitle: "Service Assistant",
     surveySubtitle: "For",
     surveySubtitleProperties: "Properties",
     languageToggle: "Español",
