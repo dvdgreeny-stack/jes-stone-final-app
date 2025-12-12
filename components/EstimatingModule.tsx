@@ -317,8 +317,8 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                             {isSubmitting ? <LoadingSpinner /> : <SparklesIcon className="h-5 w-5 text-gold" />}
                             {isSubmitting ? 'Processing Request...' : 'Submit Estimate for Approval'}
                         </button>
-                        <p className="text-center text-xs text-slate-400 mt-3">
-                            Submitting this request does not guarantee pricing. Final proposal to follow.
+                        <p className="text-center text-xs text-slate-400 mt-3 flex items-center justify-center gap-2">
+                            <span>Submitting as: <strong className={THEME.colors.textMain}>{session.profile?.email}</strong></span>
                         </p>
                     </div>
                 </div>

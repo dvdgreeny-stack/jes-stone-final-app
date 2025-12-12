@@ -748,7 +748,14 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
                     <h1 className={`text-3xl font-bold ${THEME.colors.textMain}`}>
                         {session.profile?.firstName ? `Welcome, ${session.profile.firstName}` : 'Dashboard'}
                     </h1>
-                    <p className={THEME.colors.textSecondary}>{session.company.name} | {session.role.replace('_', ' ').toUpperCase()}</p>
+                    <div className="flex items-center gap-2">
+                         <p className={THEME.colors.textSecondary}>{session.company.name} | {session.role.replace('_', ' ').toUpperCase()}</p>
+                         {session.profile?.email && (
+                             <span className={`text-xs ${THEME.colors.textHighlight} bg-slate-100 px-2 py-0.5 rounded-full border ${THEME.colors.borderSubtle}`}>
+                                 {session.profile.email}
+                             </span>
+                         )}
+                    </div>
                 </div>
                 <button onClick={() => setSession(null)} className={`flex items-center gap-2 ${THEME.colors.textSecondary} hover:${THEME.colors.textWarning}`}>
                     <LogoutIcon className="h-5 w-5" /> {t.logout}

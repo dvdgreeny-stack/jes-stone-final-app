@@ -43,7 +43,7 @@ const DEMO_SESSION: UserSession = {
     company: DEMO_COMPANIES[0],
     role: 'site_manager',
     allowedPropertyIds: [],
-    profile: { firstName: 'Demo', lastName: 'User', title: 'Manager', email: 'demo@example.com', phone: '555-0123' }
+    profile: { firstName: 'System', lastName: 'Fallback', title: 'Offline Mode', email: 'demo-fallback@example.com', phone: '555-0123' }
 };
 
 // Helper: safeFetch wraps the fetch call.
@@ -113,7 +113,8 @@ export async function fetchCompanyData(apiUrl: string): Promise<{data: Company[]
 }
 
 export async function login(apiUrl: string, accessCode: string): Promise<{session: UserSession, isFallback: boolean}> {
-    const result = await safeFetch(apiUrl, {
+    // We add a timestamp to the URL to force the browser to bypass any cache
+    const result = await safeFetch(`${apiUrl}?t=${Date.now()}`, {
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
@@ -123,6 +124,7 @@ export async function login(apiUrl: string, accessCode: string): Promise<{sessio
         })
     }, { session: DEMO_SESSION });
 
+    console.log("Login Result Data:", result.session); // Debugging for user
     return { session: result.session, isFallback: result._isFallback };
 }
 
@@ -190,7 +192,7 @@ export async function fetchSurveyHistory(apiUrl: string, propertyName: string): 
         { timestamp: new Date(Date.now() - 86400000).toISOString(), unitInfo: 'Clubhouse', services: 'Flooring', photos: [] }
     ];
 
-    const result = await safeFetch(apiUrl, {
+    const result = await safeFetch(`${apiUrl}?t=${Date.now()}`, {
         method: 'POST',
         credentials: 'omit',
         redirect: 'follow',
