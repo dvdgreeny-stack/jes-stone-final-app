@@ -549,7 +549,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                     </div>
                     <div className="flex flex-col">
                         <label className={labelStyle}>{t.emailLabel}</label>
-                        <input name="email" type="email" value={formData.email} onChange={handleChange} required className={inputStyle} />
+                        <input name="email" type="text" placeholder={t.emailPlaceholder} value={formData.email} onChange={handleChange} required className={inputStyle} />
                     </div>
                     <div className="flex flex-col md:col-span-2">
                         <label className={labelStyle}>{t.phoneLabel}</label>

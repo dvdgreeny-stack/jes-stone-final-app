@@ -21,13 +21,14 @@ export const translations = {
     lastNameLabel: "Last Name",
     titleRoleLabel: "Title / Role",
     phoneLabel: "Phone Number",
-    emailLabel: "Email Address",
+    emailLabel: "Email Address(es) (Separate with commas)",
     unitInfoLabel: "Unit # / Unit Count / Area",
     serviceNeededLabel: "Service Needed (Select Multiple)",
     timelineLabel: "Project Timeline",
     notesLabel: "Additional Notes and Dynamics",
     photosLabel: "Upload 'Before' Photos (Max 2MB per file)",
     photosPermissionHint: "Setup Note: Ensure Google Script is authorized for Drive access if photos fail to appear.",
+    ccManagersLabel: "CC Managers / Boss (Optional)",
 
     // Placeholders & Default Text
     propertySelectPlaceholder: "Select Property...",
@@ -38,6 +39,7 @@ export const translations = {
     timelineSelectPlaceholder: "Select timeline...",
     notesPlaceholder: "Let it all out here. We'll figure it out fast...",
     dragDropText: "Drag & Drop photos here, or click to select",
+    emailPlaceholder: "e.g. you@company.com, boss@company.com",
 
     // Buttons
     generateAIDraftButton: "Generate AI Draft",
@@ -170,13 +172,14 @@ export const translations = {
     lastNameLabel: "Apellido",
     titleRoleLabel: "Título / Cargo",
     phoneLabel: "Número de Teléfono",
-    emailLabel: "Correo Electrónico",
+    emailLabel: "Correo Electrónico (Separar con comas)",
     unitInfoLabel: "Nº de Unidad / Cantidad / Área",
     serviceNeededLabel: "Servicio Requerido (Seleccione Múltiples)",
     timelineLabel: "Cronograma del Proyecto",
     notesLabel: "Notas y Dinámicas Adicionales",
     photosLabel: "Subir fotos 'Antes' (Máx. 2MB por archivo)",
     photosPermissionHint: "Nota: Asegúrese de que el Script de Google esté autorizado para acceder a Drive.",
+    ccManagersLabel: "CC Gerentes / Jefe (Opcional)",
 
     // Placeholders y Texto por Defecto
     propertySelectPlaceholder: "Seleccione una propiedad...",
@@ -187,6 +190,7 @@ export const translations = {
     timelineSelectPlaceholder: "Seleccione cronograma...",
     notesPlaceholder: "Cuéntenos todo aquí. Lo resolveremos rápido...",
     dragDropText: "Arrastre fotos aquí, o haga clic para seleccionar",
+    emailPlaceholder: "ej. tu@compania.com, jefe@compania.com",
 
     // Botones
     generateAIDraftButton: "Generar Borrador con IA",

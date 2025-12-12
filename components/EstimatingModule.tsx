@@ -3,6 +3,7 @@ import { THEME } from '../theme';
 import { CalculatorIcon, TrashIcon, ClipboardListIcon, SparklesIcon, LoadingSpinner } from './icons';
 import { submitSurveyData } from '../services/apiService';
 import { BRANDING } from '../branding';
+import { translations } from '../translations';
 import type { UserSession, SurveyData } from '../types';
 
 interface LineItem {
@@ -67,6 +68,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
     const [qty, setQty] = useState<number>(1);
     const [budgetCap, setBudgetCap] = useState<number>(5000); // Default CapEx Limit
     const [activeTab, setActiveTab] = useState<'build' | 'packages'>('build');
+    const [ccEmails, setCcEmails] = useState<string>('');
     
     // Submission State
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -113,13 +115,17 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
         ).join('\n');
 
         const notes = `*** ESTIMATE REQUEST ***\n\nTarget Budget: $${budgetCap}\nEstimated Total: $${total.toFixed(2)}\n\nLine Items:\n${estimateDetails}`;
+        
+        // Combine session email with CC emails
+        const primaryEmail = session.profile?.email || '';
+        const combinedEmails = ccEmails.trim() ? `${primaryEmail}, ${ccEmails}` : primaryEmail;
 
         const payload: SurveyData = {
             propertyId: session.company.properties[0]?.id || 'unknown', // Default to first property
             propertyName: session.company.properties[0]?.name || 'Unknown',
             firstName: session.profile?.firstName || '',
             lastName: session.profile?.lastName || '',
-            email: session.profile?.email || '',
+            email: combinedEmails, // Send both emails in the field
             phone: session.profile?.phone || '',
             title: session.profile?.title || 'Manager',
             unitInfo: 'Multiple/General CapEx',
@@ -135,6 +141,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
             await submitSurveyData(BRANDING.defaultApiUrl, payload);
             setSubmitSuccess(true);
             setItems([]); // Clear cart
+            setCcEmails('');
         } catch (error) {
             alert("Failed to submit estimate. Please check connection.");
         } finally {
@@ -308,6 +315,20 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                             <div className={`text-sm font-bold ${THEME.colors.textSecondary} uppercase tracking-wider`}>Estimated Total</div>
                             <div className={`text-3xl font-bold ${THEME.colors.textMain}`}>${total.toFixed(2)}</div>
                         </div>
+
+                         {/* CC Managers Input */}
+                        <div className="mb-4">
+                            <label className={`block text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`}>
+                                {translations.en.ccManagersLabel}
+                            </label>
+                            <input 
+                                type="text" 
+                                value={ccEmails}
+                                onChange={(e) => setCcEmails(e.target.value)}
+                                placeholder="e.g. boss@company.com, regional@company.com"
+                                className={`w-full p-2 text-sm rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus}`}
+                            />
+                        </div>
                         
                         <button 
                             onClick={handleSubmitEstimate}
@@ -315,7 +336,7 @@ export const EstimatingModule: React.FC<Props> = ({ session }) => {
                             className={`w-full ${THEME.colors.buttonPrimary} py-4 rounded shadow-lg text-lg flex justify-center items-center gap-2 ${items.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.01]'}`}
                         >
                             {isSubmitting ? <LoadingSpinner /> : <SparklesIcon className="h-5 w-5 text-gold" />}
-                            {isSubmitting ? 'Processing Request...' : 'Submit Estimate for Approval'}
+                            {isSubmitting ? 'Submit Estimate for Approval' : 'Submit Estimate for Approval'}
                         </button>
                         <p className="text-center text-xs text-slate-400 mt-3 flex items-center justify-center gap-2">
                             <span>Submitting as: <strong className={THEME.colors.textMain}>{session.profile?.email}</strong></span>
