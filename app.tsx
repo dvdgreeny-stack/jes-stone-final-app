@@ -271,7 +271,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     const handleCheckboxChange = (field: 'services' | 'contactMethods', value: string) => {
         setFormData(prev => {
-            const current = prev[field];
+            const current = prev[field] || [];
             const updated = current.includes(value)
                 ? current.filter(item => item !== value)
                 : [...current, value];
@@ -330,19 +330,19 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         e.preventDefault();
         setErrorMessage('');
         
-        if (formData.contactMethods.length === 0) {
+        if (!formData.contactMethods || formData.contactMethods.length === 0) {
             setErrorMessage("Please select at least one contact method.");
             setSubmissionStatus('error');
             return;
         }
 
-        if (formData.services.length === 0) {
+        if (!formData.services || formData.services.length === 0) {
             setErrorMessage("Please select at least one service needed.");
             setSubmissionStatus('error');
             return;
         }
 
-        if (!formData.unitInfo.trim()) {
+        if (!formData.unitInfo || !formData.unitInfo.trim()) {
             setErrorMessage("Please provide unit information or site directions.");
             setSubmissionStatus('error');
             return;
@@ -370,6 +370,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 name: a.name || 'image.jpg',
                 // SAFETY: Ensure type is present for Utilities.newBlob. Default to octet-stream if missing.
                 type: a.type && a.type !== '' ? a.type : 'application/octet-stream', 
+                mimeType: a.type && a.type !== '' ? a.type : 'application/octet-stream', // Alias for some backend scripts
                 data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
             })) || []
         };
@@ -448,7 +449,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const labelStyle = `text-xs font-bold ${THEME.colors.textSecondary} uppercase mb-1`;
     const inputStyle = `w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus} bg-white`;
 
-    // Check if "Other" is selected in services
+    // Check if "Other" is selected in services. Safety check for array existence.
     const isOtherSelected = Array.isArray(formData.services) && formData.services.some(s => s && s.toLowerCase().includes('other'));
 
     return (
@@ -541,7 +542,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                                 <label key={service} className="flex items-center space-x-2 cursor-pointer p-2 hover:bg-slate-50 rounded">
                                     <input 
                                         type="checkbox" 
-                                        checked={formData.services.includes(service)} 
+                                        checked={(formData.services || []).includes(service)} 
                                         onChange={() => handleCheckboxChange('services', service)}
                                         className="rounded text-navy focus:ring-gold"
                                     />
@@ -628,7 +629,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                         <label key={method} className="flex items-center space-x-2 cursor-pointer border p-3 rounded hover:bg-slate-50 transition-colors">
                             <input 
                                 type="checkbox" 
-                                checked={formData.contactMethods.includes(method)} 
+                                checked={(formData.contactMethods || []).includes(method)} 
                                 onChange={() => handleCheckboxChange('contactMethods', method)}
                                 className="rounded text-navy focus:ring-gold"
                             />
