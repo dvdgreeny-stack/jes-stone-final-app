@@ -4,7 +4,7 @@ import { fetchCompanyData, submitSurveyData, login } from './services/apiService
 import { translations } from './translations';
 import { BRANDING } from './branding';
 import { THEME } from './theme';
-import type { Company, SurveyData, UserSession, UserProfile } from './types';
+import type { Company, SurveyData, UserSession, UserProfile, Property } from './types';
 import { Chat, GenerateContentResponse } from "@google/genai";
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, BuildingBlocksIcon, CloudArrowUpIcon, ChartBarIcon, GlobeAltIcon, UsersIcon, CalculatorIcon } from './components/icons';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
@@ -194,9 +194,10 @@ interface SurveyProps {
     userProfile?: UserProfile;
     lang: 'en' | 'es';
     onSelectionChange?: (propertyName: string, companyName: string) => void;
+    onPropertySelect?: (property: Property) => void;
 }
 
-const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange }) => {
+const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange, onPropertySelect }) => {
     const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     
@@ -252,17 +253,19 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
 
     // Update Header Title based on Property Selection
     useEffect(() => {
-        if (onSelectionChange && selectedCompany) {
+        if (selectedCompany) {
              const prop = availableProperties.find(p => p.id === formData.propertyId);
              if (prop) {
                  // Update header with Property Name as main title
-                 onSelectionChange(prop.name, selectedCompany.name);
+                 if (onSelectionChange) onSelectionChange(prop.name, selectedCompany.name);
+                 // Notify App parent to update Chat context
+                 if (onPropertySelect) onPropertySelect(prop);
              } else {
                  // Default to Company Name if no property selected
-                 onSelectionChange(selectedCompany.name, t.surveySubtitleProperties);
+                 if (onSelectionChange) onSelectionChange(selectedCompany.name, t.surveySubtitleProperties);
              }
         }
-    }, [formData.propertyId, selectedCompany, availableProperties, onSelectionChange, t.surveySubtitleProperties]);
+    }, [formData.propertyId, selectedCompany, availableProperties, onSelectionChange, onPropertySelect, t.surveySubtitleProperties]);
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -817,18 +820,29 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
 };
 
 // --- Chat Widget ---
-const ChatWidget: React.FC = () => {
+interface ChatWidgetProps {
+    selectedProperty?: Property;
+}
+
+const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    // Initialize Chat
     const chatRef = useRef<Chat | null>(null);
+
+    // Initialize/Re-initialize Chat when property changes
     useEffect(() => {
-        chatRef.current = createChatSession();
-    }, []);
+        const propertyContext = selectedProperty 
+            ? `User is currently viewing Property: ${selectedProperty.name} at ${selectedProperty.address}.`
+            : "User has not selected a property yet.";
+            
+        chatRef.current = createChatSession(propertyContext);
+        
+        // Optional: Reset messages if property changes? 
+        // For now, we keep history but update the system prompt for future messages.
+    }, [selectedProperty]);
 
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(scrollToBottom, [messages, isOpen]);
@@ -887,7 +901,10 @@ const ChatWidget: React.FC = () => {
                     
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
                         {messages.length === 0 && (
-                            <p className={`text-center text-sm ${THEME.colors.textSecondary} mt-10`}>Hello! How can I help you with Jes Stone services today?</p>
+                            <p className={`text-center text-sm ${THEME.colors.textSecondary} mt-10`}>
+                                Hello! How can I help you with Jes Stone services today?
+                                {selectedProperty && <br/>}<span className="font-bold text-xs">{selectedProperty ? `Regarding: ${selectedProperty.name}` : ''}</span>
+                            </p>
                         )}
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -926,8 +943,8 @@ export default function App() {
     const [lang, setLang] = useState<'en' | 'es'>('en');
     const [currentRoute, setCurrentRoute] = useState(window.location.hash);
     const [headerTitles, setHeaderTitles] = useState({ title: '', subtitle: '' });
-    // Lifted session state to App level for sidebar login support
     const [session, setSession] = useState<UserSession | null>(null);
+    const [selectedProperty, setSelectedProperty] = useState<Property | undefined>(undefined);
 
     useEffect(() => {
         const handleHashChange = () => setCurrentRoute(window.location.hash);
@@ -982,7 +999,8 @@ export default function App() {
                                     <Survey 
                                         companies={companies} 
                                         lang={lang} 
-                                        onSelectionChange={handleSelectionChange} 
+                                        onSelectionChange={handleSelectionChange}
+                                        onPropertySelect={setSelectedProperty}
                                     />
                                 </div>
 
@@ -995,7 +1013,7 @@ export default function App() {
                     )}
                 </main>
 
-                <ChatWidget />
+                <ChatWidget selectedProperty={selectedProperty} />
                 <Footer />
             </div>
         </ErrorBoundary>

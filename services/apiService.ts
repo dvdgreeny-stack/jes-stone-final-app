@@ -1,4 +1,3 @@
-
 import type { Company, SurveyData, HistoryEntry, UserSession } from '../types';
 
 // DEMO DATA FOR FALLBACK MODE
@@ -7,8 +6,8 @@ const DEMO_COMPANIES: Company[] = [
         id: 'demo-co', 
         name: 'Knightvest (Demo)', 
         properties: [
-            { id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd' },
-            { id: 'kv-2', name: 'Canyon Creek', address: '2000 Custer Rd' }
+            { id: 'kv-1', name: 'The Arts at Park Place', address: '1301 W Park Blvd, Plano, TX 75075' },
+            { id: 'kv-2', name: 'Canyon Creek', address: '2000 Custer Rd, Richardson, TX 75080' }
         ] 
     }
 ];

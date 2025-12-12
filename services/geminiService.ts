@@ -9,7 +9,8 @@ export async function generateNotesDraft(formData: Partial<SurveyData>, companyD
 
   const context = `
     - Company: ${companyName}
-    - Property: ${property?.name || 'N/A'}
+    - Property Name: ${property?.name || 'N/A'}
+    - Property Address: ${property?.address || 'N/A'}
     - Contact: ${formData.firstName || ''} ${formData.lastName || ''} (${formData.title || 'N/A'})
     - Services needed: ${formData.services?.join(', ') || 'N/A'}
     - Unit/Area Info: ${formData.unitInfo || 'N/A'}
@@ -41,10 +42,12 @@ export async function generateNotesDraft(formData: Partial<SurveyData>, companyD
 
 export function createChatSession(systemInstruction?: string): Chat {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const baseInstruction = "You are a helpful assistant for Jes Stone Remodeling and Granite. Your goal is to assist property managers in understanding our services (Countertops, Cabinets, Tile, Make-Ready) and filling out the service request survey. Be professional, concise, and helpful.";
+  
   return ai.chats.create({
     model: 'gemini-2.5-flash',
     config: {
-      systemInstruction: systemInstruction || "You are a helpful assistant for Jes Stone Remodeling and Granite. Your goal is to assist property managers in understanding our services (Countertops, Cabinets, Tile, Make-Ready) and filling out the service request survey. Be professional, concise, and helpful.",
+      systemInstruction: systemInstruction ? `${baseInstruction}\n\nCurrent Context:\n${systemInstruction}` : baseInstruction,
     }
   });
 }
