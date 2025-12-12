@@ -449,7 +449,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const inputStyle = `w-full p-3 rounded border ${THEME.colors.inputBorder} ${THEME.colors.inputFocus} bg-white`;
 
     // Check if "Other" is selected in services
-    const isOtherSelected = formData.services.some(s => s.toLowerCase().includes('other'));
+    const isOtherSelected = Array.isArray(formData.services) && formData.services.some(s => s && s.toLowerCase().includes('other'));
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8 mt-2 pb-12">
