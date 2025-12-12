@@ -138,7 +138,7 @@ export const translations = {
   },
   es: {
     // Encabezados de la Encuesta
-    surveyTitle: "Encuesta de Solicitud de Servicio",
+    surveyTitle: "Asistente de Servicio",
     surveySubtitle: "Para Propiedades de",
     surveySubtitleProperties: "", // Appended after company name
     languageToggle: "English",
