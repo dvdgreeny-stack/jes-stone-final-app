@@ -10,6 +10,55 @@ import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubb
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 import { EstimatingModule } from './components/EstimatingModule';
 
+// --- UTILS: Image Compression ---
+const compressImage = async (file: File): Promise<{name: string, type: string, data: string}> => {
+    return new Promise((resolve, reject) => {
+        const maxWidth = 1024;
+        const maxHeight = 1024;
+        const reader = new FileReader();
+        
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                // Calculate new dimensions
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                // Compress to JPEG 0.7 quality
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                resolve({
+                    name: file.name.replace(/\.[^/.]+$/, "") + ".jpg", // Force jpg extension
+                    type: 'image/jpeg',
+                    data: dataUrl
+                });
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+    });
+};
+
 // --- ERROR BOUNDARY COMPONENT ---
 interface ErrorBoundaryProps {
     children?: React.ReactNode;
@@ -192,9 +241,11 @@ interface SurveyProps {
     lang: 'en' | 'es';
     onSelectionChange?: (propertyName: string, companyName: string) => void;
     onPropertySelect?: (property: Property) => void;
+    // Lift state up for attachments so ChatWidget can see them
+    onAttachmentsChange?: (attachments: {name: string, type: string, data: string}[]) => void;
 }
 
-const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange, onPropertySelect }) => {
+const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange, onPropertySelect, onAttachmentsChange }) => {
     const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     
@@ -221,6 +272,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             }));
         }
     }, [userProfile]);
+
+    // Notify parent when attachments change
+    useEffect(() => {
+        if (onAttachmentsChange && formData.attachments) {
+            onAttachmentsChange(formData.attachments);
+        }
+    }, [formData.attachments, onAttachmentsChange]);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -314,29 +372,11 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     const handleFiles = (files: FileList) => {
          const fileArray = Array.from(files);
          
-         const promises = fileArray.map(file => {
-             return new Promise<{name: string, type: string, data: string}>((resolve, reject) => {
-                 if (file.size > 2 * 1024 * 1024) {
-                     alert(`File ${file.name} is too large (Max 2MB)`);
-                     resolve({ name: '', type: '', data: '' }); // Resolve empty to filter out later
-                     return;
-                 }
-                 
-                 const reader = new FileReader();
-                 reader.onload = (e) => {
-                     resolve({
-                         name: file.name,
-                         type: file.type || 'application/octet-stream',
-                         data: e.target?.result as string || ''
-                     });
-                 };
-                 reader.onerror = () => reject(new Error('File reading failed'));
-                 reader.readAsDataURL(file);
-             });
-         });
+         // Use the new compressImage utility
+         const promises = fileArray.map(file => compressImage(file));
 
          Promise.all(promises).then(newAttachments => {
-             // Filter out failed or too large files
+             // Filter out failed
              const validAttachments = newAttachments.filter(a => a.data && a.data !== '');
              
              if (validAttachments.length > 0) {
@@ -347,6 +387,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
              }
          }).catch(err => {
              console.error("Error processing files:", err);
+             alert("Error processing images. Please try different files.");
          });
     };
 
@@ -382,30 +423,23 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
-        // --- DATA ALIGNMENT FIX ---
-        // Combine "Other Services" back into the "services" array.
-        // This ensures the data appears in the "Services" column (Col G) in the Google Sheet.
-        // This mitigates the issue where the Google Script skips the new "Other" column (Col H)
-        // and writes "Unit Info" there instead.
-        const combinedServices = [...formData.services];
-        if (formData.otherService.trim()) {
-            combinedServices.push(`Other: ${formData.otherService}`);
-        }
-
+        // --- DATA ALIGNMENT FIX (Column G vs Column H) ---
+        // We do NOT combine "Other" into "Services". 
+        // "services" array maps to Column G.
+        // "otherService" field maps to Column H.
+        
         const payload: SurveyData = {
             ...formData,
             unitInfo: formData.unitInfo,
             notes: formData.notes || 'N/A',
-            // Send the combined services list
-            services: combinedServices,
-            // We still send otherService separately in case the script is updated later
-            otherService: formData.otherService || '', 
+            services: formData.services, // Send original array
+            otherService: formData.otherService || '', // Explicitly send this for Col H
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address',
-            // Strip base64 prefix
+            // Strip base64 prefix for the backend script
             attachments: formData.attachments?.map(a => ({
-                name: a.name || 'image.jpg',
-                type: a.type && a.type !== '' ? a.type : 'application/octet-stream', 
+                name: a.name,
+                type: a.type, 
                 data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
             })) || []
         };
@@ -852,9 +886,10 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
 // --- Chat Widget ---
 interface ChatWidgetProps {
     selectedProperty?: Property;
+    attachments?: {name: string, type: string, data: string}[];
 }
 
-const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty }) => {
+const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments = [] }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
     const [input, setInput] = useState('');
@@ -869,9 +904,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty }) => {
             : "User has not selected a property yet.";
             
         chatRef.current = createChatSession(propertyContext);
-        
-        // Optional: Reset messages if property changes? 
-        // For now, we keep history but update the system prompt for future messages.
     }, [selectedProperty]);
 
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -929,12 +961,22 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty }) => {
                         <button onClick={() => setIsOpen(false)}><XMarkIcon className={`h-5 w-5 ${THEME.colors.textSecondary}`} /></button>
                     </div>
                     
+                    {/* Chat Context Header (Attachments) */}
+                    {attachments.length > 0 && (
+                        <div className="bg-slate-100 p-2 border-b border-slate-200 flex gap-2 overflow-x-auto">
+                            <span className="text-xs font-bold text-slate-500 self-center whitespace-nowrap">Form Photos:</span>
+                            {attachments.map((a, i) => (
+                                <img key={i} src={a.data} alt="thumb" className="h-8 w-8 object-cover rounded border border-slate-300 flex-shrink-0" />
+                            ))}
+                        </div>
+                    )}
+
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
                         {messages.length === 0 && (
-                            <p className={`text-center text-sm ${THEME.colors.textSecondary} mt-10`}>
-                                Hello! How can I help you with Jes Stone services today?
-                                {selectedProperty && <br/>}<span className="font-bold text-xs">{selectedProperty ? `Regarding: ${selectedProperty.name}` : ''}</span>
-                            </p>
+                            <div className={`text-center text-sm ${THEME.colors.textSecondary} mt-10 space-y-2`}>
+                                <p>Hello! How can I help you with Jes Stone services today?</p>
+                                {selectedProperty && <p className="font-bold text-xs bg-white inline-block px-2 py-1 rounded border border-slate-200">Ref: {selectedProperty.name}</p>}
+                            </div>
                         )}
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -975,6 +1017,8 @@ export default function App() {
     const [headerTitles, setHeaderTitles] = useState({ title: '', subtitle: '' });
     const [session, setSession] = useState<UserSession | null>(null);
     const [selectedProperty, setSelectedProperty] = useState<Property | undefined>(undefined);
+    // State to hold attachments from Survey so ChatWidget can see them
+    const [currentAttachments, setCurrentAttachments] = useState<{name: string, type: string, data: string}[]>([]);
 
     useEffect(() => {
         const handleHashChange = () => setCurrentRoute(window.location.hash);
@@ -1031,6 +1075,7 @@ export default function App() {
                                         lang={lang} 
                                         onSelectionChange={handleSelectionChange}
                                         onPropertySelect={setSelectedProperty}
+                                        onAttachmentsChange={setCurrentAttachments}
                                     />
                                 </div>
 
@@ -1043,7 +1088,7 @@ export default function App() {
                     )}
                 </main>
 
-                <ChatWidget selectedProperty={selectedProperty} />
+                <ChatWidget selectedProperty={selectedProperty} attachments={currentAttachments} />
                 <Footer />
             </div>
         </ErrorBoundary>
