@@ -173,7 +173,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.1</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -946,9 +946,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
         <>
             <button 
                 onClick={() => setIsOpen(!isOpen)} 
-                className={`fixed bottom-6 right-6 ${THEME.colors.buttonPrimary} p-4 rounded-full shadow-2xl z-50 hover:scale-110 transition-transform`}
+                className={`fixed bottom-6 right-6 ${THEME.colors.buttonPrimary} p-4 rounded-full shadow-2xl z-50 hover:scale-110 transition-transform relative`}
             >
                 {isOpen ? <XMarkIcon className="h-6 w-6" /> : <ChatBubbleIcon className="h-6 w-6" />}
+                {/* Visual Badge for Attachments */}
+                {!isOpen && attachments.length > 0 && (
+                     <span className="absolute -top-1 -right-1 bg-rose text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white animate-pulse">
+                        {attachments.length}
+                     </span>
+                )}
             </button>
 
             {isOpen && (
@@ -964,7 +970,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
                     {/* Chat Context Header (Attachments) */}
                     {attachments.length > 0 && (
                         <div className="bg-slate-100 p-2 border-b border-slate-200 flex gap-2 overflow-x-auto">
-                            <span className="text-xs font-bold text-slate-500 self-center whitespace-nowrap">Form Photos:</span>
+                            <span className="text-xs font-bold text-slate-500 self-center whitespace-nowrap">Photos Active:</span>
                             {attachments.map((a, i) => (
                                 <img key={i} src={a.data} alt="thumb" className="h-8 w-8 object-cover rounded border border-slate-300 flex-shrink-0" />
                             ))}
