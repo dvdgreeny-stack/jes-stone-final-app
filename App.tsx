@@ -11,10 +11,12 @@ import { ProjectManagementModule } from './components/ProjectManagementModule';
 import { EstimatingModule } from './components/EstimatingModule';
 
 // --- UTILS: Image Compression ---
+// UPDATED: Super aggressive compression to fix Google Script 'newBlob' crash
 const compressImage = async (file: File): Promise<{name: string, type: string, data: string}> => {
     return new Promise((resolve, reject) => {
-        const maxWidth = 1024;
-        const maxHeight = 1024;
+        // Reduced to 600px to guarantee payload fits in Google Apps Script memory
+        const maxWidth = 600;
+        const maxHeight = 600;
         const reader = new FileReader();
         
         reader.readAsDataURL(file);
@@ -45,8 +47,8 @@ const compressImage = async (file: File): Promise<{name: string, type: string, d
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
 
-                // Compress to JPEG 0.7 quality
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                // Compress to JPEG 0.5 quality (Aggressive)
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
                 resolve({
                     name: file.name.replace(/\.[^/.]+$/, "") + ".jpg", // Force jpg extension
                     type: 'image/jpeg',
@@ -173,7 +175,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.1</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.3-stable</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -370,6 +372,15 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     };
 
     const handleFiles = (files: FileList) => {
+         const currentCount = formData.attachments?.length || 0;
+         const newCount = files.length;
+         
+         // Enforce 3 photo limit to prevent Payload too large error
+         if (currentCount + newCount > 3) {
+             alert("Maximum 3 photos allowed to ensure reliable upload.");
+             return;
+         }
+
          const fileArray = Array.from(files);
          
          // Use the new compressImage utility
@@ -424,23 +435,23 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
         // --- DATA ALIGNMENT FIX (Column G vs Column H) ---
-        // We do NOT combine "Other" into "Services". 
-        // "services" array maps to Column G.
-        // "otherService" field maps to Column H.
+        // We use "N/A" or "None" to pad empty columns. 
+        // This ensures the backend script always receives a value and doesn't shift columns left.
         
         const payload: SurveyData = {
             ...formData,
-            unitInfo: formData.unitInfo,
+            unitInfo: formData.unitInfo || 'N/A',
             notes: formData.notes || 'N/A',
-            services: formData.services, // Send original array
-            otherService: formData.otherService || '', // Explicitly send this for Col H
+            services: formData.services, 
+            otherService: formData.otherService && formData.otherService.trim() !== '' ? formData.otherService : 'None', 
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address',
-            // Strip base64 prefix for the backend script
+            // Clean base64 strings completely before sending to avoid Google Script errors
             attachments: formData.attachments?.map(a => ({
                 name: a.name,
-                type: a.type, 
-                data: a.data.includes('base64,') ? a.data.split('base64,')[1] : a.data
+                type: 'image/jpeg', // Ensure consistent mimeType
+                // Remove data URL prefix AND any whitespaces to strictly sanitize the base64 string
+                data: a.data.replace(/^data:image\/\w+;base64,/, '').replace(/\s/g, '')
             })) || []
         };
 
@@ -972,7 +983,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
                         <div className="bg-slate-100 p-2 border-b border-slate-200 flex gap-2 overflow-x-auto">
                             <span className="text-xs font-bold text-slate-500 self-center whitespace-nowrap">Photos Active:</span>
                             {attachments.map((a, i) => (
-                                <img key={i} src={a.data} alt="thumb" className="h-8 w-8 object-cover rounded border border-slate-300 flex-shrink-0" />
+                                <img key={i} src={a.data.includes('base64,') ? a.data : `data:${a.type};base64,${a.data}`} alt="thumb" className="h-8 w-8 object-cover rounded border border-slate-300 flex-shrink-0" />
                             ))}
                         </div>
                     )}
