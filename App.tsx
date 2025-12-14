@@ -175,7 +175,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.3-stable</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.4-strict-cols</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -434,23 +434,44 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
-        // --- DATA ALIGNMENT FIX (Column G vs Column H) ---
-        // We use "N/A" or "None" to pad empty columns. 
-        // This ensures the backend script always receives a value and doesn't shift columns left.
+        // --- DATA ALIGNMENT FIX (STRICT MODE) ---
+        // 1. We pad all fields with 'None' or 'N/A' so the backend script (which likely uses array indexes) 
+        //    doesn't shift columns left when it encounters a null.
+        // 2. We explicitly send `other` (to match the Spreadsheet Header 'Other') AND `otherService` (for legacy safety).
+        // 3. We send `contactName` explicitly because the spreadsheet has a 'Contact Name' column.
         
-        const payload: SurveyData = {
-            ...formData,
-            unitInfo: formData.unitInfo || 'N/A',
-            notes: formData.notes || 'N/A',
-            services: formData.services, 
-            otherService: formData.otherService && formData.otherService.trim() !== '' ? formData.otherService : 'None', 
+        const safeOther = formData.otherService && formData.otherService.trim() !== '' ? formData.otherService : 'None';
+
+        const payload: any = {
+            // -- Identity --
+            propertyId: formData.propertyId || 'Unknown',
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address',
-            // Clean base64 strings completely before sending to avoid Google Script errors
+            
+            // -- Contact (Explicitly constructed to match Sheet headers) --
+            contactName: `${formData.firstName} ${formData.lastName}`,
+            firstName: formData.firstName, // Keep for legacy
+            lastName: formData.lastName,   // Keep for legacy
+            email: formData.email,
+            phone: formData.phone,
+            title: formData.title || 'N/A',
+
+            // -- Scope (The Problem Area) --
+            services: formData.services && formData.services.length > 0 ? formData.services : ['None'],
+            other: safeOther,         // Maps to 'Other' Column
+            otherService: safeOther,  // Backup Key
+
+            // -- Details --
+            unitInfo: formData.unitInfo || 'N/A',
+            timeline: formData.timeline || 'N/A',
+            notes: formData.notes || 'N/A',
+            contactMethods: formData.contactMethods || ['Email'],
+            
+            // -- Attachments --
             attachments: formData.attachments?.map(a => ({
                 name: a.name,
-                type: 'image/jpeg', // Ensure consistent mimeType
-                // Remove data URL prefix AND any whitespaces to strictly sanitize the base64 string
+                type: 'image/jpeg',
+                // Remove data URL prefix and whitespaces
                 data: a.data.replace(/^data:image\/\w+;base64,/, '').replace(/\s/g, '')
             })) || []
         };
