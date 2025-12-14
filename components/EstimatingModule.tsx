@@ -133,7 +133,7 @@ export const EstimatingModule: React.FC<Props> = ({ session, lang }) => {
             title: session.profile?.title || 'Manager',
             unitInfo: 'Multiple/General CapEx',
             services: ['Estimate Request', 'Budget Approval'],
-            otherService: `CapEx Limit: $${budgetCap}`,
+            otherServices: [`CapEx Limit: $${budgetCap}`],
             timeline: 'CapEx Budget - Future',
             contactMethods: ['Email Reply'],
             notes: notes,

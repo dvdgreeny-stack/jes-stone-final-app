@@ -30,7 +30,7 @@ export interface SurveyData {
   email: string;
   unitInfo: string;
   services: string[];
-  otherService: string;
+  otherServices: string[]; // Changed to array for multiple selections
   timeline: string;
   notes: string;
   contactMethods: string[];

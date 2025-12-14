@@ -175,7 +175,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.4-strict-cols</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.5-check-cols</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -259,7 +259,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         title: userProfile?.title || '', 
         phone: userProfile?.phone || '', 
         email: userProfile?.email || '',
-        unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
+        unitInfo: '', 
+        services: [], 
+        otherServices: [], // Replaced string with array
+        timeline: '', 
+        notes: '', 
+        contactMethods: [], 
+        attachments: []
     }));
 
     useEffect(() => {
@@ -331,13 +337,25 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
     };
 
     const handleServiceChange = (service: string) => {
-        // Multi-select Toggle logic
+        // Multi-select Toggle logic for Primary Services
         setFormData(prev => {
             const isSelected = prev.services.includes(service);
             if (isSelected) {
                 return { ...prev, services: prev.services.filter(s => s !== service) };
             } else {
                 return { ...prev, services: [...prev.services, service] };
+            }
+        });
+    };
+
+    const handleSecondaryServiceChange = (service: string) => {
+        // Multi-select Toggle logic for Other Services
+        setFormData(prev => {
+            const isSelected = prev.otherServices.includes(service);
+            if (isSelected) {
+                return { ...prev, otherServices: prev.otherServices.filter(s => s !== service) };
+            } else {
+                return { ...prev, otherServices: [...prev.otherServices, service] };
             }
         });
     };
@@ -412,8 +430,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             return;
         }
 
-        if (formData.services.length === 0 && !formData.otherService.trim()) {
-            setErrorMessage("Please select a service or describe other services needed.");
+        if (formData.services.length === 0 && formData.otherServices.length === 0) {
+            setErrorMessage("Please select at least one service (Primary or Other).");
             setSubmissionStatus('error');
             return;
         }
@@ -440,7 +458,10 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         // 2. We explicitly send `other` (to match the Spreadsheet Header 'Other') AND `otherService` (for legacy safety).
         // 3. We send `contactName` explicitly because the spreadsheet has a 'Contact Name' column.
         
-        const safeOther = formData.otherService && formData.otherService.trim() !== '' ? formData.otherService : 'None';
+        // Combine Other Services array into a string
+        const safeOther = formData.otherServices && formData.otherServices.length > 0 
+            ? formData.otherServices.join(', ') 
+            : 'None';
 
         const payload: any = {
             // -- Identity --
@@ -499,7 +520,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             title: userProfile?.title || '',
             phone: userProfile?.phone || '',
             email: userProfile?.email || '',
-            unitInfo: '', services: [], otherService: '', timeline: '', notes: '', contactMethods: [], attachments: []
+            unitInfo: '', services: [], otherServices: [], timeline: '', notes: '', contactMethods: [], attachments: []
         });
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -650,7 +671,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Column 1: Predefined Services (Multi-Select Checkboxes) */}
+                        {/* Column 1: Primary Services (Multi-Select Checkboxes) */}
                         <div className="flex flex-col">
                             <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.serviceNeededLabel}</label>
                             <div className="flex flex-col gap-2">
@@ -669,17 +690,23 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                             </div>
                         </div>
 
-                        {/* Column 2: Other Services (Textarea) */}
+                        {/* Column 2: Other Services (Multi-Select Checkboxes - Replaced Textarea) */}
                         <div className="flex flex-col">
                             <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.otherServicesLabel}</label>
-                            <textarea 
-                                name="otherService" 
-                                rows={8}
-                                value={formData.otherService} 
-                                onChange={handleChange} 
-                                placeholder={t.otherServicePlaceholder} 
-                                className={`${inputStyle} h-full resize-none`} 
-                            />
+                             <div className="flex flex-col gap-2">
+                                {t.SECONDARY_SERVICES.map(service => (
+                                    <label key={service} className="flex items-center space-x-3 cursor-pointer p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors group">
+                                        <input 
+                                            type="checkbox" 
+                                            name="other_service_selection"
+                                            checked={formData.otherServices.includes(service)} 
+                                            onChange={() => handleSecondaryServiceChange(service)}
+                                            className="w-4 h-4 rounded text-navy focus:ring-gold border-slate-300"
+                                        />
+                                        <span className={`${THEME.colors.textMain} font-medium group-hover:text-navy`}>{service}</span>
+                                    </label>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     

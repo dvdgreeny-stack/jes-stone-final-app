@@ -135,6 +135,7 @@ export async function submitSurveyData(apiUrl: string, data: SurveyData): Promis
     const safePayload = {
         ...data,
         services: data.services || [],
+        otherServices: data.otherServices || [], // Ensure this array exists
         contactMethods: data.contactMethods || [],
         attachments: data.attachments || []
     };
