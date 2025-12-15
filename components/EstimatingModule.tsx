@@ -123,10 +123,8 @@ export const EstimatingModule: React.FC<Props> = ({ session, lang }) => {
         const primaryEmail = session.profile?.email || '';
         const combinedEmails = ccEmails.trim() ? `${primaryEmail}, ${ccEmails}` : primaryEmail;
 
-        const otherServicesText = `CapEx Limit: $${budgetCap}`;
-
         // Construct payload manually to match the strict 'any' type used in App.tsx
-        // This ensures the 'other' key is present for the Google Sheet column.
+        // Simplified payload - Removed 'other' and 'otherServices'
         const payload: any = {
             propertyId: session.company.properties[0]?.id || 'unknown',
             propertyName: session.company.properties[0]?.name || 'Unknown',
@@ -142,14 +140,9 @@ export const EstimatingModule: React.FC<Props> = ({ session, lang }) => {
             unitInfo: 'Multiple/General CapEx',
             services: ['Estimate Request', 'Budget Approval'],
             
-            // CRITICAL: Send as arrays for backend .join() compatibility
-            other: [otherServicesText],        
-            otherServices: [otherServicesText], 
-
             timeline: 'CapEx Budget - Future',
             notes: notes,
             contactMethods: ['Email Reply'],
-            attachments: []
         };
 
         try {

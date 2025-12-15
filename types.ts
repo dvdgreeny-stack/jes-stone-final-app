@@ -40,6 +40,61 @@ export interface SurveyData {
   timeline: string;
   notes: string;
   contactMethods: string[];
+export interface Property {
+  id: string;
+  name: string;
+  address: string;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  properties: Property[];
+}
+
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  title: string;
+  email: string;
+  phone: string;
+}
+
+// NOTE: Simplified Interface - Removed 'otherServices' and 'attachments'
+export interface SurveyData {
+  propertyId: string;
+  propertyName?: string;
+  propertyAddress?: string;
+  firstName: string;
+  lastName: string;
+  title: string;
+  phone: string;
+  email: string;
+  unitInfo: string;
+  
+  // Frontend uses Arrays for checkboxes
+  services: string[]; 
+  
+  timeline: string;
+  notes: string;
+  contactMethods: string[];
+}
+
+export interface HistoryEntry {
+    timestamp: string;
+    unitInfo: string;
+    services: string; 
+    photos: string[]; 
+}
+
+export type UserRole = 'site_manager' | 'regional_manager' | 'executive' | 'internal_admin';
+
+export interface UserSession {
+  company: Company;
+  role: UserRole;
+  allowedPropertyIds: string[]; 
+  profile?: UserProfile;
+}
   
   attachments?: {
     name: string;

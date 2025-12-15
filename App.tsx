@@ -10,57 +10,6 @@ import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubb
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 import { EstimatingModule } from './components/EstimatingModule';
 
-// --- UTILS: Image Compression ---
-// UPDATED: Super aggressive compression to fix Google Script 'newBlob' crash
-const compressImage = async (file: File): Promise<{name: string, type: string, data: string}> => {
-    return new Promise((resolve, reject) => {
-        // Reduced to 600px to guarantee payload fits in Google Apps Script memory
-        const maxWidth = 600;
-        const maxHeight = 600;
-        const reader = new FileReader();
-        
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            
-            img.onload = () => {
-                let width = img.width;
-                let height = img.height;
-
-                // Calculate new dimensions
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width *= maxHeight / height;
-                        height = maxHeight;
-                    }
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
-
-                // Compress to JPEG 0.5 quality (Aggressive)
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-                resolve({
-                    name: file.name.replace(/\.[^/.]+$/, "") + ".jpg", // Force jpg extension
-                    type: 'image/jpeg',
-                    data: dataUrl
-                });
-            };
-            img.onerror = (err) => reject(err);
-        };
-        reader.onerror = (err) => reject(err);
-    });
-};
-
 // --- ERROR BOUNDARY COMPONENT ---
 interface ErrorBoundaryProps {
     children?: React.ReactNode;
@@ -175,7 +124,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.9-array-fix</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v3.0-lite-stable</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -243,16 +192,15 @@ interface SurveyProps {
     lang: 'en' | 'es';
     onSelectionChange?: (propertyName: string, companyName: string) => void;
     onPropertySelect?: (property: Property) => void;
-    // Lift state up so ChatWidget can see attachment and services
-    onAttachmentsChange?: (attachments: {name: string, type: string, data: string}[]) => void;
-    onServicesChange?: (primary: string[], secondary: string[]) => void;
+    // Simplified: No attachments or secondary services
+    onServicesChange?: (primary: string[]) => void;
 }
 
-const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange, onPropertySelect, onAttachmentsChange, onServicesChange }) => {
+const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange, onPropertySelect, onServicesChange }) => {
     const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     
-    // Initialize form data
+    // Initialize form data - REMOVED otherServices and attachments
     const [formData, setFormData] = useState<SurveyData>(() => ({
         propertyId: '', 
         firstName: userProfile?.firstName || '', 
@@ -262,11 +210,9 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         email: userProfile?.email || '',
         unitInfo: '', 
         services: [], 
-        otherServices: [], 
         timeline: '', 
         notes: '', 
-        contactMethods: [], 
-        attachments: []
+        contactMethods: []
     }));
 
     useEffect(() => {
@@ -282,26 +228,17 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         }
     }, [userProfile]);
 
-    // Notify parent when attachments change
-    useEffect(() => {
-        if (onAttachmentsChange && formData.attachments) {
-            onAttachmentsChange(formData.attachments);
-        }
-    }, [formData.attachments, onAttachmentsChange]);
-
     // Notify parent when services change (for Chat Context)
     useEffect(() => {
         if (onServicesChange) {
-            onServicesChange(formData.services, formData.otherServices);
+            onServicesChange(formData.services);
         }
-    }, [formData.services, formData.otherServices, onServicesChange]);
+    }, [formData.services, onServicesChange]);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState<string>(''); 
     const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
-    const [dragActive, setDragActive] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (companies.length === 1) {
@@ -356,18 +293,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         });
     };
 
-    const handleSecondaryServiceChange = (service: string) => {
-        // Multi-select Toggle logic for Other Services
-        setFormData(prev => {
-            const isSelected = prev.otherServices.includes(service);
-            if (isSelected) {
-                return { ...prev, otherServices: prev.otherServices.filter(s => s !== service) };
-            } else {
-                return { ...prev, otherServices: [...prev.otherServices, service] };
-            }
-        });
-    };
-
     const handleCheckboxChange = (field: 'contactMethods', value: string) => {
         setFormData(prev => {
             const current = prev[field];
@@ -391,43 +316,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         }
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            handleFiles(e.target.files);
-        }
-    };
-
-    const handleFiles = (files: FileList) => {
-         const currentCount = formData.attachments?.length || 0;
-         const newCount = files.length;
-         
-         // Enforce 3 photo limit to prevent Payload too large error
-         if (currentCount + newCount > 3) {
-             alert("Maximum 3 photos allowed to ensure reliable upload.");
-             return;
-         }
-
-         const fileArray = Array.from(files);
-         
-         // Use the new compressImage utility
-         const promises = fileArray.map(file => compressImage(file));
-
-         Promise.all(promises).then(newAttachments => {
-             // Filter out failed
-             const validAttachments = newAttachments.filter(a => a.data && a.data !== '');
-             
-             if (validAttachments.length > 0) {
-                 setFormData(prev => ({ 
-                     ...prev, 
-                     attachments: [...(prev.attachments || []), ...validAttachments] 
-                 }));
-             }
-         }).catch(err => {
-             console.error("Error processing files:", err);
-             alert("Error processing images. Please try different files.");
-         });
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMessage('');
@@ -438,8 +326,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             return;
         }
 
-        if (formData.services.length === 0 && formData.otherServices.length === 0) {
-            setErrorMessage("Please select at least one service (Primary or Other).");
+        if (formData.services.length === 0) {
+            setErrorMessage("Please select at least one service.");
             setSubmissionStatus('error');
             return;
         }
@@ -460,16 +348,12 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
-        // --- STRICT PAYLOAD FIX ---
-        // 1. Arrays must NOT be strings (Backend expects array to use .join())
-        // 2. Arrays must NOT be empty (prevents empty string in sheet -> column shift)
+        // --- STRICT PAYLOAD ---
+        // Excluded: other, otherServices, attachments
+        // Included: services (always array), contactMethods (always array)
         
         const payloadServices = formData.services.length > 0 
             ? formData.services 
-            : ['None'];
-
-        const payloadOther = formData.otherServices.length > 0 
-            ? formData.otherServices 
             : ['None'];
 
         const payloadContact = formData.contactMethods.length > 0 
@@ -491,13 +375,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             title: formData.title || 'N/A',
 
             // -- Scope --
-            // Arrays for Backend .join() logic
             services: payloadServices,
             
-            // Send BOTH keys as Arrays to ensure Backend finds one and doesn't crash on .join()
-            other: payloadOther,
-            otherServices: payloadOther,
-
             // Strings
             unitInfo: formData.unitInfo || 'N/A',
             timeline: formData.timeline || 'N/A',
@@ -505,13 +384,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             
             // Array for Backend
             contactMethods: payloadContact,
-            
-            // Attachments
-            attachments: formData.attachments?.map(a => ({
-                name: a.name,
-                type: 'image/jpeg',
-                data: a.data.replace(/^data:image\/\w+;base64,/, '').replace(/\s/g, '')
-            })) || []
         };
 
         try {
@@ -537,11 +409,8 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             title: userProfile?.title || '',
             phone: userProfile?.phone || '',
             email: userProfile?.email || '',
-            unitInfo: '', services: [], otherServices: [], timeline: '', notes: '', contactMethods: [], attachments: []
+            unitInfo: '', services: [], timeline: '', notes: '', contactMethods: []
         });
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
     };
 
     if (submissionStatus === 'success') {
@@ -559,21 +428,6 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 {property && <p className={`${THEME.colors.textSecondary} mb-2 font-bold`}>{property.name}</p>}
                 <p className={`${THEME.colors.textSecondary} mb-8`}>{t.submitSuccessMessage2}</p>
                 
-                {formData.attachments && formData.attachments.length > 0 && (
-                     <div className={`flex flex-col items-center gap-2 mb-8 ${THEME.colors.surfaceHighlight} py-4 rounded-xl w-fit mx-auto px-8 border ${THEME.colors.borderSubtle}`}>
-                        <div className="flex items-center gap-2">
-                            <CloudArrowUpIcon className="h-5 w-5 text-gold" />
-                            <span className={`text-gold text-sm font-bold`}>{t.photosUploadedBadge}</span>
-                        </div>
-                        <div className="flex gap-2 mt-2">
-                             {formData.attachments.slice(0, 3).map((a, i) => (
-                                 <img key={i} src={a.data.includes('base64,') ? a.data : `data:${a.type};base64,${a.data}`} alt="thumbnail" className="h-10 w-10 object-cover rounded border border-slate-300" />
-                             ))}
-                             {formData.attachments.length > 3 && <span className="text-xs text-slate-400 self-center">+{formData.attachments.length - 3}</span>}
-                        </div>
-                     </div>
-                )}
-
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button onClick={handleReset} className={`${THEME.colors.buttonSecondary} px-8 py-3 rounded-lg`}>
                         {t.submitAnotherButton}
@@ -687,45 +541,38 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 </div>
                 
                 <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Column 1: Primary Services (Multi-Select Checkboxes) */}
-                        <div className="flex flex-col">
-                            <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.serviceNeededLabel}</label>
-                            <div className="flex flex-col gap-2">
-                                {t.SERVICES.map(service => (
-                                    <label key={service} className="flex items-center space-x-3 cursor-pointer p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors group">
-                                        <input 
-                                            type="checkbox" 
-                                            name="service_selection"
-                                            checked={formData.services.includes(service)} 
-                                            onChange={() => handleServiceChange(service)}
-                                            className="w-4 h-4 rounded text-navy focus:ring-gold border-slate-300"
-                                        />
-                                        <span className={`${THEME.colors.textMain} font-medium group-hover:text-navy`}>{service}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Column 2: Other Services (Multi-Select Checkboxes - Replaced Textarea) */}
-                        <div className="flex flex-col">
-                            <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.otherServicesLabel}</label>
-                             <div className="flex flex-col gap-2">
-                                {t.SECONDARY_SERVICES.map(service => (
-                                    <label key={service} className="flex items-center space-x-3 cursor-pointer p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors group">
-                                        <input 
-                                            type="checkbox" 
-                                            name="other_service_selection"
-                                            checked={formData.otherServices.includes(service)} 
-                                            onChange={() => handleSecondaryServiceChange(service)}
-                                            className="w-4 h-4 rounded text-navy focus:ring-gold border-slate-300"
-                                        />
-                                        <span className={`${THEME.colors.textMain} font-medium group-hover:text-navy`}>{service}</span>
-                                    </label>
-                                ))}
-                            </div>
+                    {/* Primary Services (Single Column Now) */}
+                    <div className="flex flex-col">
+                        <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-3 uppercase tracking-wider`}>{t.serviceNeededLabel}</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {t.SERVICES.map(service => (
+                                <label key={service} className="flex items-center space-x-3 cursor-pointer p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors group">
+                                    <input 
+                                        type="checkbox" 
+                                        name="service_selection"
+                                        checked={formData.services.includes(service)} 
+                                        onChange={() => handleServiceChange(service)}
+                                        className="w-4 h-4 rounded text-navy focus:ring-gold border-slate-300"
+                                    />
+                                    <span className={`${THEME.colors.textMain} font-medium group-hover:text-navy`}>{service}</span>
+                                </label>
+                            ))}
+                            {/* Merged Secondary Options into Main List visually if needed, otherwise just showing primary */}
+                             {t.SECONDARY_SERVICES.map(service => (
+                                <label key={service} className="flex items-center space-x-3 cursor-pointer p-3 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors group">
+                                    <input 
+                                        type="checkbox" 
+                                        name="service_selection"
+                                        checked={formData.services.includes(service)} 
+                                        onChange={() => handleServiceChange(service)}
+                                        className="w-4 h-4 rounded text-navy focus:ring-gold border-slate-300"
+                                    />
+                                    <span className={`${THEME.colors.textMain} font-medium group-hover:text-navy`}>{service}</span>
+                                </label>
+                            ))}
                         </div>
                     </div>
+
                     
                     <div className="pt-4 border-t border-slate-100">
                         <label className={`block text-sm font-bold ${THEME.colors.textSecondary} mb-2`}>{t.unitInfoLabel}</label>
@@ -753,39 +600,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
                 </div>
             </div>
 
-             {/* Photos */}
-             <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
-                 <div className={`text-lg font-bold ${THEME.colors.textMain} mb-6 flex items-center gap-2 border-b ${THEME.colors.borderSubtle} pb-2`}>
-                    <PhotoIcon className="h-5 w-5 text-gold" /> {t.photosLegend}
-                </div>
-                <div 
-                    className={`border-2 border-dashed ${dragActive ? THEME.colors.borderHighlight : THEME.colors.borderSubtle} rounded-lg p-8 text-center transition-colors cursor-pointer bg-slate-50`}
-                    onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-                    onDragLeave={() => setDragActive(false)}
-                    onDrop={(e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    <CloudArrowUpIcon className="h-10 w-10 mx-auto text-slate-400 mb-2" />
-                    <p className={`${THEME.colors.textSecondary} font-bold`}>{t.dragDropText}</p>
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept="image/*" className="hidden" />
-                </div>
-                {formData.attachments && formData.attachments.length > 0 && (
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {formData.attachments.map((file, idx) => (
-                            <div key={idx} className="relative group">
-                                <img src={file.data} alt="preview" className="h-24 w-full object-cover rounded shadow-sm" />
-                                <button 
-                                    type="button" 
-                                    onClick={() => setFormData(prev => ({ ...prev, attachments: prev.attachments?.filter((_, i) => i !== idx) }))}
-                                    className="absolute top-1 right-1 bg-rose text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <XMarkIcon className="h-3 w-3" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-             </div>
+             {/* Photos - REMOVED PER REQUEST */}
 
              {/* Contact Methods */}
              <div className={`${THEME.colors.surface} p-6 rounded-xl border ${THEME.colors.borderSubtle} ${THEME.effects.card}`}>
@@ -962,12 +777,10 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
 // --- Chat Widget ---
 interface ChatWidgetProps {
     selectedProperty?: Property;
-    attachments?: {name: string, type: string, data: string}[];
     primaryServices?: string[];
-    secondaryServices?: string[];
 }
 
-const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments = [], primaryServices = [], secondaryServices = [] }) => {
+const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, primaryServices = [] }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
     const [input, setInput] = useState('');
@@ -982,14 +795,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
             : "User has not selected a property yet.";
 
         if (primaryServices.length > 0) {
-            propertyContext += `\nSelected Primary Services: ${primaryServices.join(', ')}.`;
-        }
-        if (secondaryServices.length > 0) {
-            propertyContext += `\nSelected Secondary Services: ${secondaryServices.join(', ')}.`;
+            propertyContext += `\nSelected Services: ${primaryServices.join(', ')}.`;
         }
             
         chatRef.current = createChatSession(propertyContext);
-    }, [selectedProperty, primaryServices, secondaryServices]);
+    }, [selectedProperty, primaryServices]);
 
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(scrollToBottom, [messages, isOpen]);
@@ -1034,12 +844,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
                 className={`fixed bottom-6 right-6 ${THEME.colors.buttonPrimary} p-4 rounded-full shadow-2xl z-50 hover:scale-110 transition-transform relative`}
             >
                 {isOpen ? <XMarkIcon className="h-6 w-6" /> : <ChatBubbleIcon className="h-6 w-6" />}
-                {/* Visual Badge for Attachments */}
-                {!isOpen && attachments.length > 0 && (
-                     <span className="absolute -top-1 -right-1 bg-rose text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white animate-pulse">
-                        {attachments.length}
-                     </span>
-                )}
             </button>
 
             {isOpen && (
@@ -1052,28 +856,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
                         <button onClick={() => setIsOpen(false)}><XMarkIcon className={`h-5 w-5 ${THEME.colors.textSecondary}`} /></button>
                     </div>
                     
-                    {/* Chat Context Header - Active Services and Attachments */}
-                    {(attachments.length > 0 || primaryServices.length > 0 || secondaryServices.length > 0) && (
+                    {/* Chat Context Header - Active Services */}
+                    {primaryServices.length > 0 && (
                         <div className="bg-slate-100 p-2 border-b border-slate-200 text-xs flex flex-col gap-2">
-                            {/* Service Summary */}
-                            {(primaryServices.length > 0 || secondaryServices.length > 0) && (
-                                <div className="text-slate-600">
-                                    <span className="font-bold">{translations.en.activeServicesLabel || "Active Request:"}</span>
-                                    <span className="ml-1 text-slate-800 line-clamp-2">
-                                        {[...primaryServices, ...secondaryServices].join(', ')}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Attachment Thumbnails */}
-                            {attachments.length > 0 && (
-                                <div className="flex gap-2 overflow-x-auto pt-1">
-                                    <span className="font-bold text-slate-500 self-center whitespace-nowrap">Photos:</span>
-                                    {attachments.map((a, i) => (
-                                        <img key={i} src={a.data.includes('base64,') ? a.data : `data:${a.type};base64,${a.data}`} alt="thumb" className="h-8 w-8 object-cover rounded border border-slate-300 flex-shrink-0" />
-                                    ))}
-                                </div>
-                            )}
+                            <div className="text-slate-600">
+                                <span className="font-bold">{translations.en.activeServicesLabel || "Active Request:"}</span>
+                                <span className="ml-1 text-slate-800 line-clamp-2">
+                                    {primaryServices.join(', ')}
+                                </span>
+                            </div>
                         </div>
                     )}
 
@@ -1123,8 +914,7 @@ const App: React.FC = () => {
 
     // State lifted for Chat Context
     const [chatProperty, setChatProperty] = useState<Property | undefined>(undefined);
-    const [chatAttachments, setChatAttachments] = useState<{name: string, type: string, data: string}[]>([]);
-    const [chatServices, setChatServices] = useState<{primary: string[], secondary: string[]}>({ primary: [], secondary: [] });
+    const [chatServices, setChatServices] = useState<string[]>([]);
     
     // Header Dynamic Text
     const [headerTitle, setHeaderTitle] = useState(BRANDING.companyName);
@@ -1194,8 +984,7 @@ const App: React.FC = () => {
                                     setHeaderSubtitle(compName);
                                 }}
                                 onPropertySelect={setChatProperty}
-                                onAttachmentsChange={setChatAttachments}
-                                onServicesChange={(p, s) => setChatServices({ primary: p, secondary: s })}
+                                onServicesChange={setChatServices}
                             />
                         </div>
                     )}
@@ -1205,9 +994,7 @@ const App: React.FC = () => {
                 
                 <ChatWidget 
                     selectedProperty={chatProperty} 
-                    attachments={chatAttachments}
-                    primaryServices={chatServices.primary}
-                    secondaryServices={chatServices.secondary}
+                    primaryServices={chatServices}
                 />
             </div>
         </ErrorBoundary>
