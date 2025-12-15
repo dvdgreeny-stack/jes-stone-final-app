@@ -9,6 +9,7 @@ import { Chat, GenerateContentResponse } from "@google/genai";
 import { LoadingSpinner, JesStoneLogo, SparklesIcon, PaperAirplaneIcon, ChatBubbleIcon, XMarkIcon, DashboardIcon, PhotoIcon, LockClosedIcon, LogoutIcon, ClipboardListIcon, BuildingBlocksIcon, CloudArrowUpIcon, ChartBarIcon, GlobeAltIcon, UsersIcon, CalculatorIcon } from './components/icons';
 import { ProjectManagementModule } from './components/ProjectManagementModule';
 import { EstimatingModule } from './components/EstimatingModule';
+import { AssetManagerModule } from './components/AssetManagerModule'; // NEW IMPORT
 
 // --- ERROR BOUNDARY COMPONENT ---
 interface ErrorBoundaryProps {
@@ -645,7 +646,20 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
     const t = translations[lang];
     const [accessCode, setAccessCode] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // Default Tab Logic based on Role
     const [activeTab, setActiveTab] = useState('overview');
+
+    // Effect to set initial tab based on role
+    useEffect(() => {
+        if (session) {
+            if (session.role === 'executive' || session.role === 'internal_admin') {
+                setActiveTab('asset_view');
+            } else {
+                setActiveTab('overview');
+            }
+        }
+    }, [session]);
 
     // Internal login handler for direct dashboard access route (not used in side-by-side view but good for robustness)
     const handleLogin = async (e: React.FormEvent) => {
@@ -689,6 +703,24 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
 
     const isAdmin = session.role === 'internal_admin' || session.role === 'executive';
 
+    // Build Tabs Array Dynamic based on Role
+    const tabs = [
+        { id: 'overview', label: t.tabOverview, icon: DashboardIcon },
+    ];
+
+    if (isAdmin) {
+        // Insert Asset View at start for admins/execs
+        tabs.unshift({ id: 'asset_view', label: t.tabAssetManager, icon: ChartBarIcon });
+    }
+
+    tabs.push(
+        { id: 'projects', label: t.tabProjects, icon: ChartBarIcon },
+        { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon },
+        { id: 'new', label: t.tabNewRequest, icon: ClipboardListIcon },
+        { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
+    );
+
+
     return (
         <div className="max-w-7xl mx-auto px-4 py-8">
             <div className="flex justify-between items-center mb-8">
@@ -711,13 +743,7 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-4 mb-6 border-b border-slate-200">
-                {[
-                    { id: 'overview', label: t.tabOverview, icon: DashboardIcon },
-                    { id: 'projects', label: t.tabProjects, icon: ChartBarIcon },
-                    { id: 'estimating', label: t.tabEstimating, icon: CalculatorIcon },
-                    { id: 'new', label: t.tabNewRequest, icon: ClipboardListIcon },
-                    { id: 'gallery', label: t.tabGallery, icon: PhotoIcon },
-                ].map(tab => (
+                {tabs.map(tab => (
                     <button 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
@@ -729,6 +755,8 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
             </div>
 
             <div className="min-h-[500px]">
+                {activeTab === 'asset_view' && <AssetManagerModule lang={lang} />}
+                
                 {activeTab === 'overview' && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in">
                         <div className={`${THEME.colors.surface} p-6 rounded-lg shadow border ${THEME.colors.borderSubtle}`}>

@@ -78,8 +78,9 @@ export const translations = {
     tabNewRequest: "New Request",
     tabGallery: "Photo Gallery",
     tabHistory: "History",
-    tabEstimating: "Quick Estimating",
-    tabProjects: "Project Tracker",
+    tabEstimating: "Soft Estimator",
+    tabProjects: "Projects",
+    tabAssetManager: "Asset View",
     tabDataSources: "Data Sources",
 
     statsActive: "Active Jobs",
@@ -90,6 +91,18 @@ export const translations = {
     gallerySubtitle: "See your recent updates",
     logout: "Log Out",
     
+    // Asset Manager Module
+    assetTitle: "Portfolio Performance",
+    assetSubtitle: "Executive Overview & CapEx Control",
+    assetKpiBudget: "Total Budget Cap",
+    assetKpiDeployed: "CapEx Deployed",
+    assetKpiRoi: "Proj. ROI",
+    assetApprovalQueue: "Approval Queue",
+    assetSpendCategory: "Spend by Category",
+    assetApproveBtn: "Approve",
+    assetRejectBtn: "Reject",
+    assetGeminiInsight: "Ask AI for Portfolio Insights",
+
     // Project Management Module
     projTitleClient: "My Projects",
     projTitleCompany: "Global Project Tracker",
@@ -106,11 +119,12 @@ export const translations = {
     projStatusReady: "Ready",
 
     // Estimating Module
-    estTitle: "CapEx Calculator",
+    estTitle: "Soft Estimator 2.0",
     estSubtitle: "Build a soft bid and submit for ROI approval.",
     estBudgetUtil: "Budget Utilization",
-    estTabBuild: "Build",
-    estTabPackages: "Paquetes",
+    estTabBuild: "Configurator",
+    estTabPackages: "Packages",
+    estTabPreview: "Live Preview",
     estItemLabel: "Item",
     estQtyLabel: "Quantity",
     estAddButton: "Add Item",
@@ -118,7 +132,7 @@ export const translations = {
     estTableQty: "Qty",
     estTablePrice: "Price",
     estTableTotal: "Total",
-    estEmptyState: "Start building your estimate to see the breakdown.",
+    estEmptyState: "Select a package or add items to generate a soft bid.",
     estTotalLabel: "Estimated Total",
     estSubmitButton: "Submit Estimate for Approval",
     estSubmittingAs: "Submitting as:",
@@ -127,6 +141,11 @@ export const translations = {
     estNewButton: "Start New Estimate",
     estPkgIncludes: "Includes",
     estPkgItems: "items",
+    estMarginLabel: "Contingency / Margin",
+    estGradeLabel: "Finish Grade",
+    estGradeA: "Grade A (Value)",
+    estGradeB: "Grade B (Standard)",
+    estGradeC: "Grade C (Luxury)",
 
     // Roles
     roleSiteManager: "Site Manager",
@@ -264,6 +283,7 @@ export const translations = {
     tabHistory: "Historial",
     tabEstimating: "Estimaciones Rápidas",
     tabProjects: "Seguimiento de Proyectos",
+    tabAssetManager: "Vista de Activos",
     tabDataSources: "Fuentes de Datos",
 
     statsActive: "Trabajos Activos",
@@ -274,6 +294,18 @@ export const translations = {
     gallerySubtitle: "Vea sus actualizaciones recientes",
     logout: "Cerrar Sesión",
     
+    // Asset Manager Module
+    assetTitle: "Rendimiento del Portafolio",
+    assetSubtitle: "Resumen Ejecutivo y Control CapEx",
+    assetKpiBudget: "Presupuesto Total",
+    assetKpiDeployed: "CapEx Desplegado",
+    assetKpiRoi: "ROI Proy.",
+    assetApprovalQueue: "Cola de Aprobación",
+    assetSpendCategory: "Gasto por Categoría",
+    assetApproveBtn: "Aprobar",
+    assetRejectBtn: "Rechazar",
+    assetGeminiInsight: "Consultar IA sobre Insights",
+
     // Project Management Module
     projTitleClient: "Mis Proyectos",
     projTitleCompany: "Rastreador Global de Proyectos",
@@ -290,11 +322,12 @@ export const translations = {
     projStatusReady: "Listo",
 
     // Estimating Module
-    estTitle: "Calculadora CapEx",
+    estTitle: "Calculadora CapEx 2.0",
     estSubtitle: "Cree una oferta y envíela para aprobación de ROI.",
     estBudgetUtil: "Utilización del Presupuesto",
-    estTabBuild: "Construir",
+    estTabBuild: "Configurador",
     estTabPackages: "Paquetes",
+    estTabPreview: "Vista Previa",
     estItemLabel: "Artículo",
     estQtyLabel: "Cantidad",
     estAddButton: "Agregar Artículo",
@@ -302,15 +335,20 @@ export const translations = {
     estTableQty: "Cant",
     estTablePrice: "Precio",
     estTableTotal: "Total",
-    estEmptyState: "Comience a construir su estimación para ver el desglose.",
+    estEmptyState: "Seleccione un paquete para generar una oferta.",
     estTotalLabel: "Total Estimado",
-    estSubmitButton: "Enviar Estimación para Aprobación",
+    estSubmitButton: "Enviar Estimación",
     estSubmittingAs: "Enviando como:",
     estSuccessTitle: "¡Estimación Enviada!",
-    estSuccessMsg: "Hemos recibido su solicitud de presupuesto. Se enviará una propuesta formal a su correo electrónico en breve para su aprobación final.",
+    estSuccessMsg: "Hemos recibido su solicitud de presupuesto.",
     estNewButton: "Iniciar Nueva Estimación",
     estPkgIncludes: "Incluye",
     estPkgItems: "artículos",
+    estMarginLabel: "Contingencia / Margen",
+    estGradeLabel: "Nivel de Acabado",
+    estGradeA: "Grado A (Valor)",
+    estGradeB: "Grado B (Estándar)",
+    estGradeC: "Grado C (Lujo)",
 
     // Roles
     roleSiteManager: "Gerente de Sitio",

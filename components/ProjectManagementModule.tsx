@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { THEME } from '../theme';
-import { ClockIcon, BuildingBlocksIcon, ClipboardListIcon } from './icons';
 import { translations } from '../translations';
 
 interface Props {
@@ -12,8 +11,7 @@ interface Props {
 export const ProjectManagementModule: React.FC<Props> = ({ mode, lang }) => {
     const t = translations[lang];
 
-    // Mock Data for SaaS demo
-    // In a real app, 'company' mode would fetch ALL projects, 'client' would filter by user's property
+    // Mock Data
     const allProjects = [
         { id: '1', title: 'Unit 104 Full Remodel', property: 'The Arts at Park Place', stage: t.projFilterProduction, progress: 65, status: t.projStatusOnSchedule },
         { id: '2', title: 'Lobby Flooring', property: 'Canyon Creek', stage: t.projFilterProcurement, progress: 20, status: t.projStatusWaiting },
@@ -22,20 +20,26 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode, lang }) => {
         { id: '5', title: 'Unit 205 Turn', property: 'Canyon Creek', stage: t.projFilterCompleted, progress: 100, status: t.projStatusReady },
     ];
 
-    // Simple filter simulation
-    // If client mode, we just show a subset to simulate "My Projects"
-    const projects = mode === 'client' 
-        ? allProjects.slice(0, 3) 
-        : allProjects;
-
+    const projects = mode === 'client' ? allProjects.slice(0, 3) : allProjects;
     const [filter, setFilter] = useState(t.projFilterAll);
 
-    // Update filter text when language changes to prevent stuck state
     useEffect(() => {
         setFilter(t.projFilterAll);
     }, [lang, t.projFilterAll]);
 
     const filters = [t.projFilterAll, t.projFilterProduction, t.projFilterProcurement, t.projFilterPlanning, t.projFilterCompleted];
+
+    // Status Styling Helpers
+    const getStatusStyle = (status: string) => {
+        if (status === t.projStatusOnSchedule || status === t.projStatusReady) return "border-emerald-500 text-emerald-600 bg-emerald-50";
+        if (status === t.projStatusWaiting) return "border-rose text-rose bg-rose/10";
+        return "border-slate-300 text-slate-500 bg-slate-50";
+    };
+
+    const getProgressColor = (status: string) => {
+        if (status === t.projStatusWaiting) return "bg-rose";
+        return "bg-gold";
+    };
 
     return (
         <div className="animate-in fade-in duration-300">
@@ -49,7 +53,7 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode, lang }) => {
                     </p>
                 </div>
                 {mode === 'company' && (
-                    <div className={`${THEME.colors.background} px-3 py-1 rounded text-xs border ${THEME.colors.borderHighlight} ${THEME.colors.textHighlight}`}>
+                    <div className={`${THEME.colors.background} px-3 py-1 rounded text-xs border ${THEME.colors.borderHighlight} ${THEME.colors.textHighlight} font-bold`}>
                         Admin View
                     </div>
                 )}
@@ -71,51 +75,41 @@ export const ProjectManagementModule: React.FC<Props> = ({ mode, lang }) => {
 
             <div className="grid gap-4">
                 {projects.filter(p => filter === t.projFilterAll || p.stage === filter).map(project => (
-                    <div key={project.id} className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:${THEME.colors.borderHighlight} transition-colors group`}>
+                    <div key={project.id} className={`${THEME.colors.surface} p-6 rounded-lg border ${THEME.colors.borderSubtle} hover:${THEME.colors.borderHighlight} transition-all hover:shadow-lg group`}>
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                             <div>
                                 <h3 className={`text-lg font-bold ${THEME.colors.textMain}`}>{project.title}</h3>
                                 {mode === 'company' && (
-                                    <p className={`text-xs ${THEME.colors.textHighlight} mb-1`}>{project.property}</p>
+                                    <p className={`text-xs ${THEME.colors.textHighlight} mb-1 font-bold`}>{project.property}</p>
                                 )}
-                                <span className={`text-xs uppercase tracking-wider font-bold ${THEME.colors.textSecondary} bg-navy px-2 py-1 rounded mt-1 inline-block`}>
+                                <span className={`text-[10px] uppercase tracking-wider font-bold text-white bg-navy px-2 py-1 rounded mt-1 inline-block`}>
                                     {project.stage}
                                 </span>
                             </div>
-                            <div className={`text-sm font-bold px-3 py-1 rounded border ${
-                                project.status === t.projStatusOnSchedule || project.status === t.projStatusReady ? 'border-bright-cyan text-bright-cyan' : 
-                                project.status === t.projStatusWaiting ? 'border-bright-pink text-bright-pink' : 'border-slate text-slate'
-                            }`}>
+                            <div className={`text-xs font-bold px-3 py-1 rounded border ${getStatusStyle(project.status)}`}>
                                 {project.status}
                             </div>
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="w-full bg-navy rounded-full h-2.5 mb-2 overflow-hidden">
+                        <div className="w-full bg-slate-200 rounded-full h-2.5 mb-2 overflow-hidden">
                             <div 
-                                className={`h-2.5 rounded-full ${project.status === t.projStatusWaiting ? 'bg-bright-pink' : 'bg-bright-cyan'}`} 
+                                className={`h-2.5 rounded-full ${getProgressColor(project.status)}`} 
                                 style={{ width: `${project.progress}%` }}
                             ></div>
                         </div>
-                        <div className="flex justify-between text-xs text-slate">
-                            <span>0% Started</span>
+                        <div className="flex justify-between text-xs text-slate-400 font-medium">
+                            <span>Started</span>
                             <span>{project.progress}% Complete</span>
-                            <span>100% Handover</span>
+                            <span>Handover</span>
                         </div>
                         
-                        <div className="mt-4 pt-4 border-t border-white/5 flex gap-4 opacity-50 group-hover:opacity-100 transition-opacity">
-                            <button className={`text-xs ${THEME.colors.textHighlight} hover:underline`}>View Schedule</button>
-                            <button className={`text-xs ${THEME.colors.textHighlight} hover:underline`}>View Material List</button>
-                            {mode === 'company' && <button className={`text-xs ${THEME.colors.textHighlight} hover:underline`}>Contact Property</button>}
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-4 opacity-50 group-hover:opacity-100 transition-opacity">
+                            <button className={`text-xs ${THEME.colors.textHighlight} hover:underline font-bold`}>View Schedule</button>
+                            <button className={`text-xs ${THEME.colors.textHighlight} hover:underline font-bold`}>View Material List</button>
                         </div>
                     </div>
                 ))}
-            </div>
-            
-            <div className="mt-8 text-center">
-                <button className={`${THEME.colors.buttonSecondary} px-6 py-2 rounded font-bold`}>
-                    View All Archived Projects
-                </button>
             </div>
         </div>
     );
