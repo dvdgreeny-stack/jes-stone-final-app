@@ -19,6 +19,9 @@ export interface UserProfile {
   phone: string;
 }
 
+// NOTE: This interface represents the React Form State (Frontend).
+// The actual API Payload converts arrays (like services) to comma-separated strings 
+// to ensure they fit into single Spreadsheet cells.
 export interface SurveyData {
   propertyId: string;
   propertyName?: string;
@@ -29,11 +32,15 @@ export interface SurveyData {
   phone: string;
   email: string;
   unitInfo: string;
-  services: string[];
-  otherServices: string[]; // Changed to array for multiple selections
+  
+  // Frontend uses Arrays for multi-select checkboxes
+  services: string[]; 
+  otherServices: string[]; 
+  
   timeline: string;
   notes: string;
   contactMethods: string[];
+  
   attachments?: {
     name: string;
     type: string;
@@ -44,8 +51,8 @@ export interface SurveyData {
 export interface HistoryEntry {
     timestamp: string;
     unitInfo: string;
-    services: string;
-    photos: string[]; // Array of URLs
+    services: string; // Backend returns this as a string "Service A, Service B"
+    photos: string[]; // Backend returns array of URL strings
 }
 
 export type UserRole = 'site_manager' | 'regional_manager' | 'executive' | 'internal_admin';

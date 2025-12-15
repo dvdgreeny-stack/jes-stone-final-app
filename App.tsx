@@ -175,7 +175,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.7-fix-shift</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.8-strict-payload</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -460,17 +460,21 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
-        // --- DATA ALIGNMENT FIX (STRICT MODE) ---
-        // CRITICAL: Ensure 'other' is never empty/undefined to prevent column shifting.
-        // We use 'None' if the array is empty.
+        // --- STRICT PAYLOAD MAPPING ---
+        // 1. All arrays (services, otherServices, contactMethods) are flattened to strings.
+        // 2. 'Other' column is FORCED to have a value ("None") if empty to prevent column shifting.
         
         const safeOther = formData.otherServices && formData.otherServices.length > 0 
             ? formData.otherServices.join(', ') 
             : 'None';
 
         const safeServices = formData.services && formData.services.length > 0
-            ? formData.services
-            : ['None'];
+            ? formData.services.join(', ')
+            : 'None';
+
+        const safeContactMethods = formData.contactMethods && formData.contactMethods.length > 0
+            ? formData.contactMethods.join(', ')
+            : 'Email';
 
         const payload: any = {
             // -- Identity --
@@ -487,27 +491,26 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             title: formData.title || 'N/A',
 
             // -- Scope (Strict Mapping to Sheet Columns) --
-            // Column G: Services
+            // Col G: Services (Flattened String)
             services: safeServices,
             
-            // Column H: Other (Secondary Services)
-            // MUST be present to prevent 'Unit Info' shifting left into this column
+            // Col H: Other (Flattened String, Default 'None')
             other: safeOther,
             otherService: safeOther, // Fallback key
 
-            // Column I: Unit Info
+            // Col I: Unit Info
             unitInfo: formData.unitInfo || 'N/A',
             
-            // Column J: Timeline
+            // Col J: Timeline
             timeline: formData.timeline || 'N/A',
             
-            // Column K: Notes
+            // Col K: Notes
             notes: formData.notes || 'N/A',
             
-            // Column L: Contact Methods
-            contactMethods: formData.contactMethods || ['Email'],
+            // Col L: Contact Methods (Flattened String)
+            contactMethods: safeContactMethods,
             
-            // Column M: Attachments
+            // Col M: Attachments
             attachments: formData.attachments?.map(a => ({
                 name: a.name,
                 type: 'image/jpeg',
