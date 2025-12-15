@@ -175,7 +175,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.8-strict-payload</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.9-array-fix</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -262,7 +262,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         email: userProfile?.email || '',
         unitInfo: '', 
         services: [], 
-        otherServices: [], // Replaced string with array
+        otherServices: [], 
         timeline: '', 
         notes: '', 
         contactMethods: [], 
@@ -460,21 +460,21 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
-        // --- STRICT PAYLOAD MAPPING ---
-        // 1. All arrays (services, otherServices, contactMethods) are flattened to strings.
-        // 2. 'Other' column is FORCED to have a value ("None") if empty to prevent column shifting.
+        // --- STRICT PAYLOAD FIX ---
+        // 1. Arrays must NOT be strings (Backend expects array to use .join())
+        // 2. Arrays must NOT be empty (prevents empty string in sheet -> column shift)
         
-        const safeOther = formData.otherServices && formData.otherServices.length > 0 
-            ? formData.otherServices.join(', ') 
-            : 'None';
+        const payloadServices = formData.services.length > 0 
+            ? formData.services 
+            : ['None'];
 
-        const safeServices = formData.services && formData.services.length > 0
-            ? formData.services.join(', ')
-            : 'None';
+        const payloadOther = formData.otherServices.length > 0 
+            ? formData.otherServices 
+            : ['None'];
 
-        const safeContactMethods = formData.contactMethods && formData.contactMethods.length > 0
-            ? formData.contactMethods.join(', ')
-            : 'Email';
+        const payloadContact = formData.contactMethods.length > 0 
+            ? formData.contactMethods 
+            : ['Email'];
 
         const payload: any = {
             // -- Identity --
@@ -490,31 +490,26 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             phone: formData.phone,
             title: formData.title || 'N/A',
 
-            // -- Scope (Strict Mapping to Sheet Columns) --
-            // Col G: Services (Flattened String)
-            services: safeServices,
+            // -- Scope --
+            // Arrays for Backend .join() logic
+            services: payloadServices,
             
-            // Col H: Other (Flattened String, Default 'None')
-            other: safeOther,
-            otherService: safeOther, // Fallback key
+            // Send BOTH keys as Arrays to ensure Backend finds one and doesn't crash on .join()
+            other: payloadOther,
+            otherServices: payloadOther,
 
-            // Col I: Unit Info
+            // Strings
             unitInfo: formData.unitInfo || 'N/A',
-            
-            // Col J: Timeline
             timeline: formData.timeline || 'N/A',
-            
-            // Col K: Notes
             notes: formData.notes || 'N/A',
             
-            // Col L: Contact Methods (Flattened String)
-            contactMethods: safeContactMethods,
+            // Array for Backend
+            contactMethods: payloadContact,
             
-            // Col M: Attachments
+            // Attachments
             attachments: formData.attachments?.map(a => ({
                 name: a.name,
                 type: 'image/jpeg',
-                // Remove data URL prefix and whitespaces
                 data: a.data.replace(/^data:image\/\w+;base64,/, '').replace(/\s/g, '')
             })) || []
         };
@@ -1118,53 +1113,61 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
             )}
         </>
     );
-};
+}
 
-// --- App Component Export ---
-export default function App() {
-    const [companies, setCompanies] = useState<Company[]>([]);
+const App: React.FC = () => {
     const [lang, setLang] = useState<'en' | 'es'>('en');
-    const [currentRoute, setCurrentRoute] = useState(window.location.hash);
-    const [headerTitles, setHeaderTitles] = useState({ title: '', subtitle: '' });
+    const [companies, setCompanies] = useState<Company[]>([]);
     const [session, setSession] = useState<UserSession | null>(null);
-    const [selectedProperty, setSelectedProperty] = useState<Property | undefined>(undefined);
-    // State to hold attachments from Survey so ChatWidget can see them
-    const [currentAttachments, setCurrentAttachments] = useState<{name: string, type: string, data: string}[]>([]);
-    // State to hold services from Survey so ChatWidget can see them
-    const [currentServices, setCurrentServices] = useState<{primary: string[], secondary: string[]}>({primary: [], secondary: []});
+    const [currentRoute, setCurrentRoute] = useState(window.location.hash);
+
+    // State lifted for Chat Context
+    const [chatProperty, setChatProperty] = useState<Property | undefined>(undefined);
+    const [chatAttachments, setChatAttachments] = useState<{name: string, type: string, data: string}[]>([]);
+    const [chatServices, setChatServices] = useState<{primary: string[], secondary: string[]}>({ primary: [], secondary: [] });
+    
+    // Header Dynamic Text
+    const [headerTitle, setHeaderTitle] = useState(BRANDING.companyName);
+    const [headerSubtitle, setHeaderSubtitle] = useState(BRANDING.companySubtitle);
 
     useEffect(() => {
-        const handleHashChange = () => setCurrentRoute(window.location.hash);
-        window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
+        const load = async () => {
+            try {
+                const { data } = await fetchCompanyData(BRANDING.defaultApiUrl);
+                setCompanies(data);
+            } catch (err) {
+                console.error("Failed to fetch companies", err);
+            }
+        };
+        load();
+
+        const onHashChange = () => setCurrentRoute(window.location.hash);
+        window.addEventListener('hashchange', onHashChange);
+        return () => window.removeEventListener('hashchange', onHashChange);
     }, []);
 
+    const isDashboard = currentRoute === '#dashboard';
+
+    // Reset header when switching to dashboard
     useEffect(() => {
-        fetchCompanyData(BRANDING.defaultApiUrl).then(({data}) => setCompanies(data));
-    }, []);
-
-    const handleSelectionChange = (propName: string, companyName: string) => {
-        setHeaderTitles({ title: propName, subtitle: companyName });
-    };
-
-    const handleServicesChange = (primary: string[], secondary: string[]) => {
-        setCurrentServices({primary, secondary});
-    };
-
-    // Determine if we show Dashboard view or Main view
-    const isDashboard = currentRoute.includes('dashboard') || session !== null;
+        if (isDashboard) {
+            setHeaderTitle(BRANDING.companyName);
+            setHeaderSubtitle(BRANDING.companySubtitle);
+        }
+    }, [isDashboard]);
 
     return (
         <ErrorBoundary>
-            <div className={`min-h-screen ${THEME.colors.background} font-sans text-slate-800`}>
+            <div className={`min-h-screen ${THEME.colors.background} font-sans text-slate-800 pb-24 relative`}>
                 <Header 
                     lang={lang} 
                     setLang={setLang} 
-                    customTitle={headerTitles.title}
-                    customSubtitle={headerTitles.subtitle}
+                    customTitle={isDashboard ? undefined : headerTitle}
+                    customSubtitle={isDashboard ? undefined : headerSubtitle}
+                    surveyUrl="#/"
                 />
                 
-                <main className="animate-in fade-in duration-500">
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {isDashboard ? (
                         <Dashboard 
                             companies={companies} 
@@ -1173,47 +1176,42 @@ export default function App() {
                             setSession={setSession} 
                         />
                     ) : (
-                        <div className="max-w-7xl mx-auto px-4 py-8">
-                            <div className="text-center mb-10">
-                                <h1 className={`text-4xl font-extrabold ${THEME.colors.textMain} tracking-tight mb-2 uppercase`}>
+                        <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-4 fade-in duration-500">
+                             <div className="text-center mb-10">
+                                <h1 className={`text-4xl md:text-5xl font-extrabold ${THEME.colors.textMain} mb-4 tracking-tight`}>
                                     {translations[lang].surveyTitle}
                                 </h1>
                                 <p className={`text-lg ${THEME.colors.textSecondary} max-w-2xl mx-auto`}>
-                                    Submit your service requests directly to our production team.
+                                    {translations[lang].surveySubtitle} <span className="font-bold text-navy">{translations[lang].surveySubtitleProperties}</span>
                                 </p>
                             </div>
                             
-                            {/* SIDE BY SIDE GRID LAYOUT */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                                {/* LEFT: SURVEY FORM (2/3 width) */}
-                                <div className="lg:col-span-2">
-                                    <Survey 
-                                        companies={companies} 
-                                        lang={lang} 
-                                        onSelectionChange={handleSelectionChange}
-                                        onPropertySelect={setSelectedProperty}
-                                        onAttachmentsChange={setCurrentAttachments}
-                                        onServicesChange={handleServicesChange}
-                                    />
-                                </div>
-
-                                {/* RIGHT: LOGIN CARD (1/3 width) */}
-                                <div className="lg:col-span-1">
-                                    <LoginCard lang={lang} onLogin={setSession} />
-                                </div>
-                            </div>
+                            <Survey 
+                                companies={companies} 
+                                lang={lang} 
+                                onSelectionChange={(propName, compName) => {
+                                    setHeaderTitle(propName);
+                                    setHeaderSubtitle(compName);
+                                }}
+                                onPropertySelect={setChatProperty}
+                                onAttachmentsChange={setChatAttachments}
+                                onServicesChange={(p, s) => setChatServices({ primary: p, secondary: s })}
+                            />
                         </div>
                     )}
                 </main>
 
-                <ChatWidget 
-                    selectedProperty={selectedProperty} 
-                    attachments={currentAttachments}
-                    primaryServices={currentServices.primary}
-                    secondaryServices={currentServices.secondary}
-                />
                 <Footer />
+                
+                <ChatWidget 
+                    selectedProperty={chatProperty} 
+                    attachments={chatAttachments}
+                    primaryServices={chatServices.primary}
+                    secondaryServices={chatServices.secondary}
+                />
             </div>
         </ErrorBoundary>
     );
-}
+};
+
+export default App;

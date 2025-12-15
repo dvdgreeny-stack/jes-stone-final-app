@@ -141,8 +141,10 @@ export const EstimatingModule: React.FC<Props> = ({ session, lang }) => {
             
             unitInfo: 'Multiple/General CapEx',
             services: ['Estimate Request', 'Budget Approval'],
-            other: otherServicesText,        // Explicitly map to 'Other' column
-            otherServices: [otherServicesText], // Keep for type safety
+            
+            // CRITICAL: Send as arrays for backend .join() compatibility
+            other: [otherServicesText],        
+            otherServices: [otherServicesText], 
 
             timeline: 'CapEx Budget - Future',
             notes: notes,
