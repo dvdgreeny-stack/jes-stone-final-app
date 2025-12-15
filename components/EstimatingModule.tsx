@@ -284,7 +284,9 @@ export const EstimatingModule: React.FC<Props> = ({ session, lang }) => {
                         <div className="bg-navy p-6 text-white text-center relative overflow-hidden">
                             <div className="relative z-10">
                                 <h3 className="text-xl font-bold tracking-widest uppercase">Soft Bid Estimate</h3>
-                                <p className="text-xs text-slate-300 mt-1">{new Date().toLocaleDateString()}</p>
+                                <p className="text-xs text-slate-300 mt-1">
+                                    {new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'medium', timeStyle: 'short' })}
+                                </p>
                             </div>
                             <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-gold rounded-full opacity-20 blur-xl"></div>
                             <div className="absolute -top-4 -right-4 w-20 h-20 bg-white rounded-full opacity-10 blur-xl"></div>
