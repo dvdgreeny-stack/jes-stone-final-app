@@ -175,7 +175,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.6-checkbox-cols</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.7-fix-shift</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -461,15 +461,16 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         const property = availableProperties.find(p => p.id === formData.propertyId);
         
         // --- DATA ALIGNMENT FIX (STRICT MODE) ---
-        // 1. We pad all fields with 'None' or 'N/A' so the backend script (which likely uses array indexes) 
-        //    doesn't shift columns left when it encounters a null.
-        // 2. We explicitly send `other` (to match the Spreadsheet Header 'Other') AND `otherService` (for legacy safety).
-        // 3. We send `contactName` explicitly because the spreadsheet has a 'Contact Name' column.
+        // CRITICAL: Ensure 'other' is never empty/undefined to prevent column shifting.
+        // We use 'None' if the array is empty.
         
-        // Combine Other Services array into a string to populate the 'Other' column
         const safeOther = formData.otherServices && formData.otherServices.length > 0 
             ? formData.otherServices.join(', ') 
             : 'None';
+
+        const safeServices = formData.services && formData.services.length > 0
+            ? formData.services
+            : ['None'];
 
         const payload: any = {
             // -- Identity --
@@ -477,26 +478,36 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             propertyName: property?.name || 'Unknown Property',
             propertyAddress: property?.address || 'Unknown Address',
             
-            // -- Contact (Explicitly constructed to match Sheet headers) --
+            // -- Contact --
             contactName: `${formData.firstName} ${formData.lastName}`,
-            firstName: formData.firstName, // Keep for legacy
-            lastName: formData.lastName,   // Keep for legacy
+            firstName: formData.firstName,
+            lastName: formData.lastName,
             email: formData.email,
             phone: formData.phone,
             title: formData.title || 'N/A',
 
-            // -- Scope (Strict Mapping) --
-            services: formData.services && formData.services.length > 0 ? formData.services : ['None'],
-            other: safeOther,         // Maps to 'Other' Column
-            otherService: safeOther,  // Backup Key
+            // -- Scope (Strict Mapping to Sheet Columns) --
+            // Column G: Services
+            services: safeServices,
+            
+            // Column H: Other (Secondary Services)
+            // MUST be present to prevent 'Unit Info' shifting left into this column
+            other: safeOther,
+            otherService: safeOther, // Fallback key
 
-            // -- Details --
+            // Column I: Unit Info
             unitInfo: formData.unitInfo || 'N/A',
+            
+            // Column J: Timeline
             timeline: formData.timeline || 'N/A',
+            
+            // Column K: Notes
             notes: formData.notes || 'N/A',
+            
+            // Column L: Contact Methods
             contactMethods: formData.contactMethods || ['Email'],
             
-            // -- Attachments --
+            // Column M: Attachments
             attachments: formData.attachments?.map(a => ({
                 name: a.name,
                 type: 'image/jpeg',
@@ -1043,13 +1054,28 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
                         <button onClick={() => setIsOpen(false)}><XMarkIcon className={`h-5 w-5 ${THEME.colors.textSecondary}`} /></button>
                     </div>
                     
-                    {/* Chat Context Header (Attachments) */}
-                    {attachments.length > 0 && (
-                        <div className="bg-slate-100 p-2 border-b border-slate-200 flex gap-2 overflow-x-auto">
-                            <span className="text-xs font-bold text-slate-500 self-center whitespace-nowrap">Photos Active:</span>
-                            {attachments.map((a, i) => (
-                                <img key={i} src={a.data.includes('base64,') ? a.data : `data:${a.type};base64,${a.data}`} alt="thumb" className="h-8 w-8 object-cover rounded border border-slate-300 flex-shrink-0" />
-                            ))}
+                    {/* Chat Context Header - Active Services and Attachments */}
+                    {(attachments.length > 0 || primaryServices.length > 0 || secondaryServices.length > 0) && (
+                        <div className="bg-slate-100 p-2 border-b border-slate-200 text-xs flex flex-col gap-2">
+                            {/* Service Summary */}
+                            {(primaryServices.length > 0 || secondaryServices.length > 0) && (
+                                <div className="text-slate-600">
+                                    <span className="font-bold">{translations.en.activeServicesLabel || "Active Request:"}</span>
+                                    <span className="ml-1 text-slate-800 line-clamp-2">
+                                        {[...primaryServices, ...secondaryServices].join(', ')}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Attachment Thumbnails */}
+                            {attachments.length > 0 && (
+                                <div className="flex gap-2 overflow-x-auto pt-1">
+                                    <span className="font-bold text-slate-500 self-center whitespace-nowrap">Photos:</span>
+                                    {attachments.map((a, i) => (
+                                        <img key={i} src={a.data.includes('base64,') ? a.data : `data:${a.type};base64,${a.data}`} alt="thumb" className="h-8 w-8 object-cover rounded border border-slate-300 flex-shrink-0" />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 

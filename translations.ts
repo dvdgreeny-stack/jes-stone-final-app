@@ -36,7 +36,7 @@ export const translations = {
     addressPlaceholder: "Address auto-populates...",
     roleSelectPlaceholder: "Select Role...",
     unitInfoPlaceholder: "Tell us the site directions...",
-    otherServicePlaceholder: "Describe specific needs not listed on the left...",
+    otherServicePlaceholder: "Select applicable trades...",
     timelineSelectPlaceholder: "Select timeline...",
     notesPlaceholder: "Let it all out here. We'll figure it out fast...",
     dragDropText: "Drag & Drop photos here, or click to select",
@@ -67,6 +67,7 @@ export const translations = {
     chatTitle: "Assistant", 
     chatPlaceholder: "Ask about services or get help...",
     chatSend: "Send",
+    activeServicesLabel: "Active Request:",
 
     // Dashboard
     dashboardLoginTitle: "Client Portal",
@@ -219,7 +220,7 @@ export const translations = {
     addressPlaceholder: "La dirección se autocompleta...",
     roleSelectPlaceholder: "Seleccionar Rol...",
     unitInfoPlaceholder: "Indíquenos las direcciones del sitio...",
-    otherServicePlaceholder: "Describa necesidades no listadas a la izquierda...",
+    otherServicePlaceholder: "Seleccione oficios aplicables...",
     timelineSelectPlaceholder: "Seleccione cronograma...",
     notesPlaceholder: "Desahóguese aquí. Lo resolveremos rápido...",
     dragDropText: "Arrastre y suelte fotos aquí, o haga clic para seleccionar",
@@ -250,6 +251,7 @@ export const translations = {
     chatTitle: "Asistente", 
     chatPlaceholder: "Pregunte sobre servicios o pida ayuda...",
     chatSend: "Enviar",
+    activeServicesLabel: "Solicitud Activa:",
 
     // Dashboard
     dashboardLoginTitle: "Portal de Clientes",
