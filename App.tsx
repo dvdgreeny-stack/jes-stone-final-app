@@ -175,7 +175,7 @@ const Footer: React.FC = () => (
             </div>
         </div>
         <div className={`flex justify-between items-center text-xs ${THEME.colors.textSecondary}`}>
-             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.5-check-cols</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
+             <p>&copy; {new Date().getFullYear()} {BRANDING.companyName} {BRANDING.companySubtitle} | <span className="font-bold text-gold">v2.6-checkbox-cols</span> | <a href={BRANDING.websiteUrl} target="_blank" rel="noreferrer" className={`hover:${THEME.colors.textMain} transition-colors`}>{new URL(BRANDING.websiteUrl).hostname}</a></p>
              <div className="flex items-center gap-2">
                 <span>POWERED BY</span>
                 {BRANDING.footerLogoUrl ? (
@@ -243,11 +243,12 @@ interface SurveyProps {
     lang: 'en' | 'es';
     onSelectionChange?: (propertyName: string, companyName: string) => void;
     onPropertySelect?: (property: Property) => void;
-    // Lift state up for attachments so ChatWidget can see them
+    // Lift state up so ChatWidget can see attachment and services
     onAttachmentsChange?: (attachments: {name: string, type: string, data: string}[]) => void;
+    onServicesChange?: (primary: string[], secondary: string[]) => void;
 }
 
-const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange, onPropertySelect, onAttachmentsChange }) => {
+const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userProfile, lang, onSelectionChange, onPropertySelect, onAttachmentsChange, onServicesChange }) => {
     const t = translations[lang];
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     
@@ -287,6 +288,13 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             onAttachmentsChange(formData.attachments);
         }
     }, [formData.attachments, onAttachmentsChange]);
+
+    // Notify parent when services change (for Chat Context)
+    useEffect(() => {
+        if (onServicesChange) {
+            onServicesChange(formData.services, formData.otherServices);
+        }
+    }, [formData.services, formData.otherServices, onServicesChange]);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -458,7 +466,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
         // 2. We explicitly send `other` (to match the Spreadsheet Header 'Other') AND `otherService` (for legacy safety).
         // 3. We send `contactName` explicitly because the spreadsheet has a 'Contact Name' column.
         
-        // Combine Other Services array into a string
+        // Combine Other Services array into a string to populate the 'Other' column
         const safeOther = formData.otherServices && formData.otherServices.length > 0 
             ? formData.otherServices.join(', ') 
             : 'None';
@@ -477,7 +485,7 @@ const Survey: React.FC<SurveyProps> = ({ companies, isInternal, embedded, userPr
             phone: formData.phone,
             title: formData.title || 'N/A',
 
-            // -- Scope (The Problem Area) --
+            // -- Scope (Strict Mapping) --
             services: formData.services && formData.services.length > 0 ? formData.services : ['None'],
             other: safeOther,         // Maps to 'Other' Column
             otherService: safeOther,  // Backup Key
@@ -946,9 +954,11 @@ const Dashboard: React.FC<{companies: Company[], lang: 'en'|'es', session: UserS
 interface ChatWidgetProps {
     selectedProperty?: Property;
     attachments?: {name: string, type: string, data: string}[];
+    primaryServices?: string[];
+    secondaryServices?: string[];
 }
 
-const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments = [] }) => {
+const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments = [], primaryServices = [], secondaryServices = [] }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{role: 'user' | 'model', text: string}[]>([]);
     const [input, setInput] = useState('');
@@ -956,14 +966,21 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ selectedProperty, attachments =
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatRef = useRef<Chat | null>(null);
 
-    // Initialize/Re-initialize Chat when property changes
+    // Initialize/Re-initialize Chat when property OR services change
     useEffect(() => {
-        const propertyContext = selectedProperty 
+        let propertyContext = selectedProperty 
             ? `User is currently viewing Property: ${selectedProperty.name} at ${selectedProperty.address}.`
             : "User has not selected a property yet.";
+
+        if (primaryServices.length > 0) {
+            propertyContext += `\nSelected Primary Services: ${primaryServices.join(', ')}.`;
+        }
+        if (secondaryServices.length > 0) {
+            propertyContext += `\nSelected Secondary Services: ${secondaryServices.join(', ')}.`;
+        }
             
         chatRef.current = createChatSession(propertyContext);
-    }, [selectedProperty]);
+    }, [selectedProperty, primaryServices, secondaryServices]);
 
     const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     useEffect(scrollToBottom, [messages, isOpen]);
@@ -1084,6 +1101,8 @@ export default function App() {
     const [selectedProperty, setSelectedProperty] = useState<Property | undefined>(undefined);
     // State to hold attachments from Survey so ChatWidget can see them
     const [currentAttachments, setCurrentAttachments] = useState<{name: string, type: string, data: string}[]>([]);
+    // State to hold services from Survey so ChatWidget can see them
+    const [currentServices, setCurrentServices] = useState<{primary: string[], secondary: string[]}>({primary: [], secondary: []});
 
     useEffect(() => {
         const handleHashChange = () => setCurrentRoute(window.location.hash);
@@ -1097,6 +1116,10 @@ export default function App() {
 
     const handleSelectionChange = (propName: string, companyName: string) => {
         setHeaderTitles({ title: propName, subtitle: companyName });
+    };
+
+    const handleServicesChange = (primary: string[], secondary: string[]) => {
+        setCurrentServices({primary, secondary});
     };
 
     // Determine if we show Dashboard view or Main view
@@ -1141,6 +1164,7 @@ export default function App() {
                                         onSelectionChange={handleSelectionChange}
                                         onPropertySelect={setSelectedProperty}
                                         onAttachmentsChange={setCurrentAttachments}
+                                        onServicesChange={handleServicesChange}
                                     />
                                 </div>
 
@@ -1153,7 +1177,12 @@ export default function App() {
                     )}
                 </main>
 
-                <ChatWidget selectedProperty={selectedProperty} attachments={currentAttachments} />
+                <ChatWidget 
+                    selectedProperty={selectedProperty} 
+                    attachments={currentAttachments}
+                    primaryServices={currentServices.primary}
+                    secondaryServices={currentServices.secondary}
+                />
                 <Footer />
             </div>
         </ErrorBoundary>

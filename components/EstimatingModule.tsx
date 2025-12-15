@@ -123,20 +123,30 @@ export const EstimatingModule: React.FC<Props> = ({ session, lang }) => {
         const primaryEmail = session.profile?.email || '';
         const combinedEmails = ccEmails.trim() ? `${primaryEmail}, ${ccEmails}` : primaryEmail;
 
-        const payload: SurveyData = {
-            propertyId: session.company.properties[0]?.id || 'unknown', // Default to first property
+        const otherServicesText = `CapEx Limit: $${budgetCap}`;
+
+        // Construct payload manually to match the strict 'any' type used in App.tsx
+        // This ensures the 'other' key is present for the Google Sheet column.
+        const payload: any = {
+            propertyId: session.company.properties[0]?.id || 'unknown',
             propertyName: session.company.properties[0]?.name || 'Unknown',
+            propertyAddress: session.company.properties[0]?.address || 'Unknown',
+            
+            contactName: `${session.profile?.firstName} ${session.profile?.lastName}`,
             firstName: session.profile?.firstName || '',
             lastName: session.profile?.lastName || '',
-            email: combinedEmails, // Send both emails in the field
+            email: combinedEmails, 
             phone: session.profile?.phone || '',
             title: session.profile?.title || 'Manager',
+            
             unitInfo: 'Multiple/General CapEx',
             services: ['Estimate Request', 'Budget Approval'],
-            otherServices: [`CapEx Limit: $${budgetCap}`],
+            other: otherServicesText,        // Explicitly map to 'Other' column
+            otherServices: [otherServicesText], // Keep for type safety
+
             timeline: 'CapEx Budget - Future',
-            contactMethods: ['Email Reply'],
             notes: notes,
+            contactMethods: ['Email Reply'],
             attachments: []
         };
 
